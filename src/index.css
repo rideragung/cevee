@@ -1,0 +1,205 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-100 text-slate-900 font-sans;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Resume A4 Container (Editor Canvas) */
+.resume-a4-page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 10mm 13mm 12mm 13mm;
+  margin: 0 auto;
+  background-color: white;
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.07), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #111827;
+  font-size: 9pt;
+  line-height: 1.38;
+}
+
+/* Resume Section Divider Line (sleek 0.5px hairline) */
+.resume-section-divider {
+  border-bottom: 0.5px solid #1e293b;
+}
+
+/* Individual Physical A4 Sheet (Exact 210mm x 297mm with Whitespace Preserved) */
+.a4-page-sheet {
+  width: 210mm;
+  height: 297mm;
+  min-height: 297mm;
+  max-height: 297mm;
+  padding: 10mm 13mm 12mm 13mm;
+  margin: 0 auto;
+  background-color: white;
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #111827;
+  font-size: 9pt;
+  line-height: 1.38;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Universal Bullet List Styling for Canvas, Preview, and Print */
+.resume-a4-page ul,
+.a4-page-sheet ul,
+.resume-bullet-list,
+.ProseMirror ul {
+  list-style-type: disc !important;
+  margin-left: 1.25rem !important;
+  padding-left: 0.1rem !important;
+  margin-top: 0.15rem !important;
+  margin-bottom: 0.15rem !important;
+}
+
+.resume-a4-page li,
+.a4-page-sheet li,
+.resume-bullet-list li,
+.ProseMirror li {
+  list-style-type: disc !important;
+  display: list-item !important;
+  margin-bottom: 0.12rem !important;
+  padding-left: 0.1rem !important;
+  line-height: 1.35 !important;
+}
+
+/* Tiptap content styling */
+.ProseMirror {
+  outline: none;
+  font-size: 9pt;
+  line-height: 1.38;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+  margin-left: 1.1rem;
+}
+
+.ProseMirror p {
+  margin-bottom: 0.2rem;
+}
+
+.ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+/* Screen Mode: hide print-only-area */
+@media screen {
+  .print-only-area {
+    display: none !important;
+  }
+}
+
+/* Print CSS */
+@media print {
+  @page {
+    size: 210mm 297mm;
+    margin: 0;
+  }
+
+  html, body {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 210mm !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide app navigation, editor canvas, and UI controls */
+  #root > :not(.print-only-area),
+  .no-print,
+  .no-print-area,
+  .app-navbar,
+  nav,
+  [data-editor-control] {
+    display: none !important;
+  }
+
+  /* Display print area cleanly without hiding #root */
+  .print-only-area {
+    display: block !important;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    position: static !important;
+  }
+
+  /* Suppress ALL browser extension injected elements outside #root */
+  body > *:not(#root),
+  body > *:not(#root) *,
+  iframe,
+  embed,
+  object,
+  [class*="speech"],
+  [class*="audio"],
+  [class*="podcast"],
+  [class*="reader"],
+  [class*="extension"],
+  [id*="speech"],
+  [id*="audio"],
+  [id*="podcast"],
+  [id*="reader"],
+  [id*="extension"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    left: -99999px !important;
+  }
+
+  .a4-page-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    padding: 10mm 13mm 12mm 13mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    background: white !important;
+    /* Use standard system font in print to drop 1-2MB font embedding overhead */
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+
+  /* Force pure vector rendering & no raster filters in print */
+  .print-only-area *,
+  .a4-page-sheet * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    transform: none !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+
+  .a4-page-sheet a {
+    color: #111827 !important;
+  }
+
+  .resume-section-divider {
+    border-bottom: 0.5px solid #0f172a !important;
+  }
+
+  .a4-page-sheet:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+}
