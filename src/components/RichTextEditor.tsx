@@ -11,6 +11,7 @@ interface RichTextEditorProps {
   onCancel?: () => void;
   onChange?: (html: string) => void;
   hideActions?: boolean;
+  editorClassName?: string;
 }
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -19,6 +20,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   onCancel,
   onChange,
   hideActions = false,
+  editorClassName,
 }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
@@ -43,7 +45,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     },
     editorProps: {
       attributes: {
-        class: 'min-h-[90px] p-2.5 text-[9pt] leading-relaxed text-slate-800 focus:outline-none border border-slate-300 rounded-lg bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors',
+        class:
+          editorClassName ||
+          'min-h-[90px] p-2.5 text-[9pt] leading-relaxed text-slate-800 focus:outline-none border border-slate-300 rounded-lg bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors',
       },
     },
   });

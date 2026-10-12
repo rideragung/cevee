@@ -61,9 +61,12 @@ const estimateHeaderHeight = (header: any): number => {
 };
 
 const estimateSummaryHeight = (html: string, isPlaceholder?: boolean): number => {
-  if (isPlaceholder) return 55;
-  const h = estimateHtmlHeight(html);
-  return Math.max(20, h + 8);
+  if (isPlaceholder) return 45;
+  const text = stripHtml(html);
+  if (!text) return 0;
+  // Font 7.75pt (10.33px) memiliki rata-rata ~135 karakter per baris pada lebar 184mm
+  const lines = Math.max(1, Math.ceil(text.length / 135));
+  return lines * 14.5 + 4;
 };
 
 const estimateSkillsCategoryHeight = (category: string, items: string, isLast: boolean): number => {
@@ -299,12 +302,12 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           render: () => (
             <div className="mb-2">
               {section.isPlaceholder ? (
-                <p className="text-slate-400 text-justify text-[9pt] leading-normal">
+                <p className="text-slate-400 text-justify text-[7.75pt] leading-[1.38]">
                   A summary includes short, concise and targeted statements to summarize your skills and experiences. Mostly people will start with why they are here. What is the reason why they do what they do. Followed by “how” they do it and close it with “what” is the thing that they currently doing right now with respect to the ‘why’ and the ‘how’.
                 </p>
               ) : (
                 <div
-                  className="text-justify text-[9pt] leading-normal text-slate-800"
+                  className="resume-summary-text text-justify text-[7.75pt] leading-[1.38] text-slate-800"
                   dangerouslySetInnerHTML={{ __html: section.data.html }}
                 />
               )}

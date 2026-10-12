@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.21.0  
+**Dokumen Versi:** 1.22.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Desktop & Tablet First)  
@@ -26,7 +26,7 @@ Cevee memungkinkan pengguna:
 1. Membuat, mengelola, menduplikasi, dan menghapus banyak CV dalam satu akun.
 2. Mengedit teks langsung di atas kanvas format standar A4 (in-place WYSIWYG) dengan margin padat standar ATS (`10mm` atas, `13mm` samping).
 3. Header adaptif dengan baris Role / Headline opsional yang dapat diisi atau disembunyikan bebas, serta tautan portofolio bergaris bawah (*underlined*).
-4. Section Summary tanpa judul "SUMMARY" bawaan yang langsung tampil di bawah kontak dengan format rata kiri-kanan (*justify*).
+4. Section Summary tanpa judul "SUMMARY" bawaan yang langsung tampil di bawah kontak dengan format rata kiri-kanan (*justify*) dan tipografi presisi `7.75pt` (menghasilkan susunan 3 baris padat sesuai standar referensi).
 5. Melakukan format teks kaya (Bold, Italic, Underline, Link, Bulleted List).
 6. Menyesuaikan nama judul setiap section secara bebas (tidak terkunci pada nama bawaan).
 7. Menambah section preset maupun section kustom buatan sendiri.
@@ -166,7 +166,7 @@ Cevee memungkinkan pengguna:
 Sistem mendukung beragam tipe struktur section:
 1. **Text / Summary Section (Tanpa Title Bawaan):**
    - Ditampilkan langsung sebagai paragraf ringkasan profil tanpa judul "SUMMARY" dan tanpa garis pembatas horizontal (`showTitle: false`).
-   - Format teks rata kiri-kanan (*justify*) dengan ukuran font `9pt` dan line-height seimbang.
+   - Format teks rata kiri-kanan (*justify*) dengan ukuran font presisi `7.75pt` dan line-height `1.38` seimbang, menjamin paragraf ringkasan memecah tepat dalam 3 baris proporsional sesuai dokumen referensi.
    - Kontrol toolbar edit (Tiptap) tetap aktif saat teks diklik atau saat kursor diarahkan ke area summary.
 2. **Key-Value / Skills Section:** Kategori dan daftar item (contoh: "Design & Research: ...", "Tools: ...").
 3. **Timeline / Experience Section:** Berisi kumpulan item pengalaman:
