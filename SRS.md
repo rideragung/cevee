@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.20.0  
+**Dokumen Versi:** 1.21.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Desktop & Tablet First)  
@@ -217,7 +217,12 @@ Sistem mendukung beragam tipe struktur section:
 ### 3.8 FR-8: Fitur 1:1 PDF Live Preview & Item-Level Multi-Sheet Pagination
 - **FR-8.1 (Physical A4 Sheets Rendering & 100% Identical Layout):** Pratinjau PDF merender lembaran fisik kertas A4 individual (`.a4-page-sheet`) berukuran pasti `210mm x 297mm` dengan padding `10mm 13mm 12mm 13mm`. Tata letak pada mode pratinjau dan unduh PDF menggunakan kalkulasi deterministik yang sama persis sehingga tidak ada disparitas item antar lembar. Lembar ke-1 dan lembar ke-2 ditampilkan terpisah dengan spasi antar lembar yang luas (`48px`).
 - **FR-8.2 (Preservasi Whitespace Alami):** Ketika isi halaman tidak memenuhi tinggi lembar kertas A4, sisa ruang kosong (*whitespace*) di bagian bawah lembar tetap dipertahankan secara utuh dan tidak menciut, mencerminkan dokumen fisik yang akan dicetak.
-- **FR-8.3 (Item-Level Fine-Grained Flow & Anti-Orphan Title):** Sistem menghitung kapasitas lembar cetak (`990px`). Paginasi dilakukan pada tingkat **item / butir** individual (bukan memotong seluruh section sekaligus). Jika sebuah item melebihi sisa tinggi halaman, **hanya item tersebut dan item-item setelahnya** yang dipindahkan ke halaman berikutnya, sehingga halaman sebelumnya terisi padat dan proporsional tanpa kekosongan berlebih. Judul section dilindungi agar tidak terisolasi sendirian di dasar lembar tanpa didampingi minimal butir pertamanya (*orphan heading protection*).
+- **FR-8.3 (Sub-Pixel DOM-Measurement Engine, Fine-Grained Flow & Anti-Orphan Title):**
+  - **Dual-Layer Pagination Engine:**
+    - **Layer 1 (Calibrated Font Metrics):** Kapasitas lembar fisik A4 ditetapkan sebesar `1035px` (efektif ~275mm printable content height). Estimasi tinggi dikalibrasi akurat pada tipografi Inter 9pt (kerapatan ~105-109 karakter per baris, line-height 16.5px).
+    - **Layer 2 (Real DOM Measurement via useLayoutEffect):** Menggunakan kontainer ukur tersembunyi berlebar pasti `184mm` untuk membaca `getBoundingClientRect().height` nyata dari engine layout browser sebelum frame dirender. Mengeliminasi 100% tinggi semu (*ghost height*), mencegah ruang kosong prematur di dasar lembar, dan mengisi lembaran hingga 97%+ kapasitas sebelum memecah halaman.
+  - **Item-Level Cohesion:** Setiap item riwayat pekerjaan, proyek, pendidikan, dan sertifikasi dijaga sebagai satu unit utuh yang kohesif. Paginasi dilakukan pada tingkat item dan kategori keahlian (*skills*), mencegah pemotongan butir bullet point secara terfragmentasi.
+  - **Anti-Orphan Title Protection:** Judul section dijamin hanya akan masuk ke halaman berjalan jika judul dan blok pertama di bawahnya muat 100% bersama-sama. Mencegah judul section berdiri terisolasi di dasar halaman.
 - **FR-8.4 (Zoom & Page Indicators):** Dilengkapi kontrol zoom (50% - 150%) dan indikator penomoran lembar (*Page X of Y*).
 - **FR-8.5 (Universal Bullet List Rendering):** Seluruh elemen daftar (`ul`, `li`) diatur dengan gaya `list-style-type: disc !important` yang kebal terhadap CSS normalization reset, menjamin poin-poin pencapaian tampil tajam dan terlihat di kanvas editor, preview, maupun cetak PDF.
 
@@ -227,9 +232,9 @@ Sistem mendukung beragam tipe struktur section:
   `CV_[Nama Lengkap]_[Judul CV].pdf` (contoh: `CV_Your Name_UIUX & Product Designer.pdf`). Karakter ilegal file (`/`, `\`, `:`, `*`, `?`, `"`, `<`, `>`, `|`) dibersihkan secara otomatis.
 - **FR-9.3 (Kualitas Vektor & ATS-Friendly):** File PDF yang diunduh mempertahankan teks biner vektor (bukan raster gambar) sehingga dapat dibaca dan diseleksi oleh ATS (*Applicant Tracking System*).
 
-### 3.10 FR-10: Styling Cetak Presisi 1:1, Eliminasi Artefak & Optimasi Ukuran File PDF
-- **FR-10.1 (Print-Only Dedicated Paginated Sheets, Anti-Artifact & Lightweight Font Optimization):**
-  - **Optimasi Ukuran File (System Core Fonts):** Pada `@media print`, seluruh lembar fisik `.a4-page-sheet` dan elemen cetak menggunakan font sistem standar global PDF (`Arial, Helvetica, sans-serif !important`). Mencegah browser menanam (*embed*) tabel glyph font web eksternal (~800 KB – 1.8 MB), memangkas ukuran file PDF akhir menjadi sangat kecil (**~30 KB – 70 KB**).
+### 3.10 FR-10: Styling Cetak Presisi 1:1, Eliminasi Artefak & Konsistensi Tipografi
+- **FR-10.1 (Print-Only Dedicated Paginated Sheets & Typography Consistency):**
+  - **Konsistensi Font 1:1:** Seluruh lembar cetak `.a4-page-sheet` dan elemen cetak menggunakan font `Inter` identik dengan mode pratinjau browser (`font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important`). Menghilangkan ketidaksesuaian lebar karakter dan line-height antara layar dan file cetak PDF.
   - **Eliminasi Rasterizer:** Seluruh bayangan (`box-shadow`), filter, dan efek transparansi dinonaktifkan pada media cetak, memaksa engine browser menghasilkan 100% teks vektor tajam murni tanpa lapisan bitmap terkompresi.
   - **Eliminasi Tuntas Artefak Ekstensi Browser (Multi-Layer):**
     - Lapisan 1 (JavaScript): Tepat sebelum `window.print()` dipanggil, pembersih DOM menonaktifkan seluruh elemen anak `document.body` di luar `#root` dan seluruh elemen berposisi `fixed` di viewport (seperti widget floating audio/podcast/reader pink).

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef, useLayoutEffect } from 'react';
 import { ResumeDocument } from '../types/resume';
 import { getWhatsAppUrl } from './ResumeHeader';
 import { ExternalLink } from 'lucide-react';
@@ -21,30 +21,7 @@ const stripHtml = (html: string): string => {
   return html ? html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : '';
 };
 
-// Parse string HTML bullets menjadi array bullet mandiri
-const parseBullets = (html: string): string[] => {
-  if (!html || !html.trim()) return [];
-
-  const liMatches = html.match(/<li[^>]*>[\s\S]*?<\/li>/gi);
-  if (liMatches && liMatches.length > 0) {
-    const valid = liMatches.filter((li) => stripHtml(li).length > 0);
-    if (valid.length > 0) return valid;
-  }
-
-  const pMatches = html.match(/<p[^>]*>[\s\S]*?<\/p>/gi);
-  if (pMatches && pMatches.length > 0) {
-    const valid = pMatches.filter((p) => stripHtml(p).length > 0);
-    if (valid.length > 0) return valid;
-  }
-
-  if (stripHtml(html).length > 0) {
-    return [html];
-  }
-
-  return [];
-};
-
-// Estimasi tinggi teks/HTML realistis (A4 width 184mm content, 9pt font, 1.38 line-height ~16.5px per baris)
+// Estimasi tinggi teks/HTML realistis berbasis font Inter 9pt (lebar 184mm, 1 baris ~ 105 karakter)
 const estimateHtmlHeight = (html: string): number => {
   if (!html || !html.trim()) return 0;
 
@@ -53,113 +30,121 @@ const estimateHtmlHeight = (html: string): number => {
     let totalHeight = 0;
     for (const li of liMatches) {
       const text = stripHtml(li);
-      const lines = Math.max(1, Math.ceil(text.length / 80));
-      totalHeight += lines * 16.2 + 2;
+      // Lebar bullet list indent = 673px. Rata-rata 105 karakter per baris
+      const lines = Math.max(1, Math.ceil(text.length / 105));
+      totalHeight += lines * 16.5;
     }
-    return totalHeight + 2;
+    return totalHeight + 4;
   }
 
   const text = stripHtml(html);
   if (!text) return 0;
-  const lines = Math.max(1, Math.ceil(text.length / 85));
-  return lines * 16.2 + 2;
+  const lines = Math.max(1, Math.ceil(text.length / 109));
+  return lines * 16.5;
 };
 
 const estimateHeaderHeight = (header: any): number => {
-  let height = 32; // Nama (text-[17pt] leading-tight + mb-0.5)
+  let height = 30; // Nama
   if (header.headline || (header.roles && header.roles.length > 0)) {
     height += 16;
   }
   const linksCount = header.links?.length || 0;
-  const contactTextLen = (header.location?.length || 0) + (header.email?.length || 0) + (header.phone?.length || 0) + linksCount * 25;
-  const contactLines = Math.max(1, Math.ceil(contactTextLen / 85));
+  const contactTextLen =
+    (header.location?.length || 0) +
+    (header.email?.length || 0) +
+    (header.phone?.length || 0) +
+    linksCount * 20;
+  const contactLines = Math.max(1, Math.ceil(contactTextLen / 109));
   height += contactLines * 15;
-  height += 8; // margin
-  return Math.max(55, height);
+  height += 8; // mb-2
+  return Math.max(50, height);
 };
 
 const estimateSummaryHeight = (html: string, isPlaceholder?: boolean): number => {
-  if (isPlaceholder) return 65;
+  if (isPlaceholder) return 55;
   const h = estimateHtmlHeight(html);
-  return Math.max(22, h + 8);
+  return Math.max(20, h + 8);
 };
 
-const estimateSkillsHeight = (categories: any[], isPlaceholder?: boolean): number => {
-  if (isPlaceholder) return 36;
-  if (!categories || categories.length === 0) return 22;
-  let height = 0;
-  for (const cat of categories) {
-    const text = `${cat.category || ''}: ${cat.items || ''}`;
-    const lines = Math.max(1, Math.ceil(text.length / 85));
-    height += lines * 16 + 2;
-  }
-  return height + 8;
+const estimateSkillsCategoryHeight = (category: string, items: string, isLast: boolean): number => {
+  const text = `${category}: ${items}`;
+  const lines = Math.max(1, Math.ceil(text.length / 109));
+  return lines * 16.5 + (isLast ? 8 : 2);
 };
 
 const estimateExperienceItemHeight = (item: any, isPlaceholder?: boolean): number => {
-  if (isPlaceholder) return 75;
-  let height = 32; // role + company header lines
+  if (isPlaceholder) return 60;
+  let height = 32; // Role line + company line
   if (item?.bullets) {
     height += estimateHtmlHeight(item.bullets);
   }
-  height += 8;
-  return Math.max(38, height);
+  height += 8; // mb-2
+  return Math.max(34, height);
 };
 
 const estimateProjectItemHeight = (item: any, isPlaceholder?: boolean): number => {
-  if (isPlaceholder) return 60;
-  let height = 18; // title + period
+  if (isPlaceholder) return 55;
+  let height = 16; // Title + period line
   if (item?.bullets) {
     height += estimateHtmlHeight(item.bullets);
   }
-  height += 8;
-  return Math.max(28, height);
+  height += 8; // mb-2
+  return Math.max(26, height);
 };
 
 const estimateEducationItemHeight = (item: any, isPlaceholder?: boolean): number => {
-  if (isPlaceholder) return 50;
-  let height = 32; // degree + institution lines
+  if (isPlaceholder) return 40;
+  let height = 32; // Degree line + institution line
+  if (item?.description) {
+    height += estimateHtmlHeight(item.description);
+  }
+  height += 6; // mb-1.5
+  return Math.max(32, height);
+};
+
+const estimateCustomItemHeight = (item: any, sectionTitle: string, isPlaceholder?: boolean): number => {
+  if (isPlaceholder) return 24;
+  const upper = (sectionTitle || '').toUpperCase();
+  if (upper.includes('CERTIFICATION') || upper.includes('LANGUAGE') || upper.includes('REFERENCE')) {
+    return 22; // 1 compact line
+  }
+  let height = 16;
   if (item?.description) {
     height += estimateHtmlHeight(item.description);
   }
   height += 6;
-  return Math.max(36, height);
+  return Math.max(22, height);
 };
 
-const estimateCustomItemHeight = (item: any, sectionTitle: string, isPlaceholder?: boolean): number => {
-  if (isPlaceholder) return 32;
-  const upper = (sectionTitle || '').toUpperCase();
-  if (upper.includes('CERTIFICATION') || upper.includes('LANGUAGE') || upper.includes('REFERENCE')) {
-    return 24; // 1 baris ringkas
-  }
-  let height = 18;
-  if (item?.description) {
-    height += estimateHtmlHeight(item.description);
-  }
-  height += 8;
-  return Math.max(24, height);
-};
+// Available printable content height in A4 (297mm - 10mm top - 12mm bottom = ~1039.4px at 96 DPI, safe threshold 1035px)
+const PAGE_CONTENT_MAX_HEIGHT_PX = 1035;
 
-// Available printable content height in A4 (297mm - 10mm top - 12mm bottom = ~1039px at 96 DPI, safe threshold 1032px)
-const PAGE_CONTENT_MAX_HEIGHT_PX = 1032;
-
-// Item-level pagination: pack items into current page, moving only overflowing items to next page
-const paginateBlocks = (blocks: ContentBlock[]): ContentBlock[][] => {
+// Pure deterministic item-level packing engine
+function runPagination(
+  blocks: ContentBlock[],
+  measuredHeights?: Record<string, number>
+): ContentBlock[][] {
   const calculatedPages: ContentBlock[][] = [];
   let currentPageBlocks: ContentBlock[] = [];
   let currentHeight = 0;
 
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
-    const h = b.height;
+    const h = measuredHeights && measuredHeights[b.id] !== undefined
+      ? measuredHeights[b.id]
+      : b.height;
 
     // Anti-orphan rule for Section Titles:
     // Pastikan judul section DAN seluruh blok pertama di bawahnya muat bersama di halaman ini.
     if (b.type === 'section-title') {
       const nextBlock = i + 1 < blocks.length ? blocks[i + 1] : null;
-      const requiredFirstBlockSpace = nextBlock ? nextBlock.height : 0;
+      const nextH = nextBlock
+        ? (measuredHeights && measuredHeights[nextBlock.id] !== undefined
+            ? measuredHeights[nextBlock.id]
+            : nextBlock.height)
+        : 0;
 
-      if (currentHeight + h + requiredFirstBlockSpace > PAGE_CONTENT_MAX_HEIGHT_PX && currentPageBlocks.length > 0) {
+      if (currentHeight + h + nextH > PAGE_CONTENT_MAX_HEIGHT_PX && currentPageBlocks.length > 0) {
         calculatedPages.push(currentPageBlocks);
         currentPageBlocks = [b];
         currentHeight = h;
@@ -172,7 +157,7 @@ const paginateBlocks = (blocks: ContentBlock[]): ContentBlock[][] => {
       currentPageBlocks.push(b);
       currentHeight += h;
     } else {
-      // Item exceeds current page: move this item to next page
+      // Item melebihi sisa tinggi halaman: pindahkan item ke halaman baru
       if (currentPageBlocks.length > 0) {
         calculatedPages.push(currentPageBlocks);
         currentPageBlocks = [b];
@@ -189,7 +174,7 @@ const paginateBlocks = (blocks: ContentBlock[]): ContentBlock[][] => {
   }
 
   return calculatedPages;
-};
+}
 
 export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
   resume,
@@ -197,12 +182,13 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
   showPageNumbers = true,
 }) => {
   const { header, sections } = resume.content;
+  const measureRef = useRef<HTMLDivElement>(null);
 
-  // Flatten into atomic blocks (header, section titles, individual items)
+  // Flatten into atomic blocks (header, section titles, cohesive items)
   const allBlocks: ContentBlock[] = useMemo(() => {
     const list: ContentBlock[] = [];
 
-    // Header Block
+    // 1. Header Block
     list.push({
       id: 'block-header',
       type: 'header',
@@ -285,7 +271,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
       },
     });
 
-    // Sections
+    // 2. Sections
     sections.forEach((section) => {
       const shouldShowTitle = section.showTitle ?? section.type !== 'summary';
 
@@ -294,7 +280,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
         list.push({
           id: `title-${section.id}`,
           type: 'section-title',
-          height: 28,
+          height: 25,
           render: () => (
             <div className="resume-section-divider border-b-[0.5px] border-slate-900 pb-0.5 mb-1.5 mt-2.5 first:mt-0.5">
               <h2 className="text-[9pt] font-bold tracking-wider text-slate-900 uppercase">
@@ -342,9 +328,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           const cats = section.data.categories || [];
           cats.forEach((cat: any, catIdx: number) => {
             const isLastCat = catIdx === cats.length - 1;
-            const text = `${cat.category || ''}: ${cat.items || ''}`;
-            const lines = Math.max(1, Math.ceil(text.length / 85));
-            const catHeight = lines * 16.2 + (isLastCat ? 8 : 2);
+            const catHeight = estimateSkillsCategoryHeight(cat.category || '', cat.items || '', isLastCat);
 
             list.push({
               id: `content-${section.id}-cat-${cat.id || catIdx}`,
@@ -364,7 +348,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           list.push({
             id: `item-${section.id}-placeholder`,
             type: 'item',
-            height: 75,
+            height: 60,
             render: () => (
               <div className="mb-2 text-slate-400">
                 <div className="flex justify-between items-baseline font-bold leading-snug">
@@ -382,85 +366,30 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          section.data.items?.forEach((item: any, itemIdx: number) => {
-            const rawBullets = parseBullets(item.bullets);
-            const isLastItem = itemIdx === (section.data.items?.length || 1) - 1;
-
-            if (rawBullets.length <= 1) {
-              list.push({
-                id: `item-${section.id}-${item.id}`,
-                type: 'item',
-                height: estimateExperienceItemHeight(item, false),
-                render: () => (
-                  <div className="mb-2">
-                    <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
-                      <span>{item.role}</span>
-                      <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
-                    </div>
-                    <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[9.5pt]">
-                      <span className="font-semibold">{item.company}</span>
-                      <span className="text-slate-700">{item.location}</span>
-                    </div>
-                    {item.bullets && (
-                      <div
-                        className="text-slate-800 text-justify mt-0.5"
-                        dangerouslySetInnerHTML={{ __html: item.bullets }}
-                      />
-                    )}
+          section.data.items?.forEach((item: any) => {
+            list.push({
+              id: `item-${section.id}-${item.id}`,
+              type: 'item',
+              height: estimateExperienceItemHeight(item, false),
+              render: () => (
+                <div className="mb-2">
+                  <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
+                    <span>{item.role}</span>
+                    <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
                   </div>
-                ),
-              });
-            } else {
-              // Granular multi-bullet splitting: Job Header + Bullet 1 selalu bersama
-              const headBulletsHtml = rawBullets[0].startsWith('<li')
-                ? `<ul>${rawBullets[0]}</ul>`
-                : rawBullets[0];
-              const headHeight = 32 + estimateHtmlHeight(rawBullets[0]) + 2;
-
-              list.push({
-                id: `item-${section.id}-${item.id}-head`,
-                type: 'item',
-                height: headHeight,
-                render: () => (
-                  <div className="mb-0.5">
-                    <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
-                      <span>{item.role}</span>
-                      <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
-                    </div>
-                    <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[9.5pt]">
-                      <span className="font-semibold">{item.company}</span>
-                      <span className="text-slate-700">{item.location}</span>
-                    </div>
+                  <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[9.5pt]">
+                    <span className="font-semibold">{item.company}</span>
+                    <span className="text-slate-700">{item.location}</span>
+                  </div>
+                  {item.bullets && (
                     <div
                       className="text-slate-800 text-justify mt-0.5"
-                      dangerouslySetInnerHTML={{ __html: headBulletsHtml }}
+                      dangerouslySetInnerHTML={{ __html: item.bullets }}
                     />
-                  </div>
-                ),
-              });
-
-              // Sisa bullets masing-masing mandiri
-              for (let bIdx = 1; bIdx < rawBullets.length; bIdx++) {
-                const bHtml = rawBullets[bIdx];
-                const isFinalBulletOfItem = bIdx === rawBullets.length - 1;
-                const formattedBulletHtml = bHtml.startsWith('<li') ? `<ul>${bHtml}</ul>` : bHtml;
-                const bHeight = estimateHtmlHeight(bHtml) + (isFinalBulletOfItem ? 8 : 2);
-
-                list.push({
-                  id: `item-${section.id}-${item.id}-b-${bIdx}`,
-                  type: 'item',
-                  height: bHeight,
-                  render: () => (
-                    <div className={isFinalBulletOfItem ? 'mb-2' : 'mb-0.5'}>
-                      <div
-                        className="text-slate-800 text-justify"
-                        dangerouslySetInnerHTML={{ __html: formattedBulletHtml }}
-                      />
-                    </div>
-                  ),
-                });
-              }
-            }
+                  )}
+                </div>
+              ),
+            });
           });
         }
       } else if (section.type === 'projects') {
@@ -468,7 +397,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           list.push({
             id: `item-${section.id}-placeholder`,
             type: 'item',
-            height: 60,
+            height: 55,
             render: () => (
               <div className="mb-2 text-slate-400">
                 <div className="flex justify-between items-baseline leading-snug">
@@ -486,102 +415,39 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          section.data.items?.forEach((item: any, itemIdx: number) => {
-            const rawBullets = parseBullets(item.bullets);
-            const isLastItem = itemIdx === (section.data.items?.length || 1) - 1;
-
-            if (rawBullets.length <= 1) {
-              list.push({
-                id: `item-${section.id}-${item.id}`,
-                type: 'item',
-                height: estimateProjectItemHeight(item, false),
-                render: () => (
-                  <div className="mb-2">
-                    <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
-                      {item.url ? (
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-bold text-slate-900 hover:text-blue-700 inline-flex items-center gap-1 group/link"
-                          title={item.url}
-                        >
-                          <span className="group-hover/link:underline">{item.name}</span>
-                          <ExternalLink size={11} className="inline opacity-80 group-hover/link:opacity-100 flex-shrink-0 text-slate-700" />
-                        </a>
-                      ) : (
-                        <span>{item.name}</span>
-                      )}
-                      <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
-                    </div>
-                    {item.bullets && (
-                      <div
-                        className="text-slate-800 text-justify mt-0.5"
-                        dangerouslySetInnerHTML={{ __html: item.bullets }}
-                      />
+          section.data.items?.forEach((item: any) => {
+            list.push({
+              id: `item-${section.id}-${item.id}`,
+              type: 'item',
+              height: estimateProjectItemHeight(item, false),
+              render: () => (
+                <div className="mb-2">
+                  <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
+                    {item.url ? (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-bold text-slate-900 hover:text-blue-700 inline-flex items-center gap-1 group/link"
+                        title={item.url}
+                      >
+                        <span className="group-hover/link:underline">{item.name}</span>
+                        <ExternalLink size={11} className="inline opacity-80 group-hover/link:opacity-100 flex-shrink-0 text-slate-700" />
+                      </a>
+                    ) : (
+                      <span>{item.name}</span>
                     )}
+                    <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
                   </div>
-                ),
-              });
-            } else {
-              // Granular multi-bullet splitting: Project Header + Bullet 1 selalu bersama
-              const headBulletsHtml = rawBullets[0].startsWith('<li')
-                ? `<ul>${rawBullets[0]}</ul>`
-                : rawBullets[0];
-              const headHeight = 18 + estimateHtmlHeight(rawBullets[0]) + 2;
-
-              list.push({
-                id: `item-${section.id}-${item.id}-head`,
-                type: 'item',
-                height: headHeight,
-                render: () => (
-                  <div className="mb-0.5">
-                    <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
-                      {item.url ? (
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-bold text-slate-900 hover:text-blue-700 inline-flex items-center gap-1 group/link"
-                          title={item.url}
-                        >
-                          <span className="group-hover/link:underline">{item.name}</span>
-                          <ExternalLink size={11} className="inline opacity-80 group-hover/link:opacity-100 flex-shrink-0 text-slate-700" />
-                        </a>
-                      ) : (
-                        <span>{item.name}</span>
-                      )}
-                      <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
-                    </div>
+                  {item.bullets && (
                     <div
                       className="text-slate-800 text-justify mt-0.5"
-                      dangerouslySetInnerHTML={{ __html: headBulletsHtml }}
+                      dangerouslySetInnerHTML={{ __html: item.bullets }}
                     />
-                  </div>
-                ),
-              });
-
-              for (let bIdx = 1; bIdx < rawBullets.length; bIdx++) {
-                const bHtml = rawBullets[bIdx];
-                const isFinalBulletOfItem = bIdx === rawBullets.length - 1;
-                const formattedBulletHtml = bHtml.startsWith('<li') ? `<ul>${bHtml}</ul>` : bHtml;
-                const bHeight = estimateHtmlHeight(bHtml) + (isFinalBulletOfItem ? 8 : 2);
-
-                list.push({
-                  id: `item-${section.id}-${item.id}-b-${bIdx}`,
-                  type: 'item',
-                  height: bHeight,
-                  render: () => (
-                    <div className={isFinalBulletOfItem ? 'mb-2' : 'mb-0.5'}>
-                      <div
-                        className="text-slate-800 text-justify"
-                        dangerouslySetInnerHTML={{ __html: formattedBulletHtml }}
-                      />
-                    </div>
-                  ),
-                });
-              }
-            }
+                  )}
+                </div>
+              ),
+            });
           });
         }
       } else if (section.type === 'education') {
@@ -589,7 +455,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           list.push({
             id: `item-${section.id}-placeholder`,
             type: 'item',
-            height: estimateEducationItemHeight(null, true),
+            height: 40,
             render: () => (
               <div className="mb-1.5 text-slate-400 space-y-0.5">
                 <div className="flex justify-between items-baseline leading-snug">
@@ -644,7 +510,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           list.push({
             id: `item-${section.id}-placeholder`,
             type: 'item',
-            height: estimateCustomItemHeight(null, section.title, true),
+            height: 24,
             render: () => (
               <div className="mb-2 text-slate-400 space-y-1">
                 {isCert && (
@@ -703,9 +569,14 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
               render: () => {
                 if (isCert) {
                   const rawDesc = item.description || '';
-                  const isUrlDesc = rawDesc.startsWith('http') || rawDesc.includes('.com') || rawDesc.includes('.id') || rawDesc.includes('.org');
+                  const isUrlDesc =
+                    rawDesc.startsWith('http') ||
+                    rawDesc.includes('.com') ||
+                    rawDesc.includes('.id') ||
+                    rawDesc.includes('.org');
                   const credUrl = item.credentialUrl || (isUrlDesc ? rawDesc : '');
-                  const rawCredId = item.credentialId || (!isUrlDesc ? rawDesc.replace(/^Credential ID:\s*/i, '') : '');
+                  const rawCredId =
+                    item.credentialId || (!isUrlDesc ? rawDesc.replace(/^Credential ID:\s*/i, '') : '');
 
                   const certContent = (
                     <>
@@ -793,35 +664,82 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
     return list;
   }, [header, sections]);
 
-  // Pure deterministic item-level pagination (100% identical in preview and download)
-  const pages = useMemo(() => paginateBlocks(allBlocks), [allBlocks]);
+  // Initial deterministic pagination
+  const [pages, setPages] = useState<ContentBlock[][]>(() => runPagination(allBlocks));
+
+  // Dynamic real DOM measurement via useLayoutEffect (zero-flicker subpixel precision)
+  useLayoutEffect(() => {
+    if (!measureRef.current) return;
+    const heights: Record<string, number> = {};
+    const nodes = measureRef.current.children;
+    for (let i = 0; i < nodes.length; i++) {
+      const el = nodes[i] as HTMLElement;
+      const id = el.getAttribute('data-measure-id');
+      if (id) {
+        // getBoundingClientRect().height captures the exact browser-computed layout
+        const rect = el.getBoundingClientRect();
+        heights[id] = Math.ceil(rect.height);
+      }
+    }
+    const measuredPages = runPagination(allBlocks, heights);
+    setPages(measuredPages);
+  }, [allBlocks]);
 
   return (
-    <div
-      style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
-      className="transition-transform duration-100 ease-out flex flex-col items-center"
-    >
-      {pages.map((pageBlocks, pageIdx) => (
-        <div
-          key={pageIdx}
-          className="a4-page-sheet shadow-2xl relative border border-slate-300/80 bg-white"
-          style={{ marginBottom: '48px' }}
-        >
-          {/* Page Content */}
-          <div className="w-full h-full flex flex-col justify-start">
-            {pageBlocks.map((b) => (
-              <React.Fragment key={b.id}>{b.render()}</React.Fragment>
-            ))}
+    <>
+      {/* Hidden 1:1 A4 Measurement Container - ensures browser engine computes exact layout */}
+      <div
+        ref={measureRef}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: -99999,
+          left: -99999,
+          width: '184mm',
+          visibility: 'hidden',
+          pointerEvents: 'none',
+          boxSizing: 'border-box',
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+          fontSize: '9pt',
+          lineHeight: '1.38',
+          color: '#111827',
+          zIndex: -999,
+        }}
+      >
+        {allBlocks.map((b) => (
+          <div key={b.id} data-measure-id={b.id}>
+            {b.render()}
           </div>
+        ))}
+      </div>
 
-          {/* Page Number Badge (only on screen preview, hidden in print) */}
-          {showPageNumbers && (
-            <div className="absolute bottom-2.5 right-4 text-[8pt] text-slate-400 font-mono select-none no-print">
-              Page {pageIdx + 1} of {pages.length}
+      {/* Visible Paginated Pages */}
+      <div
+        style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
+        className="transition-transform duration-100 ease-out flex flex-col items-center"
+      >
+        {pages.map((pageBlocks, pageIdx) => (
+          <div
+            key={pageIdx}
+            className="a4-page-sheet shadow-2xl relative border border-slate-300/80 bg-white"
+            style={{ marginBottom: '48px' }}
+          >
+            {/* Page Content */}
+            <div className="w-full h-full flex flex-col justify-start">
+              {pageBlocks.map((b) => (
+                <React.Fragment key={b.id}>{b.render()}</React.Fragment>
+              ))}
             </div>
-          )}
-        </div>
-      ))}
-    </div>
+
+            {/* Page Number Badge (only on screen preview, hidden in print) */}
+            {showPageNumbers && (
+              <div className="absolute bottom-2.5 right-4 text-[8pt] text-slate-400 font-mono select-none no-print">
+                Page {pageIdx + 1} of {pages.length}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
   );
 };
