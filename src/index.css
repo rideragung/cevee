@@ -93,10 +93,17 @@
   margin-bottom: 0;
 }
 
-/* Screen Mode: hide print-only-area */
+/* Screen Mode: hide print-only-area visually without breaking DOM layout computation */
 @media screen {
   .print-only-area {
-    display: none !important;
+    position: absolute !important;
+    left: -99999px !important;
+    top: -99999px !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    width: 210mm !important;
+    overflow: hidden !important;
   }
 }
 
@@ -116,24 +123,29 @@
     overflow: visible !important;
   }
 
-  /* Hide app navigation, editor canvas, and UI controls */
+  /* Hide app navigation, editor canvas, measuring container, and UI controls */
   #root > :not(.print-only-area),
   .no-print,
   .no-print-area,
   .app-navbar,
   nav,
-  [data-editor-control] {
+  [data-editor-control],
+  [data-a4-measure],
+  .a4-measure-container {
     display: none !important;
   }
 
   /* Display print area cleanly without hiding #root */
   .print-only-area {
     display: block !important;
+    position: static !important;
+    visibility: visible !important;
     width: 210mm !important;
+    height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     background: white !important;
-    position: static !important;
+    overflow: visible !important;
   }
 
   /* Suppress ALL browser extension injected elements outside #root */

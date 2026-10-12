@@ -672,17 +672,26 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
     if (!measureRef.current) return;
     const heights: Record<string, number> = {};
     const nodes = measureRef.current.children;
+    let hasPositiveHeights = false;
+
     for (let i = 0; i < nodes.length; i++) {
       const el = nodes[i] as HTMLElement;
       const id = el.getAttribute('data-measure-id');
       if (id) {
         // getBoundingClientRect().height captures the exact browser-computed layout
         const rect = el.getBoundingClientRect();
-        heights[id] = Math.ceil(rect.height);
+        if (rect.height > 0) {
+          heights[id] = Math.ceil(rect.height);
+          hasPositiveHeights = true;
+        }
       }
     }
-    const measuredPages = runPagination(allBlocks, heights);
-    setPages(measuredPages);
+
+    // Only update pages if we measured real, non-zero DOM heights!
+    if (hasPositiveHeights) {
+      const measuredPages = runPagination(allBlocks, heights);
+      setPages(measuredPages);
+    }
   }, [allBlocks]);
 
   return (
@@ -691,6 +700,8 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
       <div
         ref={measureRef}
         aria-hidden="true"
+        data-a4-measure="true"
+        className="a4-measure-container no-print"
         style={{
           position: 'absolute',
           top: -99999,
