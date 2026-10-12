@@ -93,11 +93,11 @@
   margin-bottom: 0;
 }
 
-/* Summary Text Standard (Exact 7.75pt, justified, line-height 1.38 matching 3-line reference) */
+/* Summary Text Standard (Exact 7.75pt, justified, line-height 1.48 matching reference) */
 .resume-summary-text,
 .resume-summary-text p {
   font-size: 7.75pt !important;
-  line-height: 1.38 !important;
+  line-height: 1.48 !important;
   text-align: justify !important;
   margin-bottom: 0 !important;
 }

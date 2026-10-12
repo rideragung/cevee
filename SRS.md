@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.22.0  
+**Dokumen Versi:** 1.23.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Desktop & Tablet First)  
@@ -166,7 +166,7 @@ Cevee memungkinkan pengguna:
 Sistem mendukung beragam tipe struktur section:
 1. **Text / Summary Section (Tanpa Title Bawaan):**
    - Ditampilkan langsung sebagai paragraf ringkasan profil tanpa judul "SUMMARY" dan tanpa garis pembatas horizontal (`showTitle: false`).
-   - Format teks rata kiri-kanan (*justify*) dengan ukuran font presisi `7.75pt` dan line-height `1.38` seimbang, menjamin paragraf ringkasan memecah tepat dalam 3 baris proporsional sesuai dokumen referensi.
+   - Format teks rata kiri-kanan (*justify*) dengan ukuran font presisi `7.75pt` dan line-height `1.48` seimbang, menjamin paragraf ringkasan memecah tepat dalam 3 baris proporsional dengan keterbacaan yang lega sesuai dokumen referensi.
    - Kontrol toolbar edit (Tiptap) tetap aktif saat teks diklik atau saat kursor diarahkan ke area summary.
 2. **Key-Value / Skills Section:** Kategori dan daftar item (contoh: "Design & Research: ...", "Tools: ...").
 3. **Timeline / Experience Section:** Berisi kumpulan item pengalaman:

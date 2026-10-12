@@ -45,7 +45,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   };
 
   return (
-    <section className="group relative mb-2.5">
+    <section className="group relative mb-1.5">
       {showTitle && !isEditing && (
         <SectionHeader
           title={title}
@@ -124,7 +124,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
               initialContent={isPlaceholder ? '' : data.html}
               onChange={(newHtml) => setContent(newHtml)}
               hideActions={true}
-              editorClassName="min-h-[90px] p-2.5 text-[7.75pt] text-justify leading-[1.38] text-slate-800 focus:outline-none border border-slate-300 rounded-lg bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+              editorClassName="min-h-[90px] p-2.5 text-[7.75pt] text-justify leading-[1.48] text-slate-800 focus:outline-none border border-slate-300 rounded-lg bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
             />
           </div>
 
@@ -152,7 +152,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
             setContent(isPlaceholder ? '' : data.html);
             setIsEditing(true);
           }}
-          className={`cursor-pointer hover:bg-slate-50/70 p-1 -m-1 rounded transition resume-summary-text text-justify text-[7.75pt] leading-[1.38] ${
+          className={`cursor-pointer hover:bg-slate-50/70 p-1 -m-1 rounded transition resume-summary-text text-justify text-[7.75pt] leading-[1.48] ${
             isPlaceholder ? 'text-slate-400 select-none' : 'text-slate-800'
           }`}
           title="Click to edit profile summary"
