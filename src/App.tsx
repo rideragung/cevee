@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { initialResumes } from './data/initialData';
 import { ResumeDocument, HeaderData, SectionType } from './types/resume';
 import { Navbar } from './components/Navbar';
@@ -26,6 +26,7 @@ export function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
+  const fetchedUserIdRef = useRef<string | null>(null);
 
   const [resumes, setResumes] = useState<ResumeDocument[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -62,7 +63,11 @@ export function App() {
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      setUser((prev) => {
+        const next = session?.user ?? null;
+        if (prev?.id === next?.id) return prev;
+        return next;
+      });
       setIsAuthChecking(false);
       if (session && (window.location.search.includes('code=') || window.location.hash.includes('access_token'))) {
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -72,7 +77,11 @@ export function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+      setUser((prev) => {
+        const next = session?.user ?? null;
+        if (prev?.id === next?.id) return prev;
+        return next;
+      });
       setIsAuthChecking(false);
       if (event === 'SIGNED_IN' && session) {
         if (window.location.search.includes('code=') || window.location.hash.includes('access_token')) {
@@ -91,6 +100,7 @@ export function App() {
     if (supabase) {
       await supabase.auth.signOut();
     }
+    fetchedUserIdRef.current = null;
     setUser(null);
     setIsGuest(false);
     setResumes([]);
@@ -100,9 +110,18 @@ export function App() {
     localStorage.removeItem(ACTIVE_RESUME_KEY);
   };
 
-  // Fetch user resumes from Supabase on login
+  // Fetch user resumes from Supabase on login (only once per authenticated user)
   useEffect(() => {
-    if (!user) return;
+    const userId = user?.id;
+    if (!userId) {
+      fetchedUserIdRef.current = null;
+      return;
+    }
+
+    if (fetchedUserIdRef.current === userId) {
+      return;
+    }
+    fetchedUserIdRef.current = userId;
 
     let isMounted = true;
     setSyncStatus('saving');
@@ -111,11 +130,14 @@ export function App() {
 
       if (dbResumes && dbResumes.length > 0) {
         setResumes(dbResumes);
-        setActiveResumeId(dbResumes[0].id);
-        setCurrentView('dashboard');
+        setActiveResumeId((prevActiveId) => {
+          return prevActiveId && dbResumes.some((r) => r.id === prevActiveId)
+            ? prevActiveId
+            : dbResumes[0].id;
+        });
         setSyncStatus('saved');
       } else if (dbResumes && dbResumes.length === 0) {
-        // First-time login: do NOT auto-create any resume; show clean empty dashboard
+        // First-time login: show clean empty dashboard
         setResumes([]);
         setActiveResumeId('');
         setCurrentView('dashboard');
@@ -128,7 +150,7 @@ export function App() {
     return () => {
       isMounted = false;
     };
-  }, [user]);
+  }, [user?.id]);
 
   const activeResume = resumes.find((r) => r.id === activeResumeId) || (resumes.length > 0 ? resumes[0] : undefined);
 
@@ -143,7 +165,7 @@ export function App() {
     }, 800);
 
     return () => clearTimeout(timeout);
-  }, [activeResume, activeResumeId, user, resumes.length]);
+  }, [activeResume, activeResumeId, user?.id, resumes.length]);
 
   // Auto-save to localStorage
   useEffect(() => {
