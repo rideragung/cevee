@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
 import { CustomSectionItem } from '../../types/resume';
 import { Plus, Trash2 } from 'lucide-react';
+import { DatePicker } from '../DatePicker';
 
 interface CustomSectionProps {
   title: string;
@@ -199,13 +200,21 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                         {isRef ? 'Email / Contact' : isCert ? 'Issue Date' : 'Date / Year'}{' '}
                         <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        value={item.period || ''}
-                        onChange={(e) => handleUpdateField(item.id, 'period', e.target.value)}
-                        placeholder={isRef ? 'e.g., richard@piedpiper.com' : 'e.g., Jan 2025 – Jan 2028'}
-                        className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                      />
+                      {isRef ? (
+                        <input
+                          type="text"
+                          value={item.period || ''}
+                          onChange={(e) => handleUpdateField(item.id, 'period', e.target.value)}
+                          placeholder="e.g., richard@piedpiper.com"
+                          className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                        />
+                      ) : (
+                        <DatePicker
+                          value={item.period || ''}
+                          onChange={(val) => handleUpdateField(item.id, 'period', val)}
+                          placeholder="Pilih Tanggal"
+                        />
+                      )}
                     </div>
                   )}
                 </div>

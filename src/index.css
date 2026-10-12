@@ -108,13 +108,13 @@
 /* Screen Mode: hide print-only-area visually without breaking DOM layout computation */
 @media screen {
   .print-only-area {
-    position: absolute !important;
+    position: fixed !important;
     left: -99999px !important;
     top: -99999px !important;
     visibility: hidden !important;
     pointer-events: none !important;
-    height: 0 !important;
     width: 210mm !important;
+    height: auto !important;
     overflow: hidden !important;
   }
 }

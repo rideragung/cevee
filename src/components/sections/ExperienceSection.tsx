@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
-import { ExperienceItem } from '../../types/resume';
-import { Plus, Trash2, X } from 'lucide-react';
+import { ExperienceItem, ExperiencePosition } from '../../types/resume';
+import { Plus, Trash2, X, TrendingUp } from 'lucide-react';
 import { RichTextEditor } from '../RichTextEditor';
+import { DatePicker } from '../DatePicker';
 
 interface ExperienceSectionProps {
   title: string;
@@ -17,6 +18,26 @@ interface ExperienceSectionProps {
   isLast: boolean;
 }
 
+const normalizeItem = (item: ExperienceItem): ExperienceItem => {
+  if (item.positions && item.positions.length > 0) {
+    return item;
+  }
+  return {
+    ...item,
+    positions: [
+      {
+        id: `pos-${item.id}-0`,
+        role: item.role || '',
+        period: item.period || '',
+        startDate: item.startDate || '',
+        endDate: item.endDate || '',
+        current: item.current || false,
+        bullets: item.bullets || '<ul><li>Tuliskan deskripsi pencapaian di sini...</li></ul>',
+      },
+    ],
+  };
+};
+
 export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
   title,
   isPlaceholder = false,
@@ -30,10 +51,15 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
   isLast,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [items, setItems] = useState<ExperienceItem[]>(data.items);
+  const [items, setItems] = useState<ExperienceItem[]>(() => (data.items || []).map(normalizeItem));
   const isOrgVol = title.toUpperCase().includes('ORGANIZATIONAL') || title.toUpperCase().includes('VOLUNTEER');
 
-  const computePeriod = (item: ExperienceItem) => {
+  const computePeriod = (item: {
+    startDate?: string;
+    endDate?: string;
+    current?: boolean;
+    period?: string;
+  }) => {
     if (item.current) {
       return item.startDate ? `${item.startDate} - Present` : 'Present';
     }
@@ -44,24 +70,67 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
   };
 
   const handleSave = () => {
-    const updated = items.map((it) => ({
-      ...it,
-      period: computePeriod(it),
-    }));
-    // If user filled company or role or bullets, mark isPlaceholder false
-    const hasContent = updated.some((it) => it.company || it.role || (it.bullets && it.bullets !== '<p></p>'));
+    const updated = items.map((it) => {
+      const positions = (it.positions || []).map((pos) => ({
+        ...pos,
+        period: computePeriod(pos),
+      }));
+
+      if (positions.length > 1) {
+        return {
+          ...it,
+          role: positions[0].role,
+          period: positions[0].period,
+          startDate: positions[positions.length - 1].startDate || positions[0].startDate,
+          endDate: positions[0].endDate,
+          current: positions[0].current,
+          bullets: positions[0].bullets,
+          positions,
+        };
+      }
+
+      const single = positions[0] || {
+        role: it.role,
+        period: computePeriod(it),
+        startDate: it.startDate,
+        endDate: it.endDate,
+        current: it.current,
+        bullets: it.bullets,
+      };
+
+      return {
+        ...it,
+        role: single.role,
+        period: single.period,
+        startDate: single.startDate,
+        endDate: single.endDate,
+        current: single.current,
+        bullets: single.bullets,
+        positions: undefined,
+      };
+    });
+
+    const hasContent = updated.some(
+      (it) =>
+        it.company ||
+        it.role ||
+        (it.bullets && it.bullets !== '<p></p>') ||
+        (it.positions && it.positions.some((p) => p.role || (p.bullets && p.bullets !== '<p></p>')))
+    );
+
     onUpdateData({ items: updated }, hasContent ? false : isPlaceholder);
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    setItems(data.items);
+    setItems((data.items || []).map(normalizeItem));
     setIsEditing(false);
   };
 
   const handleAddItem = () => {
+    const newId = `exp-${Date.now()}`;
     const newItem: ExperienceItem = {
-      id: `exp-${Date.now()}`,
+      id: newId,
       role: '',
       company: '',
       location: '',
@@ -70,6 +139,17 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
       endDate: '',
       current: false,
       bullets: '<ul><li>Tuliskan deskripsi pencapaian di sini...</li></ul>',
+      positions: [
+        {
+          id: `pos-${newId}-0`,
+          role: '',
+          period: '',
+          startDate: '',
+          endDate: '',
+          current: false,
+          bullets: '<ul><li>Tuliskan deskripsi pencapaian di sini...</li></ul>',
+        },
+      ],
     };
     setItems([...items, newItem]);
   };
@@ -79,8 +159,70 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
   };
 
   const handleUpdateField = (id: string, field: keyof ExperienceItem, value: any) => {
+    setItems(items.map((it) => (it.id === id ? { ...it, [field]: value } : it)));
+  };
+
+  const handleAddPosition = (itemId: string) => {
     setItems(
-      items.map((it) => (it.id === id ? { ...it, [field]: value } : it))
+      items.map((it) => {
+        if (it.id !== itemId) return it;
+        const currentPositions = it.positions && it.positions.length > 0 ? it.positions : [
+          {
+            id: `pos-${it.id}-0`,
+            role: it.role || '',
+            period: it.period || '',
+            startDate: it.startDate || '',
+            endDate: it.endDate || '',
+            current: it.current || false,
+            bullets: it.bullets || '<ul><li>Tuliskan deskripsi pencapaian di sini...</li></ul>',
+          },
+        ];
+        const newPos: ExperiencePosition = {
+          id: `pos-${itemId}-${Date.now()}`,
+          role: '',
+          period: '',
+          startDate: '',
+          endDate: '',
+          current: false,
+          bullets: '<ul><li>Tuliskan deskripsi pencapaian pada posisi baru ini...</li></ul>',
+        };
+        return {
+          ...it,
+          positions: [...currentPositions, newPos],
+        };
+      })
+    );
+  };
+
+  const handleRemovePosition = (itemId: string, posId: string) => {
+    setItems(
+      items.map((it) => {
+        if (it.id !== itemId) return it;
+        const currentPositions = it.positions || [];
+        if (currentPositions.length <= 1) return it;
+        return {
+          ...it,
+          positions: currentPositions.filter((p) => p.id !== posId),
+        };
+      })
+    );
+  };
+
+  const handleUpdatePositionField = (
+    itemId: string,
+    posId: string,
+    field: keyof ExperiencePosition,
+    value: any
+  ) => {
+    setItems(
+      items.map((it) => {
+        if (it.id !== itemId) return it;
+        const currentPositions = it.positions || [];
+        return {
+          ...it,
+          positions: currentPositions.map((p) => (p.id === posId ? { ...p, [field]: value } : p)),
+        };
+      })
     );
   };
 
@@ -94,7 +236,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
           onMoveDown={onMoveDown}
           onDelete={onDelete}
           onToggleEdit={() => {
-            setItems(data.items);
+            setItems((data.items || []).map(normalizeItem));
             setIsEditing(true);
           }}
           isFirst={isFirst}
@@ -113,149 +255,178 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
 
           {/* List of Experience Items */}
           <div className="space-y-6">
-            {items.map((item, idx) => (
-              <div key={item.id} className="space-y-3.5">
-                {/* Row 1: Company Name & Trash */}
-                <div className="flex items-start justify-between gap-4">
-                  <div className="w-full sm:w-1/2">
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Company Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={item.company}
-                      onChange={(e) => handleUpdateField(item.id, 'company', e.target.value)}
-                      placeholder={isOrgVol ? "e.g., Meta, Shopee, etc" : "e.g., Acme Corporation"}
-                      className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                    />
-                  </div>
+            {items.map((item) => {
+              const positions = item.positions && item.positions.length > 0 ? item.positions : [
+                {
+                  id: `pos-${item.id}-0`,
+                  role: item.role,
+                  period: item.period,
+                  startDate: item.startDate,
+                  endDate: item.endDate,
+                  current: item.current,
+                  bullets: item.bullets,
+                },
+              ];
+              const hasMultiplePositions = positions.length > 1;
 
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(item.id)}
-                    className="p-1.5 mt-5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition"
-                    title="Delete Experience"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
+              return (
+                <div key={item.id} className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-4">
+                  {/* Top Bar: Company Name, Location & Trash */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                          Company Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={item.company}
+                          onChange={(e) => handleUpdateField(item.id, 'company', e.target.value)}
+                          placeholder={isOrgVol ? "e.g., Meta, Shopee, etc" : "e.g., Acme Corporation"}
+                          className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                        />
+                      </div>
 
-                {/* Row 2: Currently working checkbox */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id={`current-${item.id}`}
-                    checked={item.current || false}
-                    onChange={(e) => handleUpdateField(item.id, 'current', e.target.checked)}
-                    className="h-3.5 w-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
-                  />
-                  <label
-                    htmlFor={`current-${item.id}`}
-                    className="text-xs text-slate-700 cursor-pointer select-none"
-                  >
-                    I am currently working in this role
-                  </label>
-                </div>
-
-                {/* Row 3: 4 Columns (Position, City/Country, Start Date, End Date) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Position <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={item.role}
-                      onChange={(e) => handleUpdateField(item.id, 'role', e.target.value)}
-                      placeholder={isOrgVol ? "e.g., Frontend, Backend, etc" : "e.g. UI/UX Designer"}
-                      className="w-full px-2.5 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      City, Country <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={item.location}
-                      onChange={(e) => handleUpdateField(item.id, 'location', e.target.value)}
-                      placeholder={isOrgVol ? "e.g., Jakarta, Indonesia" : "e.g. Malang (On-site)"}
-                      className="w-full px-2.5 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Start Date <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={item.startDate || ''}
-                        onChange={(e) => handleUpdateField(item.id, 'startDate', e.target.value)}
-                        placeholder={isOrgVol ? "Pick Date" : "e.g. August 2025"}
-                        className="w-full px-2.5 py-1.5 pr-6 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                      />
-                      {item.startDate && (
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateField(item.id, 'startDate', '')}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 p-0.5"
-                        >
-                          <X size={12} />
-                        </button>
-                      )}
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                          City, Country <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={item.location}
+                          onChange={(e) => handleUpdateField(item.id, 'location', e.target.value)}
+                          placeholder={isOrgVol ? "e.g., Jakarta, Indonesia" : "e.g., Malang (On-site)"}
+                          className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                        />
+                      </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="p-1.5 mt-6 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition flex-shrink-0"
+                      title="Delete Experience"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      End Date
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        disabled={item.current || false}
-                        value={item.current ? 'Present' : (item.endDate || '')}
-                        onChange={(e) => handleUpdateField(item.id, 'endDate', e.target.value)}
-                        placeholder={isOrgVol ? "Pick Date" : "e.g. December 2025"}
-                        className={`w-full px-2.5 py-1.5 pr-6 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ${
-                          item.current ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'
+                  {/* Positions / Promotions inside this Company */}
+                  <div className="space-y-4 pt-1">
+                    {positions.map((pos, pIdx) => (
+                      <div
+                        key={pos.id}
+                        className={`space-y-3 ${
+                          hasMultiplePositions ? 'p-3.5 bg-slate-50/70 rounded-lg border border-slate-200/80' : ''
                         }`}
-                      />
-                      {!item.current && item.endDate && (
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateField(item.id, 'endDate', '')}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 p-0.5"
-                        >
-                          <X size={12} />
-                        </button>
-                      )}
+                      >
+                        {/* Header when multiple positions (Promotion) */}
+                        {hasMultiplePositions && (
+                          <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/80">
+                            <div className="flex items-center gap-1.5">
+                              <TrendingUp size={13} className="text-emerald-600" />
+                              <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                                Posisi {pIdx + 1} {pIdx === 0 ? '(Terbaru / Promosi)' : ''}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePosition(item.id, pos.id)}
+                              className="text-xs text-red-500 hover:text-red-700 inline-flex items-center gap-1 hover:underline"
+                              title="Hapus posisi ini"
+                            >
+                              <Trash2 size={12} />
+                              <span>Hapus Posisi</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Currently working checkbox */}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id={`current-${pos.id}`}
+                            checked={pos.current || false}
+                            onChange={(e) => handleUpdatePositionField(item.id, pos.id, 'current', e.target.checked)}
+                            className="h-3.5 w-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                          />
+                          <label
+                            htmlFor={`current-${pos.id}`}
+                            className="text-xs text-slate-700 cursor-pointer select-none"
+                          >
+                            I am currently working in this role
+                          </label>
+                        </div>
+
+                        {/* Position, Start Date, End Date */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                              Position / Role <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={pos.role}
+                              onChange={(e) => handleUpdatePositionField(item.id, pos.id, 'role', e.target.value)}
+                              placeholder={isOrgVol ? "e.g., Lead, Member, etc" : "e.g., Senior Product Designer"}
+                              className="w-full px-2.5 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                              Start Date <span className="text-red-500">*</span>
+                            </label>
+                            <DatePicker
+                              value={pos.startDate || ''}
+                              onChange={(val) => handleUpdatePositionField(item.id, pos.id, 'startDate', val)}
+                              placeholder="Pilih Tanggal Mulai"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                              End Date
+                            </label>
+                            <DatePicker
+                              value={pos.current ? 'Present' : (pos.endDate || '')}
+                              disabled={pos.current || false}
+                              onChange={(val) => handleUpdatePositionField(item.id, pos.id, 'endDate', val)}
+                              placeholder="Pilih Tanggal Selesai"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Bullets */}
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                            {isOrgVol ? 'Descriptions' : 'Job Descriptions'}{' '}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <RichTextEditor
+                            initialContent={pos.bullets}
+                            onChange={(newHtml) => handleUpdatePositionField(item.id, pos.id, 'bullets', newHtml)}
+                            hideActions={true}
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Button to add promotion / position inside this company */}
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleAddPosition(item.id)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 px-2.5 py-1.5 rounded-lg border border-emerald-200 transition"
+                      >
+                        <Plus size={13} />
+                        <span>Posisi/Promosi</span>
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                {/* Row 4: Job Descriptions Rich Text */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    {isOrgVol ? 'Organizational/ Volunteering Descriptions' : 'Job Descriptions'}{' '}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <RichTextEditor
-                    initialContent={item.bullets}
-                    onChange={(newHtml) => handleUpdateField(item.id, 'bullets', newHtml)}
-                    hideActions={true}
-                  />
-                </div>
-
-                {/* Separator between items */}
-                {idx < items.length - 1 && (
-                  <div className="border-b border-slate-200 pt-3" />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Action Bar */}
@@ -266,7 +437,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
               className="inline-flex items-center gap-1 px-4 py-1.5 border border-emerald-500 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold rounded-lg transition"
             >
               <Plus size={13} />
-              <span>Add More</span>
+              <span>Add More Company</span>
             </button>
 
             <div className="flex items-center gap-3">
@@ -290,7 +461,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
       ) : (
         <div
           onClick={() => {
-            setItems(data.items);
+            setItems((data.items || []).map(normalizeItem));
             setIsEditing(true);
           }}
           className="cursor-pointer space-y-2 hover:bg-slate-50/70 p-1 -m-1 rounded transition"
@@ -311,27 +482,61 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
               </div>
             </div>
           ) : (
-            data.items.map((item) => (
-              <div key={item.id} className="avoid-break">
-                {/* Line 1: Role & Period */}
-                <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
-                  <span>{item.role}</span>
-                  <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
-                </div>
+            data.items.map((item) => {
+              if (item.positions && item.positions.length > 1) {
+                return (
+                  <div key={item.id} className="avoid-break mb-2">
+                    {/* Line 1: Company Name & Location */}
+                    <div className="flex justify-between items-baseline leading-snug">
+                      <span className="font-bold text-slate-900 text-[8pt]">{item.company}</span>
+                      <span className="text-slate-700 text-[8pt]">{item.location}</span>
+                    </div>
 
-                {/* Line 2: Company & Location */}
-                <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]">
-                  <span className="font-semibold">{item.company}</span>
-                  <span className="text-slate-700">{item.location}</span>
-                </div>
+                    {/* Positions / Promotions */}
+                    <div className="space-y-1.5 mt-0.5">
+                      {item.positions.map((pos, posIdx) => (
+                        <div key={pos.id || posIdx}>
+                          <div className="flex justify-between items-baseline leading-snug">
+                            <span className="font-semibold text-slate-900 text-[7.75pt]">{pos.role}</span>
+                            <span className="text-[7.75pt] font-semibold text-slate-800">{pos.period}</span>
+                          </div>
+                          {pos.bullets && (
+                            <div
+                              className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
+                              dangerouslySetInnerHTML={{ __html: pos.bullets }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
 
-                {/* Bullet Points */}
-                <div
-                  className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
-                  dangerouslySetInnerHTML={{ __html: item.bullets }}
-                />
-              </div>
-            ))
+              return (
+                <div key={item.id} className="avoid-break mb-2">
+                  {/* Line 1: Role & Period */}
+                  <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
+                    <span>{item.role}</span>
+                    <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
+                  </div>
+
+                  {/* Line 2: Company & Location */}
+                  <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]">
+                    <span className="font-semibold">{item.company}</span>
+                    <span className="text-slate-700">{item.location}</span>
+                  </div>
+
+                  {/* Bullet Points */}
+                  {item.bullets && (
+                    <div
+                      className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
+                      dangerouslySetInnerHTML={{ __html: item.bullets }}
+                    />
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       )}

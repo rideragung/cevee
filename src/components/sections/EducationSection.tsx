@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
 import { EducationItem } from '../../types/resume';
 import { Plus, Trash2 } from 'lucide-react';
+import { DatePicker } from '../DatePicker';
 
 interface EducationSectionProps {
   title: string;
@@ -16,6 +17,25 @@ interface EducationSectionProps {
   isLast: boolean;
 }
 
+const normalizeEduItem = (it: EducationItem): EducationItem => {
+  let startDate = it.startDate || '';
+  let endDate = it.endDate || '';
+  if (!startDate && !endDate && it.period) {
+    if (it.period.includes(' - ')) {
+      const parts = it.period.split(' - ');
+      startDate = parts[0]?.trim() || '';
+      endDate = parts[1]?.trim() || '';
+    } else {
+      endDate = it.period.trim();
+    }
+  }
+  return {
+    ...it,
+    startDate,
+    endDate,
+  };
+};
+
 export const EducationSection: React.FC<EducationSectionProps> = ({
   title,
   isPlaceholder = false,
@@ -29,16 +49,25 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
   isLast,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [items, setItems] = useState<EducationItem[]>(data.items);
+  const [items, setItems] = useState<EducationItem[]>(() => (data.items || []).map(normalizeEduItem));
 
   const handleSave = () => {
-    const hasContent = items.some((it) => it.degree.trim() || it.institution.trim());
-    onUpdateData({ items }, hasContent ? false : isPlaceholder);
+    const updated = items.map((it) => {
+      const period = it.startDate && it.endDate
+        ? `${it.startDate} - ${it.endDate}`
+        : (it.startDate || it.endDate || it.period || '');
+      return {
+        ...it,
+        period,
+      };
+    });
+    const hasContent = updated.some((it) => it.degree.trim() || it.institution.trim());
+    onUpdateData({ items: updated }, hasContent ? false : isPlaceholder);
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    setItems(data.items);
+    setItems((data.items || []).map(normalizeEduItem));
     setIsEditing(false);
   };
 
@@ -48,6 +77,8 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
       degree: '',
       institution: '',
       period: '',
+      startDate: '',
+      endDate: '',
       gpa: '',
     };
     setItems([...items, newItem]);
@@ -73,7 +104,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
           onMoveDown={onMoveDown}
           onDelete={onDelete}
           onToggleEdit={() => {
-            setItems(data.items);
+            setItems((data.items || []).map(normalizeEduItem));
             setIsEditing(true);
           }}
           isFirst={isFirst}
@@ -119,9 +150,9 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                   </button>
                 </div>
 
-                {/* Row 2: Institution, Period, GPA */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
+                {/* Row 2: Institution, Dates, GPA */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="sm:col-span-2">
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                       Institution / School <span className="text-red-500">*</span>
                     </label>
@@ -136,14 +167,31 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Period <span className="text-red-500">*</span>
+                      Start Date
                     </label>
-                    <input
-                      type="text"
-                      value={item.period}
-                      onChange={(e) => handleUpdateField(item.id, 'period', e.target.value)}
-                      placeholder="e.g. Sept 2022 - Jun 2026"
-                      className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                    <DatePicker
+                      value={item.startDate || ''}
+                      onChange={(val) => {
+                        const end = item.endDate || '';
+                        const period = val && end ? `${val} - ${end}` : (val || end || '');
+                        setItems(items.map((it) => it.id === item.id ? { ...it, startDate: val, period } : it));
+                      }}
+                      placeholder="Pilih Tanggal Mulai"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      End Date / Graduation <span className="text-red-500">*</span>
+                    </label>
+                    <DatePicker
+                      value={item.endDate || ''}
+                      onChange={(val) => {
+                        const start = item.startDate || '';
+                        const period = start && val ? `${start} - ${val}` : (val || start || '');
+                        setItems(items.map((it) => it.id === item.id ? { ...it, endDate: val, period } : it));
+                      }}
+                      placeholder="Pilih Tanggal Lulus"
                     />
                   </div>
 
@@ -214,7 +262,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
       ) : (
         <div
           onClick={() => {
-            setItems(data.items.length > 0 && !isPlaceholder ? data.items : [{ id: `edu-${Date.now()}`, degree: '', institution: '', period: '', gpa: '' }]);
+            setItems(data.items.length > 0 && !isPlaceholder ? (data.items || []).map(normalizeEduItem) : [{ id: `edu-${Date.now()}`, degree: '', institution: '', period: '', gpa: '', startDate: '', endDate: '' }]);
             setIsEditing(true);
           }}
           className="cursor-pointer space-y-1 hover:bg-slate-50/70 p-1 -m-1 rounded transition"

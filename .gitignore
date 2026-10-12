@@ -32,3 +32,4 @@ Thumbs.db
 
 # Agent skills cache
 .agents
+opencode.json

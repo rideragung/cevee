@@ -3,6 +3,7 @@ import { SectionHeader } from '../SectionHeader';
 import { ProjectItem } from '../../types/resume';
 import { Plus, Trash2, ExternalLink } from 'lucide-react';
 import { RichTextEditor } from '../RichTextEditor';
+import { DatePicker } from '../DatePicker';
 
 interface ProjectsSectionProps {
   title: string;
@@ -17,6 +18,25 @@ interface ProjectsSectionProps {
   isLast: boolean;
 }
 
+const normalizeProjItem = (it: ProjectItem): ProjectItem => {
+  let startDate = it.startDate || '';
+  let endDate = it.endDate || '';
+  if (!startDate && !endDate && it.period) {
+    if (it.period.includes(' - ')) {
+      const parts = it.period.split(' - ');
+      startDate = parts[0]?.trim() || '';
+      endDate = parts[1]?.trim() || '';
+    } else {
+      endDate = it.period.trim();
+    }
+  }
+  return {
+    ...it,
+    startDate,
+    endDate,
+  };
+};
+
 export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   title,
   isPlaceholder = false,
@@ -30,16 +50,25 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   isLast,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [items, setItems] = useState<ProjectItem[]>(data.items);
+  const [items, setItems] = useState<ProjectItem[]>(() => (data.items || []).map(normalizeProjItem));
 
   const handleSave = () => {
-    const hasContent = items.some((it) => it.name.trim() || (it.bullets && it.bullets !== '<p></p>'));
-    onUpdateData({ items }, hasContent ? false : isPlaceholder);
+    const updated = items.map((it) => {
+      const period = it.startDate && it.endDate
+        ? `${it.startDate} - ${it.endDate}`
+        : (it.startDate || it.endDate || it.period || '');
+      return {
+        ...it,
+        period,
+      };
+    });
+    const hasContent = updated.some((it) => it.name.trim() || (it.bullets && it.bullets !== '<p></p>'));
+    onUpdateData({ items: updated }, hasContent ? false : isPlaceholder);
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    setItems(data.items);
+    setItems((data.items || []).map(normalizeProjItem));
     setIsEditing(false);
   };
 
@@ -49,6 +78,8 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
       name: '',
       url: '',
       period: '',
+      startDate: '',
+      endDate: '',
       bullets: '<ul><li>Jelaskan tujuan dan dampak proyek di sini...</li></ul>',
     };
     setItems([...items, newItem]);
@@ -74,7 +105,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
           onMoveDown={onMoveDown}
           onDelete={onDelete}
           onToggleEdit={() => {
-            setItems(data.items);
+            setItems((data.items || []).map(normalizeProjItem));
             setIsEditing(true);
           }}
           isFirst={isFirst}
@@ -120,8 +151,8 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                   </button>
                 </div>
 
-                {/* Row 2: URL & Period */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Row 2: URL, Start Date, End Date */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                       Project Link <span className="text-slate-400 font-normal">(Optional)</span>
@@ -137,14 +168,31 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
 
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Period <span className="text-red-500">*</span>
+                      Start Date
                     </label>
-                    <input
-                      type="text"
-                      value={item.period}
-                      onChange={(e) => handleUpdateField(item.id, 'period', e.target.value)}
-                      placeholder="e.g. Sept 2025 - Jan 2026"
-                      className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                    <DatePicker
+                      value={item.startDate || ''}
+                      onChange={(val) => {
+                        const end = item.endDate || '';
+                        const period = val && end ? `${val} - ${end}` : (val || end || '');
+                        setItems(items.map((it) => it.id === item.id ? { ...it, startDate: val, period } : it));
+                      }}
+                      placeholder="Pilih Tanggal Mulai"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      End Date <span className="text-red-500">*</span>
+                    </label>
+                    <DatePicker
+                      value={item.endDate || ''}
+                      onChange={(val) => {
+                        const start = item.startDate || '';
+                        const period = start && val ? `${start} - ${val}` : (val || start || '');
+                        setItems(items.map((it) => it.id === item.id ? { ...it, endDate: val, period } : it));
+                      }}
+                      placeholder="Pilih Tanggal Selesai"
                     />
                   </div>
                 </div>
@@ -201,7 +249,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
       ) : (
         <div
           onClick={() => {
-            setItems(data.items.length > 0 && !isPlaceholder ? data.items : [{ id: `proj-${Date.now()}`, name: '', url: '', period: '', bullets: '' }]);
+            setItems(data.items.length > 0 && !isPlaceholder ? (data.items || []).map(normalizeProjItem) : [{ id: `proj-${Date.now()}`, name: '', url: '', period: '', bullets: '', startDate: '', endDate: '' }]);
             setIsEditing(true);
           }}
           className="cursor-pointer space-y-2 hover:bg-slate-50/70 p-1 -m-1 rounded transition"

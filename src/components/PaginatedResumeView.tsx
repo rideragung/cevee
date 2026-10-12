@@ -21,43 +21,43 @@ const stripHtml = (html: string): string => {
   return html ? html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : '';
 };
 
-// Estimasi tinggi teks/HTML realistis berbasis font Inter 9pt (lebar 184mm, 1 baris ~ 105 karakter)
+// Estimasi tinggi teks/HTML realistis berbasis font Inter 7.75pt (lebar 184mm, 1 baris ~ 92-95 karakter)
 const estimateHtmlHeight = (html: string): number => {
   if (!html || !html.trim()) return 0;
 
   const liMatches = html.match(/<li[^>]*>[\s\S]*?<\/li>/gi);
   if (liMatches && liMatches.length > 0) {
-    let totalHeight = 0;
+    let totalHeight = 5; // ul top + bottom margins
     for (const li of liMatches) {
       const text = stripHtml(li);
-      // Lebar bullet list indent = 673px. Rata-rata 105 karakter per baris
-      const lines = Math.max(1, Math.ceil(text.length / 105));
-      totalHeight += lines * 16.5;
+      // Lebar bullet list indent = 673px. Rata-rata 92 karakter per baris (dengan istilah bold)
+      const lines = Math.max(1, Math.ceil(text.length / 92));
+      totalHeight += lines * 15.5 + 2.5; // line height + li margin-bottom
     }
-    return totalHeight + 4;
+    return totalHeight;
   }
 
   const text = stripHtml(html);
   if (!text) return 0;
-  const lines = Math.max(1, Math.ceil(text.length / 109));
-  return lines * 16.5;
+  const lines = Math.max(1, Math.ceil(text.length / 95));
+  return lines * 15.5 + 4;
 };
 
 const estimateHeaderHeight = (header: any): number => {
-  let height = 30; // Nama
+  let height = 32; // Nama
   if (header.headline || (header.roles && header.roles.length > 0)) {
-    height += 16;
+    height += 18;
   }
   const linksCount = header.links?.length || 0;
   const contactTextLen =
     (header.location?.length || 0) +
     (header.email?.length || 0) +
     (header.phone?.length || 0) +
-    linksCount * 20;
-  const contactLines = Math.max(1, Math.ceil(contactTextLen / 109));
-  height += contactLines * 15;
-  height += 8; // mb-2
-  return Math.max(50, height);
+    linksCount * 22;
+  const contactLines = Math.max(1, Math.ceil(contactTextLen / 95));
+  height += contactLines * 16;
+  height += 10; // mb-2 + pb-0.5
+  return Math.max(55, height);
 };
 
 const estimateSummaryHeight = (html: string, isPlaceholder?: boolean): number => {
@@ -71,38 +71,50 @@ const estimateSummaryHeight = (html: string, isPlaceholder?: boolean): number =>
 
 const estimateSkillsCategoryHeight = (category: string, items: string, isLast: boolean): number => {
   const text = `${category}: ${items}`;
-  const lines = Math.max(1, Math.ceil(text.length / 109));
-  return lines * 16.5 + (isLast ? 8 : 2);
+  const lines = Math.max(1, Math.ceil(text.length / 95));
+  return lines * 15.5 + (isLast ? 8 : 2);
 };
 
 const estimateExperienceItemHeight = (item: any, isPlaceholder?: boolean): number => {
   if (isPlaceholder) return 60;
-  let height = 32; // Role line + company line
+  if (item?.positions && item.positions.length > 1) {
+    let height = 20; // Company name + location line
+    for (const pos of item.positions) {
+      height += 16; // Position role + period line
+      if (pos.bullets) {
+        height += estimateHtmlHeight(pos.bullets);
+      }
+      height += 6; // spacing between positions
+    }
+    height += 6; // mb-2
+    return Math.max(40, height);
+  }
+  let height = 34; // Role line + company line
   if (item?.bullets) {
     height += estimateHtmlHeight(item.bullets);
   }
   height += 8; // mb-2
-  return Math.max(34, height);
+  return Math.max(36, height);
 };
 
 const estimateProjectItemHeight = (item: any, isPlaceholder?: boolean): number => {
   if (isPlaceholder) return 55;
-  let height = 16; // Title + period line
+  let height = 20; // Title + period line
   if (item?.bullets) {
     height += estimateHtmlHeight(item.bullets);
   }
   height += 8; // mb-2
-  return Math.max(26, height);
+  return Math.max(28, height);
 };
 
 const estimateEducationItemHeight = (item: any, isPlaceholder?: boolean): number => {
   if (isPlaceholder) return 40;
-  let height = 32; // Degree line + institution line
+  let height = 34; // Degree line + institution line
   if (item?.description) {
     height += estimateHtmlHeight(item.description);
   }
   height += 6; // mb-1.5
-  return Math.max(32, height);
+  return Math.max(34, height);
 };
 
 const estimateCustomItemHeight = (item: any, sectionTitle: string, isPlaceholder?: boolean): number => {
@@ -119,8 +131,8 @@ const estimateCustomItemHeight = (item: any, sectionTitle: string, isPlaceholder
   return Math.max(22, height);
 };
 
-// Available printable content height in A4 (297mm - 10mm top - 12mm bottom = ~1039.4px at 96 DPI, safe threshold 1035px)
-const PAGE_CONTENT_MAX_HEIGHT_PX = 1035;
+// Available printable content height in A4 (297mm - 10mm top - 12mm bottom padding = ~1039.4px at 96 DPI, safe threshold 1020px)
+const PAGE_CONTENT_MAX_HEIGHT_PX = 1020;
 
 // Pure deterministic item-level packing engine
 function runPagination(
@@ -374,24 +386,53 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
               id: `item-${section.id}-${item.id}`,
               type: 'item',
               height: estimateExperienceItemHeight(item, false),
-              render: () => (
-                <div className="mb-2">
-                  <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
-                    <span>{item.role}</span>
-                    <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
+              render: () => {
+                if (item.positions && item.positions.length > 1) {
+                  return (
+                    <div className="mb-2">
+                      <div className="flex justify-between items-baseline leading-snug">
+                        <span className="font-bold text-slate-900 text-[8pt]">{item.company}</span>
+                        <span className="text-slate-700 text-[8pt]">{item.location}</span>
+                      </div>
+                      <div className="space-y-1.5 mt-0.5">
+                        {item.positions.map((pos: any, posIdx: number) => (
+                          <div key={pos.id || posIdx}>
+                            <div className="flex justify-between items-baseline leading-snug">
+                              <span className="font-semibold text-slate-900 text-[7.75pt]">{pos.role}</span>
+                              <span className="text-[7.75pt] font-semibold text-slate-800">{pos.period}</span>
+                            </div>
+                            {pos.bullets && (
+                              <div
+                                className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
+                                dangerouslySetInnerHTML={{ __html: pos.bullets }}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="mb-2">
+                    <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
+                      <span>{item.role}</span>
+                      <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
+                    </div>
+                    <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]">
+                      <span className="font-semibold">{item.company}</span>
+                      <span className="text-slate-700">{item.location}</span>
+                    </div>
+                    {item.bullets && (
+                      <div
+                        className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
+                        dangerouslySetInnerHTML={{ __html: item.bullets }}
+                      />
+                    )}
                   </div>
-                  <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]">
-                    <span className="font-semibold">{item.company}</span>
-                    <span className="text-slate-700">{item.location}</span>
-                  </div>
-                  {item.bullets && (
-                    <div
-                      className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
-                      dangerouslySetInnerHTML={{ __html: item.bullets }}
-                    />
-                  )}
-                </div>
-              ),
+                );
+              },
             });
           });
         }
@@ -681,10 +722,20 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
       const el = nodes[i] as HTMLElement;
       const id = el.getAttribute('data-measure-id');
       if (id) {
-        // getBoundingClientRect().height captures the exact browser-computed layout
         const rect = el.getBoundingClientRect();
-        if (rect.height > 0) {
-          heights[id] = Math.ceil(rect.height);
+        let h = rect.height;
+
+        // Pastikan margin atas dan bawah elemen dihitung secara presisi
+        if (el.firstElementChild) {
+          const comp = window.getComputedStyle(el.firstElementChild);
+          const mt = parseFloat(comp.marginTop) || 0;
+          const mb = parseFloat(comp.marginBottom) || 0;
+          const childRect = el.firstElementChild.getBoundingClientRect();
+          h = Math.max(h, childRect.height + mt + mb);
+        }
+
+        if (h > 0) {
+          heights[id] = Math.ceil(h);
           hasPositiveHeights = true;
         }
       }
@@ -721,7 +772,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
         }}
       >
         {allBlocks.map((b) => (
-          <div key={b.id} data-measure-id={b.id}>
+          <div key={b.id} data-measure-id={b.id} style={{ display: 'flow-root' }}>
             {b.render()}
           </div>
         ))}
@@ -735,7 +786,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
         {pages.map((pageBlocks, pageIdx) => (
           <div
             key={pageIdx}
-            className="a4-page-sheet shadow-2xl relative border border-slate-300/80 bg-white"
+            className="a4-page-sheet shadow-2xl relative border border-slate-300/80 bg-white overflow-hidden"
             style={{ marginBottom: '48px' }}
           >
             {/* Page Content */}

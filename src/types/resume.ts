@@ -24,6 +24,16 @@ export interface SkillCategory {
   items: string;
 }
 
+export interface ExperiencePosition {
+  id: string;
+  role: string;
+  period: string;
+  startDate?: string;
+  endDate?: string;
+  current?: boolean;
+  bullets: string;
+}
+
 export interface ExperienceItem {
   id: string;
   role: string;
@@ -34,6 +44,7 @@ export interface ExperienceItem {
   endDate?: string;
   current?: boolean;
   bullets: string; // HTML string for rich list
+  positions?: ExperiencePosition[]; // For multiple positions / promotions in 1 company
 }
 
 export interface ProjectItem {
@@ -41,6 +52,8 @@ export interface ProjectItem {
   name: string;
   url?: string;
   period: string;
+  startDate?: string;
+  endDate?: string;
   bullets: string;
 }
 
@@ -49,6 +62,8 @@ export interface EducationItem {
   degree: string;
   institution: string;
   period: string;
+  startDate?: string;
+  endDate?: string;
   gpa?: string;
   description?: string;
 }
