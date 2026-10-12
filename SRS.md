@@ -1,10 +1,10 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.24.0  
+**Dokumen Versi:** 1.25.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
-**Target Platform:** Web (Desktop & Tablet First)  
+**Target Platform:** Web (Responsive — Desktop, Tablet & Mobile)  
 **Default Language:** English (US)
 
 ---
@@ -34,6 +34,7 @@ Cevee memungkinkan pengguna:
 9. Pratinjau dokumen (PDF Live Preview) yang mencerminkan 1:1 bentuk PDF asli sebelum dicetak/diunduh, lengkap dengan indikator pemisah halaman A4.
 10. Mengunduh CV langsung dalam format file `.pdf` dengan penamaan file otomatis dan kualitas vektor bersih.
 11. Menyimpan data otomatis ke database Supabase dan cadangan lokal `localStorage`.
+12. Mengedit CV secara penuh dari perangkat mobile (tata letak responsif penuh tanpa *horizontal scroll*), dengan kanvas A4 yang mengalir ulang sesuai lebar layar di bawah ambang `900px`.
 
 ### 1.3 Batasan Biaya & Aturan Non-AI (Strict Constraints)
 - **Zero Cost (Rp 0):** Seluruh infrastruktur wajib berjalan di tingkat gratis permanen (*free tier*) tanpa kewajiban kartu kredit.
@@ -124,6 +125,7 @@ Cevee memungkinkan pengguna:
 
 ### 3.3 FR-3: In-Place Canvas & Editor (WYSIWYG)
 - **FR-3.1 (A4 Container & Margin Padat):** Area kerja menampilkan lembar putih dengan rasio aspek A4 (210mm x 297mm) dengan margin padat standar ATS: `10mm` (atas), `13mm` (samping kiri-kanan), dan `12mm` (bawah) guna memaksimalkan kepadatan informasi dokumen.
+  - **Perilaku Responsif Kanvas:** Pada layar dengan lebar `≤ 900px`, kelas `.resume-a4-page` melepas lebar tetap `210mm` dan mengalir ulang menjadi `width: 100%` (dengan `max-width: 210mm`, `min-height: auto`, padding `20px 16px 24px`, dan `border-radius: 14px`). Teks konten dibungkus dengan `overflow-wrap: anywhere` agar URL/email panjang tidak memicu *horizontal overflow*. Perubahan ini murni presentasional pada layar; markup cetak (`.a4-page-sheet`) dan aturan `@media print` tetap terkunci presisi 210mm x 297mm.
 - **FR-3.2 (Direct Edit):** Pengguna mengedit nama, kontak, peran, tanggal, dan deskripsi langsung pada posisi teks tersebut di atas dokumen.
 - **FR-3.3 (Header Section Adaptif & Form Edit):**
   - **Tampilan View Mode:**
@@ -138,6 +140,11 @@ Cevee memungkinkan pengguna:
     - **Multi-Role Inputs:** Input role dibuat berupa daftar dinamis (maksimal 4 role) dengan tombol `+ Add Role` dan tombol hapus individual per role. Pengguna tidak perlu mengetik simbol `|` secara manual.
     - **Checklist Relocation Status:** Status relokasi dikontrol via checkbox `[ ] Willing to relocate`. Jika dicentang, sistem otomatis merender `(Willing to relocate)`.
     - Pengelola tautan sosial/portofolio dilengkapi tombol hapus merah (`Trash2`) per item, tombol outline hijau `+ Add Link` di sisi kiri bawah, serta tombol aksi kanan bawah: teks hijau `Cancel` dan tombol solid hijau `Save` (`bg-emerald-500 text-white rounded-lg px-6 py-1.5`).
+- **FR-3.5 (Universal Month-Year Date Picker):**
+  - Seluruh field periode tanggal pada Work Experience, Projects, Education, dan Custom Section menggunakan komponen `DatePicker` kustom yang seragam (bukan `input[type=date]` native browser).
+  - Input teks tetap dapat diisi manual, namun dilengkapi tombol kalender yang membuka popover pemilih bulan-tahun: navigasi tahun (`‹` / `›`), grid 12 bulan (4 kolom x 3 baris), tombol pintasan `Bulan Ini`, dan tombol `Hapus` untuk mengosongkan nilai.
+  - Nilai yang dipilih disimpan dalam format konsisten `[Bulan Singkat] [Tahun]` (contoh: `Aug 2025`).
+  - **Perilaku Responsif:** Popover menggunakan `w-full sm:w-64` dengan `max-w-[calc(100vw-2rem)]` sehingga tidak pernah meluber keluar batas viewport pada layar mobile.
 
 ### 3.4 FR-4: Kustomisasi & Kontrol Section Penuh
 - **FR-4.1 (Rename Title Bebas):** Setiap judul section dapat diklik dan diedit langsung (misal: dari "WORK EXPERIENCE" menjadi "PENGALAMAN KERJA" atau "RIWAYAT PROYEK"). Tidak ada section yang judulnya terkunci.
@@ -148,7 +155,7 @@ Cevee memungkinkan pengguna:
 - **FR-4.4 (Section Actions Hover Pill):**
   - Saat section diarahkan kursor (*hover*), sebuah bilah aksi mengambang berbentuk kotak putih dengan border abu-abu dan bayangan halus (`bg-white border border-slate-200 rounded-md shadow-xs px-1.5 py-0.5 flex items-center gap-1`) muncul di pojok kanan atas section.
   - Memuat tombol aksi: Ikon pensil abu-abu (`Pencil text-slate-600 hover:text-slate-900`) dan ikon tong sampah merah (`Trash2 text-red-500 hover:text-red-700`), serta panah reorder naik/turun jika berlaku.
-  - Bilah ini tersembunyi secara default (`opacity-0 group-hover:opacity-100`) dan otomatis hilang saat cetak/preview.
+  - Bilah ini tersembunyi secara default pada perangkat berpenunjuk (*pointer*, `≥ 1024px`) melalui pola `opacity-0 lg:group-hover:opacity-100`, dan **selalu tampil di layar sentuh** (`opacity-100` di bawah breakpoint `lg`) agar kontrol edit, reorder, dan hapus tetap dapat diakses pada mobile/tablet. Bilah otomatis hilang saat cetak/preview.
 - **FR-4.5 (Standardized Section Edit Mode UI & Background Contrast):**
   - Seluruh section saat beralih ke mode edit (Header, Summary, Skills, Work Experience, Projects, Education, Custom Section) menggunakan pola antarmuka persis seragam sesuai referensi desain:
     1. **Container & Background Contrast:** Kartu formulir berlatar belakang abu-abu terang kontras halus (`bg-[#f8fafc] rounded-xl border border-slate-200/90 p-5 shadow-xs my-2.5`) yang membedakannya dengan jelas dari kertas kanvas putih A4 di sekitarnya.
@@ -175,6 +182,7 @@ Sistem mendukung beragam tipe struktur section:
    - Periode Waktu (Bulan Tahun - Bulan Tahun)
    - Lokasi & Tipe (Remote / On-site)
    - Poin-poin pencapaian (Bulleted list format Tiptap)
+   - **Multi-Posisi / Promosi Internal (Multiple Positions):** Satu entri perusahaan dapat menampung beberapa posisi berurutan (mis. promosi dari "Junior Designer" ke "Senior Designer"). Form editor menyediakan tombol `+ Posisi/Promosi` dan tombol hapus per posisi. Setiap posisi memiliki role, tanggal mulai/selesai, status "currently working", dan blok deskripsi rich text tersendiri. Pada mode tampilan/preview, promosi dirender sebagai blok bertingkat di bawah nama perusahaan, dengan posisi terbaru berada di atas.
 4. **Project Section & Interactive Hyperlinks:**
    - Mirip dengan Experience ditambah dukungan tautan proyek langsung.
    - **Tautan Teks & Ikon Terpadu:** Teks nama proyek dan ikon eksternal (`ExternalLink`) dibungkus bersama dalam satu elemen `<a>` interaktif (`target="_blank"`), sehingga pengguna dapat mengklik langsung nama proyek maupun ikonnya untuk membuka tautan portofolio/demo di tab baru.
@@ -211,7 +219,7 @@ Sistem mendukung beragam tipe struktur section:
 - **FR-6.2 (Sanitasi HTML):** Konten HTML yang dihasilkan Tiptap dibersihkan dari tag berbahaya sebelum disimpan.
 
 ### 3.7 FR-7: Auto-Save & Sinkronisasi
-- **FR-7.1 (Debounce):** Setiap ketukan tuts keyboard memicu penyimpanan lokal seketika dan mengirim permintaan update ke Supabase dengan jeda debounce 1000ms.
+- **FR-7.1 (Debounce):** Setiap ketukan tuts keyboard memicu penyimpanan lokal seketika dan mengirim permintaan update ke Supabase dengan jeda debounce 800ms.
 - **FR-7.2 (Indicator):** Status ditampilkan di bilah navigasi: "Saved", "Saving...", atau "Offline Mode".
 
 ### 3.8 FR-8: Fitur 1:1 PDF Live Preview & Item-Level Multi-Sheet Pagination
@@ -223,7 +231,7 @@ Sistem mendukung beragam tipe struktur section:
     - **Layer 2 (Real DOM Measurement via useLayoutEffect):** Menggunakan kontainer ukur tersembunyi berlebar pasti `184mm` untuk membaca `getBoundingClientRect().height` nyata dari engine layout browser sebelum frame dirender. Mengeliminasi 100% tinggi semu (*ghost height*), mencegah ruang kosong prematur di dasar lembar, dan mengisi lembaran hingga 97%+ kapasitas sebelum memecah halaman.
   - **Item-Level Cohesion:** Setiap item riwayat pekerjaan, proyek, pendidikan, dan sertifikasi dijaga sebagai satu unit utuh yang kohesif. Paginasi dilakukan pada tingkat item dan kategori keahlian (*skills*), mencegah pemotongan butir bullet point secara terfragmentasi.
   - **Anti-Orphan Title Protection:** Judul section dijamin hanya akan masuk ke halaman berjalan jika judul dan blok pertama di bawahnya muat 100% bersama-sama. Mencegah judul section berdiri terisolasi di dasar halaman.
-- **FR-8.4 (Zoom & Page Indicators):** Dilengkapi kontrol zoom (50% - 150%) dan indikator penomoran lembar (*Page X of Y*).
+- **FR-8.4 (Zoom & Page Indicators):** Dilengkapi kontrol zoom (25% - 150%) dan indikator penomoran lembar (*Page X of Y*). Tingkat zoom awal dihitung otomatis agar lembar A4 pas dengan lebar viewport (`fit-to-width`), dan kontrol zoom disembunyikan pada layar mobile (`< 640px`) demi ruang toolbar yang efisien.
 - **FR-8.5 (Universal Bullet List Rendering):** Seluruh elemen daftar (`ul`, `li`) diatur dengan gaya `list-style-type: disc !important` yang kebal terhadap CSS normalization reset, menjamin poin-poin pencapaian tampil tajam dan terlihat di kanvas editor, preview, maupun cetak PDF.
 
 ### 3.9 FR-9: Fitur Download File PDF
@@ -242,6 +250,22 @@ Sistem mendukung beragam tipe struktur section:
   - **Kontainer Alur Statis:** Kontainer cetak menggunakan alur statis (`position: static`) sehingga engine browser print memecah lembaran A4 fisik (`break-after: page`) secara presisi ke jumlah halaman yang tepat.
 - **FR-10.2 (Page-Break Avoidance):** Setiap blok section item (pekerjaan, proyek, pendidikan) dilindungi dengan properti CSS `break-inside: avoid` agar tidak terbelah di batas halaman.
 - **FR-10.3 (Client-Side Photo Compressor Readiness):** Disertakan modul utilitas kompresi kanvas HTML5 client-side (`compressProfilePhoto`) yang otomatis mengubah ukuran dan mengompresi foto profil menjadi maksimal 320x320 px (~20-40 KB) sebelum disematkan ke dokumen, menjaga file PDF tetap di bawah 100 KB bahkan ketika layout foto diaktifkan.
+
+### 3.11 FR-11: Responsive Mobile & Touch Experience
+Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib dapat digunakan penuh dari perangkat mobile tanpa *horizontal scroll* dan tanpa kehilangan kontrol editing yang sebelumnya bergantung pada *hover*. Ambang responsif utama adalah `≤ 900px` (kanvas) dan breakpoint Tailwind standar (`sm 640`, `md 768`, `lg 1024`).
+
+- **FR-11.1 (Kanvas A4 Mengalir Ulang):** Di bawah `900px`, `.resume-a4-page` menjadi `width: 100%` (lihat FR-3.1) sehingga tidak memicu scroll horizontal. Diverifikasi: `document.documentElement.scrollWidth === clientWidth` pada lebar viewport `320px`, `390px`, dan `1280px`.
+- **FR-11.2 (Navbar Adaptif Dua Baris):** Bilah navigasi editor bertumpuk menjadi dua baris pada layar mobile:
+  - Baris 1: logo Cevee, tombol kembali ke Dashboard, pemilih CV (`truncate`, `max-w-[130px]`), dan tombol edit nama CV.
+  - Baris 2: tombol `Preview` dan `Download PDF` (masing-masing `flex-1`, teks "Preview" ringkas) serta tombol Sign out (ikon saja).
+  - Pada `≥ 1024px` navbar kembali menjadi satu baris (`lg:flex-nowrap lg:h-14`) dengan status sinkronisasi dan label penuh.
+  - Dropdown pemilih CV dibatasi `max-w-[calc(100vw-1.5rem)]` agar tidak meluber.
+- **FR-11.3 (Kontrol Editor Selalu Terjangkau di Layar Sentuh):** Seluruh bilah aksi yang semula berbasis `hover` (kontrol section, pensil header, toolbar summary) kini selalu tampil di bawah breakpoint `lg` (lihat FR-4.4). Toolbar summary ditempatkan mengalir (*in-flow*, rata kanan) pada mobile dan kembali `absolute` di desktop.
+- **FR-11.4 (Baris Aksi Form Edit Membungkus):** Bilah aksi bawah pada tiap form edit section (`+ Add More`, `Cancel`, `Save`) memakai `flex-wrap` sehingga turun ke baris kedua dengan rapi pada layar sangat sempit (terverifikasi pada `320px`).
+- **FR-11.5 (Popover Tanggal Aman Viewport):** Popover `DatePicker` dibatasi lebar maksimumnya relatif viewport (FR-3.5) sehingga tidak terpotong pada mobile.
+- **FR-11.6 (Preview PDF Fit-to-Width):** Modal preview PDF menghitung zoom awal agar lembar A4 pas dengan lebar viewport, menyembunyikan kontrol zoom di bawah `sm`, memakai padding lebih rapat (`p-3`), dan men-`truncate` judul agar toolbar tidak meluber.
+- **FR-11.7 (Tipografi & Sentuhan):** Target sentuh tombol ikon minimal mengikuti ukuran Tailwind (`p-1.5` s.d. `p-2`), dan pemilih teks tidak bergantung pada efek transisi khusus *pointer*. Tidak ada elemen yang `display: none` hanya karena perangkat adalah seluler.
+- **FR-11.8 (Non-Regresi Cetak):** Seluruh penyesuaian responsif bersifat *screen-only* (dibungkus `@media screen`) dan tidak mengubah output cetak/PDF 1:1 maupun kalkulasi paginasi item.
 
 ---
 
@@ -332,13 +356,27 @@ export interface SkillCategory {
   items: string;   // teks berurutan dipisahkan koma
 }
 
+export interface ExperiencePosition {
+  id: string;
+  role: string;
+  period: string;   // Nilai tampilan, contoh: "Aug 2025"
+  startDate?: string;
+  endDate?: string;
+  current?: boolean; // true => periode ditampilkan sebagai "[start] - Present"
+  bullets: string;   // rich text HTML dari Tiptap
+}
+
 export interface ExperienceItem {
   id: string;
   role: string;
   company: string;
   location: string;
   period: string;  // contoh: "Aug 2025 - Dec 2025"
+  startDate?: string;
+  endDate?: string;
+  current?: boolean;
   bullets: string; // rich text HTML dari Tiptap
+  positions?: ExperiencePosition[]; // Multi-posisi / promosi dalam 1 perusahaan
 }
 
 export interface ProjectItem {
@@ -346,6 +384,8 @@ export interface ProjectItem {
   name: string;
   url?: string;
   period: string;
+  startDate?: string;
+  endDate?: string;
   bullets: string;
 }
 
@@ -354,7 +394,20 @@ export interface EducationItem {
   degree: string;
   institution: string;
   period: string;
+  startDate?: string;
+  endDate?: string;
   gpa?: string;
+  description?: string;
+}
+
+export interface CustomSectionItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  period?: string;
+  description?: string;
+  credentialId?: string;
+  credentialUrl?: string;
 }
 
 export type SectionType = 
@@ -393,6 +446,7 @@ export interface ResumeDocument {
 3. **Ketahanan Data:** Data yang sedang diedit tidak boleh hilang saat tab browser ditutup secara tidak sengaja (sinkronisasi lokal instan).
 4. **Keamanan & Privasi:** Data CV hanya dapat diakses oleh pemilik akun via Supabase RLS. Tidak ada telemetri pelacakan konten dokumen pengguna.
 5. **Aksesibilitas:** Seluruh tombol tindakan, modal penambahan section, dan menu picker dapat diakses menggunakan keyboard standar.
+6. **Responsivitas Mobile:** Seluruh halaman editor dapat digunakan penuh pada rentang lebar `320px` hingga desktop tanpa *horizontal scroll*; kontrol berbasis *hover* tetap dapat diakses melalui layar sentuh; dan penyesuaian responsif tidak mengubah output cetak/PDF 1:1.
 
 ---
 
@@ -427,3 +481,18 @@ export interface ResumeDocument {
 - Implementasi tombol download PDF dengan sanitasi nama file otomatis (`[FullName]_CV_[ResumeTitle].pdf`).
 - Terapkan aturan cetak CSS `@media print` presisi dan proteksi page-break item (`break-inside: avoid`).
 - Uji cetak cross-browser (Google Chrome, Firefox, Microsoft Edge).
+
+---
+
+## 7. RIWAYAT VERSI (CHANGELOG)
+
+### 1.25.0 — Responsive Mobile & Touch Experience
+- **Baru:** FR-11 (Responsive Mobile & Touch Experience) — kanvas A4 mengalir ulang di bawah `900px`, navbar dua baris di mobile, kontrol editor berbasis `hover` selalu tampil di layar sentuh, baris aksi form edit membungkus, popover tanggal aman viewport, dan modal preview PDF *fit-to-width*.
+- **Baru:** FR-3.5 (Universal Month-Year Date Picker) — komponen pemilih bulan-tahun seragam untuk seluruh field tanggal.
+- **Diperbarui:** FR-3.1 (perilaku responsif `.resume-a4-page`), FR-4.4 (bilah aksi touch-friendly), FR-3.5/5 (multi-posisi & promosi pada Work Experience), FR-7.1 (debounce 800ms, diselaraskan dengan kode), FR-8.4 (zoom 25%-150% + *fit-to-width*).
+- **Diperbarui:** Skema data (§4.2) — menambahkan `ExperiencePosition`, field `positions`/`startDate`/`endDate`/`current` pada `ExperienceItem`, tanggal pada `ProjectItem`/`EducationItem`, dan `CustomSectionItem`.
+- **Diperbarui:** Target Platform kini mencakup mobile; NFR #6 (Responsivitas Mobile) ditambahkan.
+
+### 1.24.0
+- FR-9: Fitur Download PDF vektor dengan penamaan file otomatis.
+- FR-10: Styling cetak presisi 1:1, eliminasi artefak ekstensi, konsistensi tipografi cetak.

@@ -231,7 +231,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
           </div>
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between pt-6 mt-4 border-t border-slate-100">
+          <div className="flex flex-wrap items-center justify-between gap-y-3 gap-x-3 pt-6 mt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={handleAddItem}

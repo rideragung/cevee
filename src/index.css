@@ -32,6 +32,29 @@
   border-bottom: 0.5px solid #1e293b;
 }
 
+/* Mobile / tablet: let the A4 canvas reflow to the viewport instead of
+   forcing a fixed 210mm sheet that overflows small screens. Print and PDF
+   output are unaffected (they render through .a4-page-sheet / print CSS). */
+@media screen and (max-width: 900px) {
+  .resume-a4-page {
+    width: 100%;
+    max-width: 210mm;
+    min-height: auto;
+    padding: 20px 16px 24px 16px;
+    border-radius: 14px;
+  }
+
+  /* Keep long unbroken strings (URLs, emails) from blowing out the layout */
+  .resume-a4-page {
+    overflow-wrap: anywhere;
+  }
+
+  .resume-a4-page a,
+  .resume-a4-page span {
+    overflow-wrap: anywhere;
+  }
+}
+
 /* Individual Physical A4 Sheet (Exact 210mm x 297mm with Whitespace Preserved) */
 .a4-page-sheet {
   width: 210mm;

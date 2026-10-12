@@ -70,7 +70,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         {/* Section action controls (pen, up, down, trash) in hover pill */}
         <div
           data-editor-control="true"
-          className="opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-xs rounded-md px-1.5 py-0.5 text-slate-500 no-print transition"
+          className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-xs rounded-md px-1.5 py-0.5 text-slate-500 no-print transition flex-shrink-0"
         >
           {onToggleEdit && (
             <button

@@ -605,8 +605,8 @@ export function App() {
           />
 
           {/* Editor Canvas Area */}
-          <main className="no-print-area flex-1 py-8 px-4 sm:px-6 flex justify-center items-start">
-            <div className="resume-a4-page rounded-[20px] transition-all">
+          <main className="no-print-area flex-1 py-4 px-2.5 sm:py-8 sm:px-6 flex justify-center items-start">
+            <div className="resume-a4-page w-full rounded-[20px] transition-all">
               {/* Header */}
               <ResumeHeader
                 data={activeResume.content.header}

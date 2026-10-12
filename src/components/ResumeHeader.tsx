@@ -331,7 +331,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange }) =>
           setFormData(getCleanFormData());
           setIsEditing(true);
         }}
-        className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-xs rounded-md px-1.5 py-1 text-slate-600 hover:text-slate-900 transition no-print"
+        className="absolute top-0 right-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-xs rounded-md px-1.5 py-1 text-slate-600 hover:text-slate-900 transition no-print"
         title="Edit Contact Information"
       >
         <Pencil size={13} />

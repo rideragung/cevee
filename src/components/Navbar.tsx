@@ -67,13 +67,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="app-navbar sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-xs no-print">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 flex flex-wrap lg:flex-nowrap items-center justify-between gap-x-3 gap-y-2 py-2 lg:h-14 lg:py-0">
         {/* Left: Brand & Navigation */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 lg:flex-none">
           <button
             type="button"
             onClick={onBackToDashboard}
-            className="flex items-center gap-2 group hover:opacity-85 transition"
+            className="flex items-center gap-2 group hover:opacity-85 transition flex-shrink-0"
             title="Back to Resumes Dashboard"
           >
             <span className="bg-emerald-600 text-white p-1 rounded-md">
@@ -88,7 +88,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={onBackToDashboard}
-              className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 font-medium px-2 py-1 rounded hover:bg-slate-100 transition"
+              className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 font-medium px-2 py-1 rounded hover:bg-slate-100 transition flex-shrink-0"
               title="View all resumes"
             >
               <ArrowLeft size={13} />
@@ -96,10 +96,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          <div className="h-5 w-px bg-slate-200" />
+          <div className="h-5 w-px bg-slate-200 hidden sm:block" />
 
           {/* Multi-CV Switcher Dropdown */}
-          <div className="relative">
+          <div className="relative min-w-0">
             {isRenaming ? (
               <form onSubmit={handleRenameSubmit} className="flex items-center gap-1">
                 <input
@@ -108,7 +108,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onChange={(e) => setEditTitle(e.target.value)}
                   onBlur={handleRenameSubmit}
                   autoFocus
-                  className="text-xs font-semibold px-2 py-1 border border-emerald-500 rounded outline-none w-48"
+                  className="text-xs font-semibold px-2 py-1 border border-emerald-500 rounded outline-none w-40 sm:w-48"
                 />
                 <button
                   type="submit"
@@ -119,16 +119,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </form>
             ) : (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 min-w-0">
                 <button
                   type="button"
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 hover:text-slate-950 bg-slate-100/80 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-md transition"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 hover:text-slate-950 bg-slate-100/80 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-md transition min-w-0"
                 >
-                  <span className="truncate max-w-[160px] sm:max-w-[220px]">
+                  <span className="truncate max-w-[130px] sm:max-w-[220px]">
                     {currentResume?.title}
                   </span>
-                  <ChevronDown size={14} className="text-slate-500" />
+                  <ChevronDown size={14} className="text-slate-500 flex-shrink-0" />
                 </button>
 
                 <button
@@ -154,7 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => setIsDropdownOpen(false)}
                 />
 
-                <div className="absolute left-0 mt-1.5 w-64 bg-white border border-slate-200 rounded-lg shadow-lg py-1.5 z-50 animate-in fade-in-50">
+                <div className="absolute left-0 mt-1.5 w-64 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-200 rounded-lg shadow-lg py-1.5 z-50 animate-in fade-in-50">
                   <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                     Your Resumes ({resumes.length})
                   </div>
@@ -229,7 +229,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Right: Status & Actions */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 w-full lg:w-auto lg:justify-end">
           <div className="hidden md:flex items-center gap-1.5 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2 py-1 rounded-md">
             {syncStatus === 'saving' ? (
               <>
@@ -249,31 +249,34 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={onOpenPreview}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition shadow-2xs"
-            title="Preview ATS layout (A4 format)"
-          >
-            <Eye size={14} />
-            <span className="hidden sm:inline">Preview PDF</span>
-          </button>
+          <div className="flex items-center gap-2 flex-1 lg:flex-none">
+            <button
+              type="button"
+              onClick={onOpenPreview}
+              className="inline-flex flex-1 lg:flex-none items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition shadow-2xs"
+              title="Preview ATS layout (A4 format)"
+            >
+              <Eye size={14} />
+              <span className="hidden sm:inline">Preview PDF</span>
+              <span className="sm:hidden">Preview</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={onDownloadPdf}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm transition"
-            title="Download PDF document"
-          >
-            <Download size={14} />
-            <span>Download PDF</span>
-          </button>
+            <button
+              type="button"
+              onClick={onDownloadPdf}
+              className="inline-flex flex-1 lg:flex-none items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm transition"
+              title="Download PDF document"
+            >
+              <Download size={14} />
+              <span>Download PDF</span>
+            </button>
+          </div>
 
           {onSignOut && (
             <button
               type="button"
               onClick={onSignOut}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded-md transition"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded-md transition flex-shrink-0"
               title={userEmail ? `Sign out (${userEmail})` : 'Sign out'}
             >
               <LogOut size={14} />

@@ -63,7 +63,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
       {!showTitle && !isEditing && (
         <div
           data-editor-control="true"
-          className="absolute -top-3.5 right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-xs rounded-md px-1.5 py-0.5 text-slate-500 no-print transition z-10"
+          className="mb-1 w-fit ml-auto flex items-center gap-1 bg-white border border-slate-200 shadow-xs rounded-md px-1.5 py-0.5 text-slate-500 no-print transition z-10 opacity-100 lg:mb-0 lg:ml-0 lg:absolute lg:-top-3.5 lg:right-0 lg:opacity-0 lg:group-hover:opacity-100"
         >
           <button
             type="button"

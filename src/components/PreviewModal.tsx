@@ -16,29 +16,36 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
   onClose,
   onDownload,
 }) => {
-  const [zoom, setZoom] = useState(0.9);
+  const getInitialZoom = () => {
+    if (typeof window === 'undefined') return 0.9;
+    const available = window.innerWidth - 24;
+    const fit = available / 794;
+    return Number(Math.min(0.9, Math.max(0.3, fit)).toFixed(2));
+  };
+
+  const [zoom, setZoom] = useState(getInitialZoom);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-between overflow-hidden animate-in fade-in no-print">
       {/* Top Toolbar */}
-      <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md z-30">
-        <div className="flex items-center gap-3">
-          <span className="font-semibold text-sm">
+      <div className="bg-slate-900 text-white px-3 sm:px-4 py-3 flex items-center justify-between gap-3 shadow-md z-30">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="font-semibold text-sm truncate">
             1:1 PDF Preview • {resume.title}
           </span>
-          <span className="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 hidden sm:inline">
+          <span className="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 hidden sm:inline flex-shrink-0">
             Standard A4 Print (210 × 297 mm)
           </span>
         </div>
 
         {/* Zoom & Action Controls */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-800 rounded-md border border-slate-700 px-1">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="hidden sm:flex items-center bg-slate-800 rounded-md border border-slate-700 px-1">
             <button
               type="button"
-              onClick={() => setZoom((z) => Math.max(0.5, Number((z - 0.1).toFixed(1))))}
+              onClick={() => setZoom((z) => Math.max(0.25, Number((z - 0.1).toFixed(2))))}
               className="p-1.5 text-slate-300 hover:text-white"
               title="Zoom Out"
             >
@@ -49,7 +56,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
             </span>
             <button
               type="button"
-              onClick={() => setZoom((z) => Math.min(1.5, Number((z + 0.1).toFixed(1))))}
+              onClick={() => setZoom((z) => Math.min(1.5, Number((z + 0.1).toFixed(2))))}
               className="p-1.5 text-slate-300 hover:text-white"
               title="Zoom In"
             >
@@ -86,7 +93,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
       </div>
 
       {/* Main Preview Area */}
-      <div className="flex-1 overflow-auto p-6 sm:p-10 flex justify-center items-start bg-slate-800/95">
+      <div className="flex-1 overflow-auto p-3 sm:p-10 flex justify-center items-start bg-slate-800/95">
         <PaginatedResumeView resume={resume} scale={zoom} showPageNumbers={true} />
       </div>
     </div>
