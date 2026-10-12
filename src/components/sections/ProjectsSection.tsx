@@ -213,9 +213,9 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                 <span className="font-bold text-slate-400">
                   Project Name (<span className="underline">project link</span>)
                 </span>
-                <span className="text-[9pt] font-semibold text-slate-400">May 2022 - Present</span>
+                <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
               </div>
-              <div className="text-slate-400 text-justify mt-0.5">
+              <div className="text-slate-400 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
                 State your tasks and accomplishments including name of the project and position of responsibility held.
               </div>
             </div>
@@ -239,12 +239,12 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                 ) : (
                   <span className="font-bold text-slate-900">{item.name}</span>
                 )}
-                <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+                <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
               </div>
 
                 {/* Bullet Points */}
                 <div
-                  className="text-slate-800 text-justify mt-0.5"
+                  className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
                   dangerouslySetInnerHTML={{ __html: item.bullets }}
                 />
               </div>

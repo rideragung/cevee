@@ -47,7 +47,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
               onChange={(e) => setEditedTitle(e.target.value)}
               onBlur={() => handleTitleSubmit()}
               autoFocus
-              className="text-[9pt] font-bold tracking-wider text-slate-900 uppercase border-b-2 border-emerald-500 bg-emerald-50/50 px-1 outline-none"
+              className="text-[8.5pt] font-bold tracking-wider text-slate-900 uppercase border-b-2 border-emerald-500 bg-emerald-50/50 px-1 outline-none"
             />
             <button
               type="submit"
@@ -60,7 +60,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         ) : (
           <h2
             onClick={() => setIsEditingTitle(true)}
-            className="text-[9pt] font-bold tracking-wider text-slate-900 uppercase cursor-pointer hover:text-emerald-700 transition"
+            className="text-[8.5pt] font-bold tracking-wider text-slate-900 uppercase cursor-pointer hover:text-emerald-700 transition"
             title="Click to rename section"
           >
             {title}

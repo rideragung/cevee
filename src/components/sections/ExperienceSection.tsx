@@ -300,13 +300,13 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
             <div className="avoid-break text-slate-400 select-none">
               <div className="flex justify-between items-baseline font-bold leading-snug">
                 <span className="text-slate-400">Position</span>
-                <span className="text-[9pt] font-semibold text-slate-400">May 2022 - Present</span>
+                <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
               </div>
-              <div className="flex justify-between items-baseline text-slate-400 leading-snug text-[9.5pt]">
+              <div className="flex justify-between items-baseline text-slate-400 leading-snug text-[8pt]">
                 <span className="font-semibold text-slate-400">Company Name</span>
                 <span className="text-slate-400">City, State/Country</span>
               </div>
-              <div className="text-slate-400 text-justify mt-0.5">
+              <div className="text-slate-400 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
                 State your tasks and accomplishments including name of the project and position of responsibility held.
               </div>
             </div>
@@ -316,18 +316,18 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                 {/* Line 1: Role & Period */}
                 <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
                   <span>{item.role}</span>
-                  <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+                  <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
                 </div>
 
                 {/* Line 2: Company & Location */}
-                <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[9.5pt]">
+                <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]">
                   <span className="font-semibold">{item.company}</span>
                   <span className="text-slate-700">{item.location}</span>
                 </div>
 
                 {/* Bullet Points */}
                 <div
-                  className="text-slate-800 text-justify mt-0.5"
+                  className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
                   dangerouslySetInnerHTML={{ __html: item.bullets }}
                 />
               </div>

@@ -47,7 +47,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       attributes: {
         class:
           editorClassName ||
-          'min-h-[90px] p-2.5 text-[9pt] leading-relaxed text-slate-800 focus:outline-none border border-slate-300 rounded-lg bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors',
+          'min-h-[90px] p-2.5 text-[7.75pt] leading-relaxed text-slate-800 focus:outline-none border border-slate-300 rounded-lg bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors',
       },
     },
   });

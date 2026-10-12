@@ -286,7 +286,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           height: 25,
           render: () => (
             <div className="resume-section-divider border-b-[0.5px] border-slate-900 pb-0.5 mb-1.5 mt-2.5 first:mt-0.5">
-              <h2 className="text-[9pt] font-bold tracking-wider text-slate-900 uppercase">
+              <h2 className="text-[8.5pt] font-bold tracking-wider text-slate-900 uppercase">
                 {section.title}
               </h2>
             </div>
@@ -356,13 +356,13 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
               <div className="mb-2 text-slate-400">
                 <div className="flex justify-between items-baseline font-bold leading-snug">
                   <span className="text-slate-400">Position</span>
-                  <span className="text-[9pt] font-semibold text-slate-400">May 2022 - Present</span>
+                  <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
                 </div>
-                <div className="flex justify-between items-baseline leading-snug text-[9.5pt]">
+                <div className="flex justify-between items-baseline leading-snug text-[8pt]">
                   <span className="font-semibold text-slate-400">Company Name</span>
                   <span className="text-slate-400">City, State/Country</span>
                 </div>
-                <div className="text-slate-400 text-justify mt-0.5">
+                <div className="text-slate-400 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
                   State your tasks and accomplishments including name of the project and position of responsibility held.
                 </div>
               </div>
@@ -378,15 +378,15 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                 <div className="mb-2">
                   <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
                     <span>{item.role}</span>
-                    <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+                    <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
                   </div>
-                  <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[9.5pt]">
+                  <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]">
                     <span className="font-semibold">{item.company}</span>
                     <span className="text-slate-700">{item.location}</span>
                   </div>
                   {item.bullets && (
                     <div
-                      className="text-slate-800 text-justify mt-0.5"
+                      className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
                       dangerouslySetInnerHTML={{ __html: item.bullets }}
                     />
                   )}
@@ -406,12 +406,12 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                 <div className="flex justify-between items-baseline leading-snug">
                   <span className="font-bold text-slate-400 inline-flex items-center gap-1">
                     <span>Project Name</span>
-                    <span className="text-[8pt] underline">(project link)</span>
+                    <span className="text-[7.75pt] underline">(project link)</span>
                     <ExternalLink size={11} className="inline opacity-70 flex-shrink-0 text-slate-400" />
                   </span>
-                  <span className="text-[9pt] font-semibold text-slate-400">May 2022 - Present</span>
+                  <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
                 </div>
-                <div className="text-slate-400 text-justify mt-0.5">
+                <div className="text-slate-400 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
                   State your tasks and accomplishments including name of the project and position of responsibility held.
                 </div>
               </div>
@@ -440,11 +440,11 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                     ) : (
                       <span>{item.name}</span>
                     )}
-                    <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+                    <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
                   </div>
                   {item.bullets && (
                     <div
-                      className="text-slate-800 text-justify mt-0.5"
+                      className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
                       dangerouslySetInnerHTML={{ __html: item.bullets }}
                     />
                   )}
@@ -463,13 +463,13 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
               <div className="mb-1.5 text-slate-400 space-y-0.5">
                 <div className="flex justify-between items-baseline leading-snug">
                   <span className="font-bold text-slate-400">Bachelor of Computer Science</span>
-                  <span className="text-[9pt] font-semibold text-slate-400">May 2022 - Present</span>
+                  <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
                 </div>
-                <div className="flex justify-between items-baseline leading-snug text-[9.5pt]">
+                <div className="flex justify-between items-baseline leading-snug text-[8pt]">
                   <span>Name of the Educational Institution</span>
                   <span className="font-medium text-slate-400">GPA: 4.0 of 4.0</span>
                 </div>
-                <div className="text-slate-400 text-[9pt] leading-snug">
+                <div className="text-slate-400 text-[7.75pt] leading-snug">
                   E.g., info about scholarships, student activity, etc.
                 </div>
               </div>
@@ -485,14 +485,14 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                 <div className="mb-1.5">
                   <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
                     <span>{item.degree}</span>
-                    <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+                    <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
                   </div>
-                  <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[9.5pt]">
+                  <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]">
                     <span>{item.institution}</span>
                     {item.gpa && <span className="font-medium text-slate-800">{item.gpa}</span>}
                   </div>
                   {item.description && (
-                    <div className="text-slate-700 text-[9pt] leading-snug mt-0.5">
+                    <div className="text-slate-700 text-[7.75pt] leading-snug mt-0.5">
                       {item.description}
                     </div>
                   )}
@@ -523,11 +523,11 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                       <span className="font-normal text-slate-400"> by </span>
                       <span className="font-bold text-slate-400">Dicoding Indonesia</span>
                     </div>
-                    <span className="text-[9pt] font-bold text-slate-400">Jan 2025 – Jan 2028</span>
+                    <span className="text-[7.75pt] font-bold text-slate-400">Jan 2025 – Jan 2028</span>
                   </div>
                 )}
                 {isLang && (
-                  <div className="text-slate-400 text-[9pt] leading-snug">
+                  <div className="text-slate-400 text-[7.75pt] leading-snug">
                     <span className="font-bold text-slate-400">Bahasa Indonesia</span> (Native proficiency) •{' '}
                     <span className="font-bold text-slate-400">Vietnamese</span> (Full working proficiency) •{' '}
                     <span className="font-bold text-slate-400">English</span> (Professional working proficiency)
@@ -537,9 +537,9 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                   <div>
                     <div className="flex justify-between items-baseline font-bold leading-snug">
                       <span className="text-slate-400">Publication Title (Publisher)</span>
-                      <span className="text-[9pt] font-semibold text-slate-400">May 2022</span>
+                      <span className="text-[7.75pt] font-semibold text-slate-400">May 2022</span>
                     </div>
-                    <div className="text-slate-400 text-[9pt] leading-relaxed mt-0.5">
+                    <div className="text-slate-400 text-[7.75pt] leading-relaxed mt-0.5">
                       Provide a brief overview of the research, emphasizing significant findings...
                     </div>
                   </div>
@@ -548,15 +548,15 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                   <div>
                     <div className="flex justify-between items-baseline font-bold leading-snug">
                       <span className="text-slate-400">Title (Issuer)</span>
-                      <span className="text-[9pt] font-semibold text-slate-400">May 2022</span>
+                      <span className="text-[7.75pt] font-semibold text-slate-400">May 2022</span>
                     </div>
-                    <div className="text-slate-400 text-[9pt] leading-relaxed mt-0.5">
+                    <div className="text-slate-400 text-[7.75pt] leading-relaxed mt-0.5">
                       Write a concise description of the award, highlighting key achievements...
                     </div>
                   </div>
                 )}
                 {isRef && (
-                  <div className="text-slate-400 text-[9pt] leading-snug">
+                  <div className="text-slate-400 text-[7.75pt] leading-snug">
                     <span className="font-bold text-slate-400">Richard Hendricks</span> (Co-founder of Pipe Piper) • richard@piedpiper.com
                   </div>
                 )}
@@ -597,7 +597,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                   );
 
                   return (
-                    <div className="mb-1.5 flex justify-between items-baseline leading-snug">
+                    <div className="mb-1.5 flex justify-between items-baseline leading-snug text-[7.75pt]">
                       {credUrl ? (
                         <a
                           href={credUrl}
@@ -612,7 +612,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                         <div className="text-slate-900 leading-snug">{certContent}</div>
                       )}
                       {item.period && (
-                        <span className="text-[9pt] font-bold text-slate-900 whitespace-nowrap ml-4">
+                        <span className="text-[7.75pt] font-bold text-slate-900 whitespace-nowrap ml-4">
                           {item.period}
                         </span>
                       )}
@@ -622,7 +622,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
 
                 if (isLang) {
                   return (
-                    <div className="mb-1.5 text-slate-800 text-[9pt] leading-snug">
+                    <div className="mb-1.5 text-slate-800 text-[7.75pt] leading-snug">
                       <span className="font-bold">{item.title}</span>
                       {item.subtitle && ` (${item.subtitle})`}
                     </div>
@@ -631,7 +631,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
 
                 if (isRef) {
                   return (
-                    <div className="mb-1.5 text-slate-800 text-[9pt] leading-snug">
+                    <div className="mb-1.5 text-slate-800 text-[7.75pt] leading-snug">
                       <span className="font-bold">{item.title}</span>
                       {item.subtitle && ` (${item.subtitle})`}
                       {item.period && ` • ${item.period}`}
@@ -647,11 +647,11 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                         {item.subtitle && ` (${item.subtitle})`}
                       </span>
                       {item.period && (
-                        <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+                        <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
                       )}
                     </div>
                     {item.description && (
-                      <div className="text-slate-800 text-[9pt] leading-relaxed mt-0.5">
+                      <div className="text-slate-800 text-[7.75pt] leading-relaxed mt-0.5">
                         {item.description}
                       </div>
                     )}
@@ -714,8 +714,8 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           pointerEvents: 'none',
           boxSizing: 'border-box',
           fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-          fontSize: '9pt',
-          lineHeight: '1.38',
+          fontSize: '7.75pt',
+          lineHeight: '1.48',
           color: '#111827',
           zIndex: -999,
         }}

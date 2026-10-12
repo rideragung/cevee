@@ -224,13 +224,13 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
             <div className="avoid-break text-slate-400 select-none space-y-0.5">
               <div className="flex justify-between items-baseline leading-snug">
                 <span className="font-bold text-slate-400">Bachelor of Computer Science</span>
-                <span className="text-[9pt] font-semibold text-slate-400">May 2022 - Present</span>
+                <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
               </div>
-              <div className="flex justify-between items-baseline text-slate-400 leading-snug text-[9.5pt]">
+              <div className="flex justify-between items-baseline text-slate-400 leading-snug text-[8pt]">
                 <span>Name of the Educational Institution</span>
                 <span className="font-medium text-slate-400">GPA: 4.0 of 4.0</span>
               </div>
-              <div className="text-slate-400 text-[9pt] leading-snug">
+              <div className="text-slate-400 text-[7.75pt] leading-snug">
                 E.g., info about scholarships, student activity, etc.
               </div>
             </div>
@@ -240,18 +240,18 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                 {/* Line 1: Degree & Period */}
                 <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
                   <span>{item.degree}</span>
-                  <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+                  <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
                 </div>
 
                 {/* Line 2: Institution & GPA */}
-                <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[9.5pt]">
+                <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]">
                   <span>{item.institution}</span>
                   {item.gpa && <span className="font-medium text-slate-800">{item.gpa}</span>}
                 </div>
 
                 {/* Line 3: Description */}
                 {item.description && (
-                  <div className="text-slate-700 text-[9pt] leading-snug mt-0.5">
+                  <div className="text-slate-700 text-[7.75pt] leading-snug mt-0.5">
                     {item.description}
                   </div>
                 )}

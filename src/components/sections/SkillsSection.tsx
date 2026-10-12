@@ -179,11 +179,11 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
             setCategories(data.categories.length > 0 && !isPlaceholder ? data.categories : [{ id: `sk-${Date.now()}`, category: '', items: '' }]);
             setIsEditing(true);
           }}
-          className="cursor-pointer hover:bg-slate-50/70 p-1 -m-1 rounded transition space-y-0.5 leading-snug"
+          className="cursor-pointer hover:bg-slate-50/70 p-1 -m-1 rounded transition space-y-0.5 leading-[1.48] text-[7.75pt]"
           title="Click to edit skills"
         >
           {isPlaceholder ? (
-            <div className="leading-snug text-slate-400 select-none">
+            <div className="leading-[1.48] text-slate-400 select-none">
               <span className="font-bold text-slate-400">Skill Category: </span>
               <span>Skill Name 1, Skill Name 2, Skill Name 3, Skill Name 4, Skill Name 5, etc</span>
             </div>

@@ -324,144 +324,144 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
           {isPlaceholder ? (
             /* Dummy Preview Template matching Image 2 in disabled color */
             <div className="avoid-break text-slate-400 select-none space-y-1">
-              {isCert && (
-                <div className="flex justify-between items-baseline leading-snug">
-                  <div>
-                    <span className="font-bold text-slate-400">Learn Basic AI (Credential ID: 6RPNR3EJ9X2M)</span>
-                    <span className="font-normal text-slate-400"> by </span>
-                    <span className="font-bold text-slate-400">Dicoding Indonesia</span>
-                  </div>
-                  <span className="text-[9pt] font-bold text-slate-400">Jan 2025 – Jan 2028</span>
-                </div>
-              )}
-
-              {isLang && (
-                <div className="text-slate-400 text-[9pt] leading-snug">
-                  <span className="font-bold text-slate-400">Bahasa Indonesia</span> (Native proficiency) •{' '}
-                  <span className="font-bold text-slate-400">Vietnamese</span> (Full working proficiency) •{' '}
-                  <span className="font-bold text-slate-400">English</span> (Professional working proficiency)
-                </div>
-              )}
-
-              {isPub && (
-                <div>
-                  <div className="flex justify-between items-baseline font-bold leading-snug">
-                    <span className="text-slate-400">Publication Title (Publisher)</span>
-                    <span className="text-[9pt] font-semibold text-slate-400">May 2022</span>
-                  </div>
-                  <div className="text-slate-400 text-[9pt] leading-relaxed mt-0.5">
-                    Provide a brief overview of the research, emphasizing significant findings...
-                  </div>
-                </div>
-              )}
-
-              {isAward && (
-                <div>
-                  <div className="flex justify-between items-baseline font-bold leading-snug">
-                    <span className="text-slate-400">Title (Issuer)</span>
-                    <span className="text-[9pt] font-semibold text-slate-400">May 2022</span>
-                  </div>
-                  <div className="text-slate-400 text-[9pt] leading-relaxed mt-0.5">
-                    Write a concise description of the award, highlighting key achievements...
-                  </div>
-                </div>
-              )}
-
-              {isRef && (
-                <div className="text-slate-400 text-[9pt] leading-snug">
-                  <span className="font-bold text-slate-400">Richard Hendricks</span> (Co-founder of Pipe Piper) • richard@piedpiper.com
-                </div>
-              )}
-            </div>
-          ) : (
-            (data?.items || []).map((item) => {
-              if (isCert) {
-                // Determine credential ID & URL
-                const rawDesc = item.description || '';
-                const isUrlDesc = rawDesc.startsWith('http') || rawDesc.includes('.com') || rawDesc.includes('.id') || rawDesc.includes('.org');
-                const credUrl = item.credentialUrl || (isUrlDesc ? rawDesc : '');
-                const rawCredId = item.credentialId || (!isUrlDesc ? rawDesc.replace(/^Credential ID:\s*/i, '') : '');
-
-                const certContent = (
-                  <>
-                    <span className="font-bold">{item.title}</span>
-                    {rawCredId && (
-                      <span className="font-bold"> (Credential ID: {rawCredId})</span>
-                    )}
-                    {item.subtitle && (
-                      <>
-                        <span className="font-normal"> by </span>
-                        <span className="font-bold">{item.subtitle}</span>
-                      </>
-                    )}
-                  </>
-                );
-
-                return (
-                  <div key={item.id} className="avoid-break flex justify-between items-baseline leading-snug">
-                    {credUrl ? (
-                      <a
-                        href={credUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-slate-900 hover:text-blue-700 leading-snug"
-                        title={credUrl}
-                      >
-                        {certContent}
-                      </a>
-                    ) : (
-                      <div className="text-slate-900 leading-snug">{certContent}</div>
-                    )}
-                    {item.period && (
-                      <span className="text-[9pt] font-bold text-slate-900 whitespace-nowrap ml-4">
-                        {item.period}
-                      </span>
-                    )}
-                  </div>
-                );
-              }
-
-              if (isLang) {
-                return (
-                  <div key={item.id} className="avoid-break text-slate-800 text-[9pt] leading-snug">
-                    <span className="font-bold">{item.title}</span>
-                    {item.subtitle && ` (${item.subtitle})`}
-                  </div>
-                );
-              }
-
-              if (isRef) {
-                return (
-                  <div key={item.id} className="avoid-break text-slate-800 text-[9pt] leading-snug">
-                    <span className="font-bold">{item.title}</span>
-                    {item.subtitle && ` (${item.subtitle})`}
-                    {item.period && ` • ${item.period}`}
-                  </div>
-                );
-              }
-
-              return (
-                <div key={item.id} className="avoid-break">
-                  <div className="flex justify-between items-baseline font-bold leading-snug">
-                    <span>
-                      {item.title}
-                      {item.subtitle && ` (${item.subtitle})`}
-                    </span>
-                    {item.period && (
-                      <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
-                    )}
-                  </div>
-
-                  {item.description && (
-                    <div className="text-slate-800 text-[9pt] leading-relaxed mt-0.5">
-                      {item.description}
+                {isCert && (
+                  <div className="flex justify-between items-baseline leading-snug">
+                    <div>
+                      <span className="font-bold text-slate-400">Learn Basic AI (Credential ID: 6RPNR3EJ9X2M)</span>
+                      <span className="font-normal text-slate-400"> by </span>
+                      <span className="font-bold text-slate-400">Dicoding Indonesia</span>
                     </div>
-                  )}
-                </div>
-              );
-            })
-          )}
+                    <span className="text-[7.75pt] font-bold text-slate-400">Jan 2025 – Jan 2028</span>
+                  </div>
+                )}
+
+                {isLang && (
+                  <div className="text-slate-400 text-[7.75pt] leading-snug">
+                    <span className="font-bold text-slate-400">Bahasa Indonesia</span> (Native proficiency) •{' '}
+                    <span className="font-bold text-slate-400">Vietnamese</span> (Full working proficiency) •{' '}
+                    <span className="font-bold text-slate-400">English</span> (Professional working proficiency)
+                  </div>
+                )}
+
+                {isPub && (
+                  <div>
+                    <div className="flex justify-between items-baseline font-bold leading-snug">
+                      <span className="text-slate-400">Publication Title (Publisher)</span>
+                      <span className="text-[7.75pt] font-semibold text-slate-400">May 2022</span>
+                    </div>
+                    <div className="text-slate-400 text-[7.75pt] leading-relaxed mt-0.5">
+                      Provide a brief overview of the research, emphasizing significant findings...
+                    </div>
+                  </div>
+                )}
+
+                {isAward && (
+                  <div>
+                    <div className="flex justify-between items-baseline font-bold leading-snug">
+                      <span className="text-slate-400">Title (Issuer)</span>
+                      <span className="text-[7.75pt] font-semibold text-slate-400">May 2022</span>
+                    </div>
+                    <div className="text-slate-400 text-[7.75pt] leading-relaxed mt-0.5">
+                      Write a concise description of the award, highlighting key achievements...
+                    </div>
+                  </div>
+                )}
+
+                {isRef && (
+                  <div className="text-slate-400 text-[7.75pt] leading-snug">
+                    <span className="font-bold text-slate-400">Richard Hendricks</span> (Co-founder of Pipe Piper) • richard@piedpiper.com
+                  </div>
+                )}
+              </div>
+            ) : (
+              (data?.items || []).map((item) => {
+                if (isCert) {
+                  // Determine credential ID & URL
+                  const rawDesc = item.description || '';
+                  const isUrlDesc = rawDesc.startsWith('http') || rawDesc.includes('.com') || rawDesc.includes('.id') || rawDesc.includes('.org');
+                  const credUrl = item.credentialUrl || (isUrlDesc ? rawDesc : '');
+                  const rawCredId = item.credentialId || (!isUrlDesc ? rawDesc.replace(/^Credential ID:\s*/i, '') : '');
+
+                  const certContent = (
+                    <>
+                      <span className="font-bold">{item.title}</span>
+                      {rawCredId && (
+                        <span className="font-bold"> (Credential ID: {rawCredId})</span>
+                      )}
+                      {item.subtitle && (
+                        <>
+                          <span className="font-normal"> by </span>
+                          <span className="font-bold">{item.subtitle}</span>
+                        </>
+                      )}
+                    </>
+                  );
+
+                  return (
+                    <div key={item.id} className="avoid-break flex justify-between items-baseline leading-snug text-[7.75pt]">
+                      {credUrl ? (
+                        <a
+                          href={credUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-slate-900 hover:text-blue-700 leading-snug"
+                          title={credUrl}
+                        >
+                          {certContent}
+                        </a>
+                      ) : (
+                        <div className="text-slate-900 leading-snug">{certContent}</div>
+                      )}
+                      {item.period && (
+                        <span className="text-[7.75pt] font-bold text-slate-900 whitespace-nowrap ml-4">
+                          {item.period}
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (isLang) {
+                  return (
+                    <div key={item.id} className="avoid-break text-slate-800 text-[7.75pt] leading-snug">
+                      <span className="font-bold">{item.title}</span>
+                      {item.subtitle && ` (${item.subtitle})`}
+                    </div>
+                  );
+                }
+
+                if (isRef) {
+                  return (
+                    <div key={item.id} className="avoid-break text-slate-800 text-[7.75pt] leading-snug">
+                      <span className="font-bold">{item.title}</span>
+                      {item.subtitle && ` (${item.subtitle})`}
+                      {item.period && ` • ${item.period}`}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={item.id} className="avoid-break">
+                    <div className="flex justify-between items-baseline font-bold leading-snug">
+                      <span>
+                        {item.title}
+                        {item.subtitle && ` (${item.subtitle})`}
+                      </span>
+                      {item.period && (
+                        <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
+                      )}
+                    </div>
+
+                    {item.description && (
+                      <div className="text-slate-800 text-[7.75pt] leading-relaxed mt-0.5">
+                        {item.description}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
         </div>
       )}
     </section>

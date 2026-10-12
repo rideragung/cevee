@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.23.0  
+**Dokumen Versi:** 1.24.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Desktop & Tablet First)  
@@ -24,7 +24,7 @@ Dokumen ini mendefinisikan spesifikasi kebutuhan perangkat lunak lengkap untuk s
 ### 1.2 Lingkup Produk
 Cevee memungkinkan pengguna:
 1. Membuat, mengelola, menduplikasi, dan menghapus banyak CV dalam satu akun.
-2. Mengedit teks langsung di atas kanvas format standar A4 (in-place WYSIWYG) dengan margin padat standar ATS (`10mm` atas, `13mm` samping).
+2. Mengedit teks langsung di atas kanvas format standar A4 (in-place WYSIWYG) dengan margin padat standar ATS (`10mm` atas, `13mm` samping) dan tipografi konten presisi seragam `7.75pt`.
 3. Header adaptif dengan baris Role / Headline opsional yang dapat diisi atau disembunyikan bebas, serta tautan portofolio bergaris bawah (*underlined*).
 4. Section Summary tanpa judul "SUMMARY" bawaan yang langsung tampil di bawah kontak dengan format rata kiri-kanan (*justify*) dan tipografi presisi `7.75pt` (menghasilkan susunan 3 baris padat sesuai standar referensi).
 5. Melakukan format teks kaya (Bold, Italic, Underline, Link, Bulleted List).
