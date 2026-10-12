@@ -176,8 +176,7 @@
     overflow: hidden !important;
     box-sizing: border-box !important;
     background: white !important;
-    /* Use standard system font in print to drop 1-2MB font embedding overhead */
-    font-family: Arial, Helvetica, sans-serif !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
   }
 
   /* Force pure vector rendering & no raster filters in print */
@@ -187,7 +186,7 @@
     text-shadow: none !important;
     filter: none !important;
     transform: none !important;
-    font-family: Arial, Helvetica, sans-serif !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
   }
 
   .a4-page-sheet a {

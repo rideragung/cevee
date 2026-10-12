@@ -21,6 +21,29 @@ const stripHtml = (html: string): string => {
   return html ? html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : '';
 };
 
+// Parse string HTML bullets menjadi array bullet mandiri
+const parseBullets = (html: string): string[] => {
+  if (!html || !html.trim()) return [];
+
+  const liMatches = html.match(/<li[^>]*>[\s\S]*?<\/li>/gi);
+  if (liMatches && liMatches.length > 0) {
+    const valid = liMatches.filter((li) => stripHtml(li).length > 0);
+    if (valid.length > 0) return valid;
+  }
+
+  const pMatches = html.match(/<p[^>]*>[\s\S]*?<\/p>/gi);
+  if (pMatches && pMatches.length > 0) {
+    const valid = pMatches.filter((p) => stripHtml(p).length > 0);
+    if (valid.length > 0) return valid;
+  }
+
+  if (stripHtml(html).length > 0) {
+    return [html];
+  }
+
+  return [];
+};
+
 // Estimasi tinggi teks/HTML realistis (A4 width 184mm content, 9pt font, 1.38 line-height ~16.5px per baris)
 const estimateHtmlHeight = (html: string): number => {
   if (!html || !html.trim()) return 0;
@@ -31,15 +54,15 @@ const estimateHtmlHeight = (html: string): number => {
     for (const li of liMatches) {
       const text = stripHtml(li);
       const lines = Math.max(1, Math.ceil(text.length / 80));
-      totalHeight += lines * 16.5 + 2;
+      totalHeight += lines * 16.2 + 2;
     }
-    return totalHeight + 4;
+    return totalHeight + 2;
   }
 
   const text = stripHtml(html);
   if (!text) return 0;
   const lines = Math.max(1, Math.ceil(text.length / 85));
-  return lines * 16.5 + 2;
+  return lines * 16.2 + 2;
 };
 
 const estimateHeaderHeight = (header: any): number => {
@@ -117,8 +140,8 @@ const estimateCustomItemHeight = (item: any, sectionTitle: string, isPlaceholder
   return Math.max(24, height);
 };
 
-// Available printable content height in A4 (297mm - 10mm top - 12mm bottom = ~1039px at 96 DPI, safe threshold 1025px)
-const PAGE_CONTENT_MAX_HEIGHT_PX = 1025;
+// Available printable content height in A4 (297mm - 10mm top - 12mm bottom = ~1039px at 96 DPI, safe threshold 1032px)
+const PAGE_CONTENT_MAX_HEIGHT_PX = 1032;
 
 // Item-level pagination: pack items into current page, moving only overflowing items to next page
 const paginateBlocks = (blocks: ContentBlock[]): ContentBlock[][] => {
@@ -131,13 +154,12 @@ const paginateBlocks = (blocks: ContentBlock[]): ContentBlock[][] => {
     const h = b.height;
 
     // Anti-orphan rule for Section Titles:
-    // Pastikan jika ada judul section baru, judul section DAN setidaknya baris pertama itemnya muat di sisa halaman.
+    // Pastikan judul section DAN seluruh blok pertama di bawahnya muat bersama di halaman ini.
     if (b.type === 'section-title') {
       const nextBlock = i + 1 < blocks.length ? blocks[i + 1] : null;
-      // Kebutuhan space minimal agar section title tidak terisolasi sendirian di bawah
-      const minFirstItemSpace = nextBlock ? Math.min(nextBlock.height, 35) : 0;
+      const requiredFirstBlockSpace = nextBlock ? nextBlock.height : 0;
 
-      if (currentHeight + h + minFirstItemSpace > PAGE_CONTENT_MAX_HEIGHT_PX && currentPageBlocks.length > 0) {
+      if (currentHeight + h + requiredFirstBlockSpace > PAGE_CONTENT_MAX_HEIGHT_PX && currentPageBlocks.length > 0) {
         calculatedPages.push(currentPageBlocks);
         currentPageBlocks = [b];
         currentHeight = h;
@@ -304,36 +326,45 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           ),
         });
       } else if (section.type === 'skills') {
-        list.push({
-          id: `content-${section.id}`,
-          type: 'skills',
-          height: estimateSkillsHeight(section.data?.categories, section.isPlaceholder),
-          render: () => (
-            <div className="mb-2">
-              {section.isPlaceholder ? (
-                <div className="leading-snug text-slate-400">
-                  <span className="font-bold text-slate-400">Skill Category: </span>
-                  <span>Skill Name 1, Skill Name 2, Skill Name 3, Skill Name 4, Skill Name 5, etc</span>
+        if (section.isPlaceholder) {
+          list.push({
+            id: `content-${section.id}`,
+            type: 'skills',
+            height: 36,
+            render: () => (
+              <div className="mb-2 leading-snug text-slate-400">
+                <span className="font-bold text-slate-400">Skill Category: </span>
+                <span>Skill Name 1, Skill Name 2, Skill Name 3, Skill Name 4, Skill Name 5, etc</span>
+              </div>
+            ),
+          });
+        } else {
+          const cats = section.data.categories || [];
+          cats.forEach((cat: any, catIdx: number) => {
+            const isLastCat = catIdx === cats.length - 1;
+            const text = `${cat.category || ''}: ${cat.items || ''}`;
+            const lines = Math.max(1, Math.ceil(text.length / 85));
+            const catHeight = lines * 16.2 + (isLastCat ? 8 : 2);
+
+            list.push({
+              id: `content-${section.id}-cat-${cat.id || catIdx}`,
+              type: 'skills',
+              height: catHeight,
+              render: () => (
+                <div className={`text-slate-800 leading-snug ${isLastCat ? 'mb-2' : 'mb-0.5'}`}>
+                  <span className="font-bold text-slate-900">{cat.category}: </span>
+                  <span>{cat.items}</span>
                 </div>
-              ) : (
-                <div className="space-y-0.5 leading-snug">
-                  {section.data.categories?.map((cat: any) => (
-                    <div key={cat.id} className="text-slate-800">
-                      <span className="font-bold text-slate-900">{cat.category}: </span>
-                      <span>{cat.items}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ),
-        });
+              ),
+            });
+          });
+        }
       } else if (section.type === 'experience') {
         if (section.isPlaceholder) {
           list.push({
             id: `item-${section.id}-placeholder`,
             type: 'item',
-            height: estimateExperienceItemHeight(null, true),
+            height: 75,
             render: () => (
               <div className="mb-2 text-slate-400">
                 <div className="flex justify-between items-baseline font-bold leading-snug">
@@ -351,28 +382,85 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          section.data.items?.forEach((item: any) => {
-            list.push({
-              id: `item-${section.id}-${item.id}`,
-              type: 'item',
-              height: estimateExperienceItemHeight(item, false),
-              render: () => (
-                <div className="mb-2">
-                  <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
-                    <span>{item.role}</span>
-                    <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+          section.data.items?.forEach((item: any, itemIdx: number) => {
+            const rawBullets = parseBullets(item.bullets);
+            const isLastItem = itemIdx === (section.data.items?.length || 1) - 1;
+
+            if (rawBullets.length <= 1) {
+              list.push({
+                id: `item-${section.id}-${item.id}`,
+                type: 'item',
+                height: estimateExperienceItemHeight(item, false),
+                render: () => (
+                  <div className="mb-2">
+                    <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
+                      <span>{item.role}</span>
+                      <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+                    </div>
+                    <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[9.5pt]">
+                      <span className="font-semibold">{item.company}</span>
+                      <span className="text-slate-700">{item.location}</span>
+                    </div>
+                    {item.bullets && (
+                      <div
+                        className="text-slate-800 text-justify mt-0.5"
+                        dangerouslySetInnerHTML={{ __html: item.bullets }}
+                      />
+                    )}
                   </div>
-                  <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[9.5pt]">
-                    <span className="font-semibold">{item.company}</span>
-                    <span className="text-slate-700">{item.location}</span>
+                ),
+              });
+            } else {
+              // Granular multi-bullet splitting: Job Header + Bullet 1 selalu bersama
+              const headBulletsHtml = rawBullets[0].startsWith('<li')
+                ? `<ul>${rawBullets[0]}</ul>`
+                : rawBullets[0];
+              const headHeight = 32 + estimateHtmlHeight(rawBullets[0]) + 2;
+
+              list.push({
+                id: `item-${section.id}-${item.id}-head`,
+                type: 'item',
+                height: headHeight,
+                render: () => (
+                  <div className="mb-0.5">
+                    <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
+                      <span>{item.role}</span>
+                      <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+                    </div>
+                    <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[9.5pt]">
+                      <span className="font-semibold">{item.company}</span>
+                      <span className="text-slate-700">{item.location}</span>
+                    </div>
+                    <div
+                      className="text-slate-800 text-justify mt-0.5"
+                      dangerouslySetInnerHTML={{ __html: headBulletsHtml }}
+                    />
                   </div>
-                  <div
-                    className="text-slate-800 text-justify mt-0.5"
-                    dangerouslySetInnerHTML={{ __html: item.bullets }}
-                  />
-                </div>
-              ),
-            });
+                ),
+              });
+
+              // Sisa bullets masing-masing mandiri
+              for (let bIdx = 1; bIdx < rawBullets.length; bIdx++) {
+                const bHtml = rawBullets[bIdx];
+                const isFinalBulletOfItem = bIdx === rawBullets.length - 1;
+                const formattedBulletHtml = bHtml.startsWith('<li') ? `<ul>${bHtml}</ul>` : bHtml;
+                const bHeight = estimateHtmlHeight(bHtml) + (isFinalBulletOfItem ? 8 : 2);
+
+                list.push({
+                  id: `item-${section.id}-${item.id}-b-${bIdx}`,
+                  type: 'item',
+                  height: bHeight,
+                  render: () => (
+                    <div className={isFinalBulletOfItem ? 'mb-2' : 'mb-0.5'}>
+                      <div
+                        className="text-slate-800 text-justify"
+                        dangerouslySetInnerHTML={{ __html: formattedBulletHtml }}
+                      />
+                    </div>
+                  ),
+                });
+              }
+            }
           });
         }
       } else if (section.type === 'projects') {
@@ -380,7 +468,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           list.push({
             id: `item-${section.id}-placeholder`,
             type: 'item',
-            height: estimateProjectItemHeight(null, true),
+            height: 60,
             render: () => (
               <div className="mb-2 text-slate-400">
                 <div className="flex justify-between items-baseline leading-snug">
@@ -398,37 +486,102 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          section.data.items?.forEach((item: any) => {
-            list.push({
-              id: `item-${section.id}-${item.id}`,
-              type: 'item',
-              height: estimateProjectItemHeight(item, false),
-              render: () => (
-                <div className="mb-2">
-                  <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
-                    {item.url ? (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-bold text-slate-900 hover:text-blue-700 inline-flex items-center gap-1 group/link"
-                        title={item.url}
-                      >
-                        <span className="group-hover/link:underline">{item.name}</span>
-                        <ExternalLink size={11} className="inline opacity-80 group-hover/link:opacity-100 flex-shrink-0 text-slate-700" />
-                      </a>
-                    ) : (
-                      <span>{item.name}</span>
+          section.data.items?.forEach((item: any, itemIdx: number) => {
+            const rawBullets = parseBullets(item.bullets);
+            const isLastItem = itemIdx === (section.data.items?.length || 1) - 1;
+
+            if (rawBullets.length <= 1) {
+              list.push({
+                id: `item-${section.id}-${item.id}`,
+                type: 'item',
+                height: estimateProjectItemHeight(item, false),
+                render: () => (
+                  <div className="mb-2">
+                    <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
+                      {item.url ? (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-bold text-slate-900 hover:text-blue-700 inline-flex items-center gap-1 group/link"
+                          title={item.url}
+                        >
+                          <span className="group-hover/link:underline">{item.name}</span>
+                          <ExternalLink size={11} className="inline opacity-80 group-hover/link:opacity-100 flex-shrink-0 text-slate-700" />
+                        </a>
+                      ) : (
+                        <span>{item.name}</span>
+                      )}
+                      <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+                    </div>
+                    {item.bullets && (
+                      <div
+                        className="text-slate-800 text-justify mt-0.5"
+                        dangerouslySetInnerHTML={{ __html: item.bullets }}
+                      />
                     )}
-                    <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
                   </div>
-                  <div
-                    className="text-slate-800 text-justify mt-0.5"
-                    dangerouslySetInnerHTML={{ __html: item.bullets }}
-                  />
-                </div>
-              ),
-            });
+                ),
+              });
+            } else {
+              // Granular multi-bullet splitting: Project Header + Bullet 1 selalu bersama
+              const headBulletsHtml = rawBullets[0].startsWith('<li')
+                ? `<ul>${rawBullets[0]}</ul>`
+                : rawBullets[0];
+              const headHeight = 18 + estimateHtmlHeight(rawBullets[0]) + 2;
+
+              list.push({
+                id: `item-${section.id}-${item.id}-head`,
+                type: 'item',
+                height: headHeight,
+                render: () => (
+                  <div className="mb-0.5">
+                    <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
+                      {item.url ? (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-bold text-slate-900 hover:text-blue-700 inline-flex items-center gap-1 group/link"
+                          title={item.url}
+                        >
+                          <span className="group-hover/link:underline">{item.name}</span>
+                          <ExternalLink size={11} className="inline opacity-80 group-hover/link:opacity-100 flex-shrink-0 text-slate-700" />
+                        </a>
+                      ) : (
+                        <span>{item.name}</span>
+                      )}
+                      <span className="text-[9pt] font-semibold text-slate-800">{item.period}</span>
+                    </div>
+                    <div
+                      className="text-slate-800 text-justify mt-0.5"
+                      dangerouslySetInnerHTML={{ __html: headBulletsHtml }}
+                    />
+                  </div>
+                ),
+              });
+
+              for (let bIdx = 1; bIdx < rawBullets.length; bIdx++) {
+                const bHtml = rawBullets[bIdx];
+                const isFinalBulletOfItem = bIdx === rawBullets.length - 1;
+                const formattedBulletHtml = bHtml.startsWith('<li') ? `<ul>${bHtml}</ul>` : bHtml;
+                const bHeight = estimateHtmlHeight(bHtml) + (isFinalBulletOfItem ? 8 : 2);
+
+                list.push({
+                  id: `item-${section.id}-${item.id}-b-${bIdx}`,
+                  type: 'item',
+                  height: bHeight,
+                  render: () => (
+                    <div className={isFinalBulletOfItem ? 'mb-2' : 'mb-0.5'}>
+                      <div
+                        className="text-slate-800 text-justify"
+                        dangerouslySetInnerHTML={{ __html: formattedBulletHtml }}
+                      />
+                    </div>
+                  ),
+                });
+              }
+            }
           });
         }
       } else if (section.type === 'education') {
