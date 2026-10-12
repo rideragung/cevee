@@ -12,21 +12,113 @@ interface PaginatedResumeViewProps {
 interface ContentBlock {
   id: string;
   type: 'header' | 'section-title' | 'summary' | 'skills' | 'item';
+  height: number;
   render: () => React.ReactNode;
 }
 
-// Content-aware realistic height estimator (consistent across preview and print)
-const estimateBlockHeight = (block: ContentBlock): number => {
-  if (block.type === 'header') return 110;
-  if (block.type === 'section-title') return 35;
-  if (block.type === 'summary') return 85;
-  if (block.type === 'skills') return 90;
-  if (block.type === 'item') return 135;
-  return 50;
+// Helper stripping HTML
+const stripHtml = (html: string): string => {
+  return html ? html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : '';
 };
 
-// Available printable content height in A4 (297mm - 10mm top - 12mm bottom = ~1032px, safe threshold 990px)
-const PAGE_CONTENT_MAX_HEIGHT_PX = 990;
+// Estimasi tinggi teks/HTML realistis (A4 width 184mm content, 9pt font, 1.38 line-height ~16.5px per baris)
+const estimateHtmlHeight = (html: string): number => {
+  if (!html || !html.trim()) return 0;
+
+  const liMatches = html.match(/<li[^>]*>[\s\S]*?<\/li>/gi);
+  if (liMatches && liMatches.length > 0) {
+    let totalHeight = 0;
+    for (const li of liMatches) {
+      const text = stripHtml(li);
+      const lines = Math.max(1, Math.ceil(text.length / 80));
+      totalHeight += lines * 16.5 + 2;
+    }
+    return totalHeight + 4;
+  }
+
+  const text = stripHtml(html);
+  if (!text) return 0;
+  const lines = Math.max(1, Math.ceil(text.length / 85));
+  return lines * 16.5 + 2;
+};
+
+const estimateHeaderHeight = (header: any): number => {
+  let height = 32; // Nama (text-[17pt] leading-tight + mb-0.5)
+  if (header.headline || (header.roles && header.roles.length > 0)) {
+    height += 16;
+  }
+  const linksCount = header.links?.length || 0;
+  const contactTextLen = (header.location?.length || 0) + (header.email?.length || 0) + (header.phone?.length || 0) + linksCount * 25;
+  const contactLines = Math.max(1, Math.ceil(contactTextLen / 85));
+  height += contactLines * 15;
+  height += 8; // margin
+  return Math.max(55, height);
+};
+
+const estimateSummaryHeight = (html: string, isPlaceholder?: boolean): number => {
+  if (isPlaceholder) return 65;
+  const h = estimateHtmlHeight(html);
+  return Math.max(22, h + 8);
+};
+
+const estimateSkillsHeight = (categories: any[], isPlaceholder?: boolean): number => {
+  if (isPlaceholder) return 36;
+  if (!categories || categories.length === 0) return 22;
+  let height = 0;
+  for (const cat of categories) {
+    const text = `${cat.category || ''}: ${cat.items || ''}`;
+    const lines = Math.max(1, Math.ceil(text.length / 85));
+    height += lines * 16 + 2;
+  }
+  return height + 8;
+};
+
+const estimateExperienceItemHeight = (item: any, isPlaceholder?: boolean): number => {
+  if (isPlaceholder) return 75;
+  let height = 32; // role + company header lines
+  if (item?.bullets) {
+    height += estimateHtmlHeight(item.bullets);
+  }
+  height += 8;
+  return Math.max(38, height);
+};
+
+const estimateProjectItemHeight = (item: any, isPlaceholder?: boolean): number => {
+  if (isPlaceholder) return 60;
+  let height = 18; // title + period
+  if (item?.bullets) {
+    height += estimateHtmlHeight(item.bullets);
+  }
+  height += 8;
+  return Math.max(28, height);
+};
+
+const estimateEducationItemHeight = (item: any, isPlaceholder?: boolean): number => {
+  if (isPlaceholder) return 50;
+  let height = 32; // degree + institution lines
+  if (item?.description) {
+    height += estimateHtmlHeight(item.description);
+  }
+  height += 6;
+  return Math.max(36, height);
+};
+
+const estimateCustomItemHeight = (item: any, sectionTitle: string, isPlaceholder?: boolean): number => {
+  if (isPlaceholder) return 32;
+  const upper = (sectionTitle || '').toUpperCase();
+  if (upper.includes('CERTIFICATION') || upper.includes('LANGUAGE') || upper.includes('REFERENCE')) {
+    return 24; // 1 baris ringkas
+  }
+  let height = 18;
+  if (item?.description) {
+    height += estimateHtmlHeight(item.description);
+  }
+  height += 8;
+  return Math.max(24, height);
+};
+
+// Available printable content height in A4 (297mm - 10mm top - 12mm bottom = ~1039px at 96 DPI, safe threshold 1025px)
+const PAGE_CONTENT_MAX_HEIGHT_PX = 1025;
 
 // Item-level pagination: pack items into current page, moving only overflowing items to next page
 const paginateBlocks = (blocks: ContentBlock[]): ContentBlock[][] => {
@@ -36,16 +128,16 @@ const paginateBlocks = (blocks: ContentBlock[]): ContentBlock[][] => {
 
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
-    const h = estimateBlockHeight(b);
+    const h = b.height;
 
     // Anti-orphan rule for Section Titles:
-    // If block is a section title, ensure both title AND its first item fit on current page.
+    // Pastikan jika ada judul section baru, judul section DAN setidaknya baris pertama itemnya muat di sisa halaman.
     if (b.type === 'section-title') {
       const nextBlock = i + 1 < blocks.length ? blocks[i + 1] : null;
-      const nextH = nextBlock ? estimateBlockHeight(nextBlock) : 0;
+      // Kebutuhan space minimal agar section title tidak terisolasi sendirian di bawah
+      const minFirstItemSpace = nextBlock ? Math.min(nextBlock.height, 35) : 0;
 
-      // If title + first item doesn't fit on current page and page already has content:
-      if (currentHeight + h + nextH * 0.4 > PAGE_CONTENT_MAX_HEIGHT_PX && currentPageBlocks.length > 0) {
+      if (currentHeight + h + minFirstItemSpace > PAGE_CONTENT_MAX_HEIGHT_PX && currentPageBlocks.length > 0) {
         calculatedPages.push(currentPageBlocks);
         currentPageBlocks = [b];
         currentHeight = h;
@@ -58,7 +150,7 @@ const paginateBlocks = (blocks: ContentBlock[]): ContentBlock[][] => {
       currentPageBlocks.push(b);
       currentHeight += h;
     } else {
-      // Point/item exceeds current page: move only this item (and subsequent items) to next page
+      // Item exceeds current page: move this item to next page
       if (currentPageBlocks.length > 0) {
         calculatedPages.push(currentPageBlocks);
         currentPageBlocks = [b];
@@ -92,6 +184,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
     list.push({
       id: 'block-header',
       type: 'header',
+      height: estimateHeaderHeight(header),
       render: () => {
         const activeRoles = (
           header.roles && header.roles.length > 0
@@ -179,6 +272,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
         list.push({
           id: `title-${section.id}`,
           type: 'section-title',
+          height: 28,
           render: () => (
             <div className="resume-section-divider border-b-[0.5px] border-slate-900 pb-0.5 mb-1.5 mt-2.5 first:mt-0.5">
               <h2 className="text-[9pt] font-bold tracking-wider text-slate-900 uppercase">
@@ -193,6 +287,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
         list.push({
           id: `content-${section.id}`,
           type: 'summary',
+          height: estimateSummaryHeight(section.data?.html, section.isPlaceholder),
           render: () => (
             <div className="mb-2">
               {section.isPlaceholder ? (
@@ -212,6 +307,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
         list.push({
           id: `content-${section.id}`,
           type: 'skills',
+          height: estimateSkillsHeight(section.data?.categories, section.isPlaceholder),
           render: () => (
             <div className="mb-2">
               {section.isPlaceholder ? (
@@ -237,6 +333,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           list.push({
             id: `item-${section.id}-placeholder`,
             type: 'item',
+            height: estimateExperienceItemHeight(null, true),
             render: () => (
               <div className="mb-2 text-slate-400">
                 <div className="flex justify-between items-baseline font-bold leading-snug">
@@ -258,6 +355,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             list.push({
               id: `item-${section.id}-${item.id}`,
               type: 'item',
+              height: estimateExperienceItemHeight(item, false),
               render: () => (
                 <div className="mb-2">
                   <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
@@ -282,6 +380,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           list.push({
             id: `item-${section.id}-placeholder`,
             type: 'item',
+            height: estimateProjectItemHeight(null, true),
             render: () => (
               <div className="mb-2 text-slate-400">
                 <div className="flex justify-between items-baseline leading-snug">
@@ -303,6 +402,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             list.push({
               id: `item-${section.id}-${item.id}`,
               type: 'item',
+              height: estimateProjectItemHeight(item, false),
               render: () => (
                 <div className="mb-2">
                   <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
@@ -336,6 +436,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           list.push({
             id: `item-${section.id}-placeholder`,
             type: 'item',
+            height: estimateEducationItemHeight(null, true),
             render: () => (
               <div className="mb-1.5 text-slate-400 space-y-0.5">
                 <div className="flex justify-between items-baseline leading-snug">
@@ -357,6 +458,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             list.push({
               id: `item-${section.id}-${item.id}`,
               type: 'item',
+              height: estimateEducationItemHeight(item, false),
               render: () => (
                 <div className="mb-1.5">
                   <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
@@ -389,6 +491,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           list.push({
             id: `item-${section.id}-placeholder`,
             type: 'item',
+            height: estimateCustomItemHeight(null, section.title, true),
             render: () => (
               <div className="mb-2 text-slate-400 space-y-1">
                 {isCert && (
@@ -443,6 +546,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             list.push({
               id: `item-${section.id}-${item.id}`,
               type: 'item',
+              height: estimateCustomItemHeight(item, section.title, false),
               render: () => {
                 if (isCert) {
                   const rawDesc = item.description || '';
