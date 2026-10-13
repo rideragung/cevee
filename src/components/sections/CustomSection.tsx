@@ -18,6 +18,25 @@ interface CustomSectionProps {
   isLast: boolean;
 }
 
+// Certifications: derive the display period from issue date + optional expiry date.
+const withCertPeriod = (
+  item: CustomSectionItem,
+  changed?: { issue?: string; expiry?: string }
+): CustomSectionItem => {
+  const issue = changed?.issue !== undefined ? changed.issue : item.issueDate || '';
+  const expiry = changed?.expiry !== undefined ? changed.expiry : item.expiryDate || '';
+  const period = issue && expiry ? `${issue} - ${expiry}` : issue || expiry || '';
+  return { ...item, issueDate: issue, expiryDate: expiry, period };
+};
+
+// Split a legacy combined period (e.g. "Jan 2025 - Jan 2028") into the two date fields.
+const splitCertPeriod = (item: CustomSectionItem): CustomSectionItem => {
+  if (item.issueDate !== undefined || item.expiryDate !== undefined) return item;
+  if (!item.period) return { ...item, issueDate: '', expiryDate: '' };
+  const parts = item.period.split(/\s*[-–—]\s*/).filter(Boolean);
+  return { ...item, issueDate: parts[0]?.trim() || '', expiryDate: parts[1]?.trim() || '' };
+};
+
 export const CustomSection: React.FC<CustomSectionProps> = ({
   title,
   isPlaceholder = false,
@@ -30,9 +49,6 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
   isFirst,
   isLast,
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [items, setItems] = useState<CustomSectionItem[]>(() => sortByPeriodDesc(data?.items || []));
-
   const t = title.toUpperCase();
   const isCert = t.includes('CERTIFICATION');
   const isLang = t.includes('LANGUAGE');
@@ -40,16 +56,23 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
   const isAward = t.includes('AWARD');
   const isRef = t.includes('REFERENCE');
 
+  const normalizeItems = (raw?: CustomSectionItem[]) =>
+    sortByPeriodDesc(raw || []).map((it) => (isCert ? splitCertPeriod(it) : it));
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [items, setItems] = useState<CustomSectionItem[]>(() => normalizeItems(data?.items));
+
   const handleSave = () => {
-    const hasContent = items.some(
+    const normalized = items.map((it) => (isCert ? withCertPeriod(it) : it));
+    const hasContent = normalized.some(
       (it) => it.title.trim() || (it.subtitle && it.subtitle.trim()) || (it.credentialId && it.credentialId.trim())
     );
-    onUpdateData({ items }, hasContent ? false : isPlaceholder);
+    onUpdateData({ items: normalized }, hasContent ? false : isPlaceholder);
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    setItems(sortByPeriodDesc(data?.items || []));
+    setItems(normalizeItems(data?.items));
     setIsEditing(false);
   };
 
@@ -59,6 +82,8 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
       title: '',
       subtitle: '',
       period: '',
+      issueDate: '',
+      expiryDate: '',
       description: '',
       credentialId: '',
       credentialUrl: '',
@@ -76,6 +101,16 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
     );
   };
 
+  const handleCertDateChange = (id: string, field: 'issueDate' | 'expiryDate', value: string) => {
+    setItems(
+      items.map((it) =>
+        it.id === id
+          ? withCertPeriod(it, field === 'issueDate' ? { issue: value } : { expiry: value })
+          : it
+      )
+    );
+  };
+
   return (
     <section className="mb-2">
       {!isEditing && (
@@ -86,7 +121,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
           onMoveDown={onMoveDown}
           onDelete={onDelete}
           onToggleEdit={() => {
-            setItems(sortByPeriodDesc(data?.items || []));
+            setItems(normalizeItems(data?.items));
             setIsEditing(true);
           }}
           isFirst={isFirst}
@@ -95,7 +130,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
       )}
 
       {isEditing ? (
-        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-5 shadow-xs my-2.5 no-print font-sans">
+        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-xs my-2.5 no-print font-sans">
           {/* Header Title */}
           <div className="border-b border-slate-900 pb-1 mb-5">
             <h3 className="text-[10pt] font-bold text-slate-900 uppercase tracking-wider">
@@ -155,8 +190,8 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                   </button>
                 </div>
 
-                {/* Row 2: Subtitle / Org & Period */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Row 2: Subtitle / Org, Issue Date & Expired Date */}
+                <div className={`grid grid-cols-1 gap-3 ${isCert ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                       {isCert
@@ -195,28 +230,54 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                     />
                   </div>
 
-                  {!isLang && (
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                        {isRef ? 'Email / Contact' : isCert ? 'Issue Date' : 'Date / Year'}{' '}
-                        <span className="text-red-500">*</span>
-                      </label>
-                      {isRef ? (
-                        <input
-                          type="text"
-                          value={item.period || ''}
-                          onChange={(e) => handleUpdateField(item.id, 'period', e.target.value)}
-                          placeholder="e.g., richard@piedpiper.com"
-                          className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                        />
-                      ) : (
+                  {isCert ? (
+                    <>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                          Issue Date <span className="text-red-500">*</span>
+                        </label>
                         <DatePicker
-                          value={item.period || ''}
-                          onChange={(val) => handleUpdateField(item.id, 'period', val)}
-                          placeholder="Pilih Tanggal"
+                          value={item.issueDate || ''}
+                          onChange={(val) => handleCertDateChange(item.id, 'issueDate', val)}
+                          placeholder="Pilih Tanggal Terbit"
                         />
-                      )}
-                    </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                          Expired Date <span className="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <DatePicker
+                          value={item.expiryDate || ''}
+                          onChange={(val) => handleCertDateChange(item.id, 'expiryDate', val)}
+                          placeholder="Pilih Tanggal Kedaluwarsa"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    !isLang && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                          {isRef ? 'Email / Contact' : 'Date / Year'}{' '}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        {isRef ? (
+                          <input
+                            type="text"
+                            value={item.period || ''}
+                            onChange={(e) => handleUpdateField(item.id, 'period', e.target.value)}
+                            placeholder="e.g., richard@piedpiper.com"
+                            className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                          />
+                        ) : (
+                          <DatePicker
+                            value={item.period || ''}
+                            onChange={(val) => handleUpdateField(item.id, 'period', val)}
+                            placeholder="Pilih Tanggal"
+                          />
+                        )}
+                      </div>
+                    )
                   )}
                 </div>
 
@@ -323,8 +384,8 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
           onClick={() => {
             setItems(
               data?.items && data.items.length > 0 && !isPlaceholder
-                ? sortByPeriodDesc(data.items)
-                : [{ id: `custom-${Date.now()}`, title: '', subtitle: '', period: '', description: '', credentialId: '', credentialUrl: '' }]
+                ? normalizeItems(data.items)
+                : [{ id: `custom-${Date.now()}`, title: '', subtitle: '', period: '', issueDate: '', expiryDate: '', description: '', credentialId: '', credentialUrl: '' }]
             );
             setIsEditing(true);
           }}

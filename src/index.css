@@ -55,6 +55,24 @@
   }
 }
 
+/* Phone: bump editing controls to a readable size and keep long words
+   from causing horizontal scroll. Scoped to the editor canvas only, so the
+   A4 print/preview typography (7.75pt) stays untouched. */
+@media screen and (max-width: 640px) {
+  .resume-a4-page input,
+  .resume-a4-page textarea,
+  .resume-a4-page select {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+  }
+
+  .resume-a4-page .ProseMirror {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    overflow-wrap: anywhere;
+  }
+}
+
 /* Individual Physical A4 Sheet (Exact 210mm x 297mm with Whitespace Preserved) */
 .a4-page-sheet {
   width: 210mm;

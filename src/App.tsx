@@ -186,6 +186,7 @@ export function App() {
           const updated = updater(res);
           return {
             ...updated,
+            createdAt: updated.createdAt || res.updatedAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
         }
@@ -359,6 +360,7 @@ export function App() {
     const newResume: ResumeDocument = {
       id: newId,
       title: 'Untitled Resume',
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       content: {
         header: {
@@ -445,6 +447,7 @@ export function App() {
       ...JSON.parse(JSON.stringify(target)),
       id: newId,
       title: `${target.title} (Copy)`,
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     setResumes((prev) => [duplicated, ...prev]);
@@ -492,16 +495,14 @@ export function App() {
     setIsPreviewOpen(true);
   };
 
-  // Download PDF handler
-  const handleDownloadPdf = () => {
-    if (!activeResume) return;
-
+  // Core print routine for a specific resume
+  const printResume = (resume: ResumeDocument) => {
     const originalTitle = document.title;
-    const cleanFullName = (activeResume.content.header.fullName || 'Candidate')
+    const cleanFullName = (resume.content.header.fullName || 'Candidate')
       .replace(/[\/\\:*?"<>|]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
-    const cleanTitle = (activeResume.title || 'Resume')
+    const cleanTitle = (resume.title || 'Resume')
       .replace(/[\/\\:*?"<>|]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
@@ -553,6 +554,21 @@ export function App() {
     }, 200);
   };
 
+  // Download PDF handler (editor / active resume)
+  const handleDownloadPdf = () => {
+    if (!activeResume) return;
+    printResume(activeResume);
+  };
+
+  // Download a specific resume directly from the dashboard card
+  const handleDownloadResumeById = (id: string) => {
+    const target = resumes.find((r) => r.id === id);
+    if (!target) return;
+    setActiveResumeId(id);
+    // Wait a tick so the print-only area renders the target resume before printing
+    setTimeout(() => printResume(target), 250);
+  };
+
   if (isAuthChecking) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -581,7 +597,18 @@ export function App() {
             onDuplicateResume={handleDuplicateResume}
             onDeleteResume={handleDeleteResume}
             onPreviewResume={handlePreviewResume}
+            onDownloadResume={handleDownloadResumeById}
             userEmail={user?.email}
+            userName={
+              (user?.user_metadata?.full_name as string) ||
+              (user?.user_metadata?.name as string) ||
+              (user?.user_metadata?.display_name as string) ||
+              user?.email
+            }
+            userAvatarUrl={
+              (user?.user_metadata?.avatar_url as string) ||
+              (user?.user_metadata?.picture as string)
+            }
             onSignOut={handleSignOut}
           />
         </div>
@@ -598,14 +625,12 @@ export function App() {
             onOpenPreview={() => setIsPreviewOpen(true)}
             onDownloadPdf={handleDownloadPdf}
             onBackToDashboard={() => setCurrentView('dashboard')}
-            userEmail={user?.email}
-            onSignOut={handleSignOut}
             syncStatus={syncStatus}
             isCloudUser={Boolean(user)}
           />
 
           {/* Editor Canvas Area */}
-          <main className="no-print-area flex-1 py-4 px-2.5 sm:py-8 sm:px-6 flex justify-center items-start">
+          <main className="no-print-area flex-1 pt-4 pb-24 px-2.5 sm:py-8 sm:px-6 flex justify-center items-start">
             <div className="resume-a4-page w-full rounded-[20px] transition-all">
               {/* Header */}
               <ResumeHeader

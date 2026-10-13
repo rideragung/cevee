@@ -132,7 +132,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange }) =>
 
   if (isEditing) {
     return (
-      <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-5 shadow-xs my-2.5 no-print font-sans">
+      <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-xs my-2.5 no-print font-sans">
         {/* Title */}
         <div className="border-b border-slate-900 pb-1 mb-5">
           <h3 className="text-[10pt] font-bold text-slate-900 uppercase tracking-wider">
@@ -260,29 +260,31 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange }) =>
 
             <div className="space-y-2.5">
               {formData.links.map((link) => (
-                <div key={link.id} className="flex items-center gap-3">
+                <div key={link.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <input
                     type="text"
                     value={link.label}
                     onChange={(e) => handleUpdateLink(link.id, 'label', e.target.value)}
                     placeholder="Display Name (e.g. linkedin.com/in/your_linkedin)"
-                    className="w-1/3 px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                    className="w-full sm:w-1/3 px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
                   />
-                  <input
-                    type="text"
-                    value={link.url}
-                    onChange={(e) => handleUpdateLink(link.id, 'url', e.target.value)}
-                    placeholder="URL (https://...)"
-                    className="flex-1 px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveLink(link.id)}
-                    className="p-1.5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition"
-                    title="Delete Link"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  <div className="flex items-center gap-2 sm:flex-1">
+                    <input
+                      type="text"
+                      value={link.url}
+                      onChange={(e) => handleUpdateLink(link.id, 'url', e.target.value)}
+                      placeholder="URL (https://...)"
+                      className="flex-1 min-w-0 px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveLink(link.id)}
+                      className="p-1.5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition flex-shrink-0"
+                      title="Delete Link"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -290,7 +292,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange }) =>
         </div>
 
         {/* Action Bar */}
-        <div className="flex items-center justify-between pt-6 mt-4 border-t border-slate-200/80">
+        <div className="flex flex-wrap items-center justify-between gap-y-3 gap-x-3 pt-6 mt-4 border-t border-slate-200/80">
           <button
             type="button"
             onClick={handleAddLink}

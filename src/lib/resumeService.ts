@@ -26,6 +26,7 @@ export const fetchUserResumes = async (): Promise<ResumeDocument[] | null> => {
     return data.map((row) => ({
       id: row.id,
       title: row.title,
+      createdAt: row.created_at ?? row.updated_at,
       updatedAt: row.updated_at,
       content: row.content,
     }));

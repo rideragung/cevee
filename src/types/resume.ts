@@ -73,6 +73,8 @@ export interface CustomSectionItem {
   title: string;
   subtitle?: string;
   period?: string;
+  issueDate?: string; // Certifications: issue date (used with expiryDate to build period)
+  expiryDate?: string; // Certifications: optional expiry date
   description?: string;
   credentialId?: string;
   credentialUrl?: string;
@@ -105,6 +107,7 @@ export interface ResumeDocument {
   id: string;
   title: string;
   layoutId?: string; // Layout selector e.g. 'classic-ats' | 'modern-sidebar'
+  createdAt?: string; // ISO timestamp when the resume was first created
   updatedAt: string;
   content: ResumeContent;
 }

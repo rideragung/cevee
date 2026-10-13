@@ -37,7 +37,20 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   className = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [align, setAlign] = useState<'left' | 'right'>('left');
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Buka popover dengan posisi aman: hindari terpotong di tepi kanan layar
+  const openPopover = () => {
+    if (disabled) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect && typeof window !== 'undefined') {
+      const popoverWidth = Math.min(256, window.innerWidth - 32);
+      const spaceRight = window.innerWidth - rect.left;
+      setAlign(spaceRight < popoverWidth + 12 ? 'right' : 'left');
+    }
+    setIsOpen(true);
+  };
 
   // Parse initial view year and selected month from current value
   const parseValue = (val: string) => {
@@ -116,7 +129,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           onClick={() => {
-            if (!disabled) setIsOpen(true);
+            if (!disabled) {
+              if (isOpen) setIsOpen(false);
+              else openPopover();
+            }
           }}
           className={`w-full px-2.5 py-1.5 pr-14 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition ${
             disabled ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white cursor-pointer'
@@ -142,7 +158,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             type="button"
             disabled={disabled}
             onClick={() => {
-              if (!disabled) setIsOpen(!isOpen);
+              if (!disabled) {
+                if (isOpen) setIsOpen(false);
+                else openPopover();
+              }
             }}
             className={`p-0.5 rounded transition ${
               disabled ? 'text-slate-400 cursor-not-allowed' : 'text-slate-500 hover:text-emerald-600'
@@ -155,7 +174,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       </div>
 
       {isOpen && !disabled && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-full sm:w-64 max-w-[calc(100vw-2rem)] bg-white rounded-xl border border-slate-200/90 shadow-lg p-3 font-sans animate-in fade-in duration-100">
+        <div className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full mt-1 z-50 w-full sm:w-64 max-w-[calc(100vw-1.5rem)] bg-white rounded-xl border border-slate-200/90 shadow-lg p-3 font-sans animate-in fade-in duration-100`}>
           {/* Header: Year Navigation */}
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
             <button

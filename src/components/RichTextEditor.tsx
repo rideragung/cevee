@@ -75,7 +75,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
+          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
             editor.isActive('bold') ? 'bg-slate-100 text-slate-900 font-bold' : ''
           }`}
           title="Bold (Ctrl+B)"
@@ -86,7 +86,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={`p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
+          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
             editor.isActive('underline') ? 'bg-slate-100 text-slate-900' : ''
           }`}
           title="Underline (Ctrl+U)"
@@ -97,7 +97,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
+          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
             editor.isActive('italic') ? 'bg-slate-100 text-slate-900' : ''
           }`}
           title="Italic (Ctrl+I)"
@@ -110,7 +110,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={setLink}
-          className={`p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
+          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
             editor.isActive('link') ? 'bg-slate-100 text-blue-700' : ''
           }`}
           title="Insert Link"
@@ -121,7 +121,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
+          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
             editor.isActive('bulletList') ? 'bg-slate-100 text-slate-900' : ''
           }`}
           title="Bullet List"
@@ -132,7 +132,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
+          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
             editor.isActive('orderedList') ? 'bg-slate-100 text-slate-900' : ''
           }`}
           title="Numbered List"
