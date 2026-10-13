@@ -3,6 +3,7 @@ import { SectionHeader } from '../SectionHeader';
 import { CustomSectionItem } from '../../types/resume';
 import { Plus, Trash2 } from 'lucide-react';
 import { DatePicker } from '../DatePicker';
+import { sortByPeriodDesc } from '../../utils/periodSort';
 
 interface CustomSectionProps {
   title: string;
@@ -30,7 +31,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
   isLast,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [items, setItems] = useState<CustomSectionItem[]>(data?.items || []);
+  const [items, setItems] = useState<CustomSectionItem[]>(() => sortByPeriodDesc(data?.items || []));
 
   const t = title.toUpperCase();
   const isCert = t.includes('CERTIFICATION');
@@ -48,7 +49,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
   };
 
   const handleCancel = () => {
-    setItems(data?.items || []);
+    setItems(sortByPeriodDesc(data?.items || []));
     setIsEditing(false);
   };
 
@@ -85,7 +86,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
           onMoveDown={onMoveDown}
           onDelete={onDelete}
           onToggleEdit={() => {
-            setItems(data?.items || []);
+            setItems(sortByPeriodDesc(data?.items || []));
             setIsEditing(true);
           }}
           isFirst={isFirst}
@@ -322,7 +323,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
           onClick={() => {
             setItems(
               data?.items && data.items.length > 0 && !isPlaceholder
-                ? data.items
+                ? sortByPeriodDesc(data.items)
                 : [{ id: `custom-${Date.now()}`, title: '', subtitle: '', period: '', description: '', credentialId: '', credentialUrl: '' }]
             );
             setIsEditing(true);
@@ -383,7 +384,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                 )}
               </div>
             ) : (
-              (data?.items || []).map((item) => {
+              sortByPeriodDesc(data?.items || []).map((item) => {
                 if (isCert) {
                   // Determine credential ID & URL
                   const rawDesc = item.description || '';

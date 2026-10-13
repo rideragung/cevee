@@ -3,6 +3,8 @@ import { SectionHeader } from '../SectionHeader';
 import { EducationItem } from '../../types/resume';
 import { Plus, Trash2 } from 'lucide-react';
 import { DatePicker } from '../DatePicker';
+import { RichTextEditor } from '../RichTextEditor';
+import { sortByPeriodDesc } from '../../utils/periodSort';
 
 interface EducationSectionProps {
   title: string;
@@ -49,7 +51,9 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
   isLast,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [items, setItems] = useState<EducationItem[]>(() => (data.items || []).map(normalizeEduItem));
+  const [items, setItems] = useState<EducationItem[]>(() =>
+    sortByPeriodDesc((data.items || []).map(normalizeEduItem))
+  );
 
   const handleSave = () => {
     const updated = items.map((it) => {
@@ -67,7 +71,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
   };
 
   const handleCancel = () => {
-    setItems((data.items || []).map(normalizeEduItem));
+    setItems(sortByPeriodDesc((data.items || []).map(normalizeEduItem)));
     setIsEditing(false);
   };
 
@@ -104,7 +108,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
           onMoveDown={onMoveDown}
           onDelete={onDelete}
           onToggleEdit={() => {
-            setItems((data.items || []).map(normalizeEduItem));
+    setItems(sortByPeriodDesc((data.items || []).map(normalizeEduItem)));
             setIsEditing(true);
           }}
           isFirst={isFirst}
@@ -125,32 +129,47 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
           <div className="space-y-6">
             {items.map((item, idx) => (
               <div key={item.id} className="space-y-3.5">
-                {/* Row 1: Degree & Trash */}
+                {/* Row 1: Degree, GPA & Trash */}
                 <div className="flex items-start justify-between gap-4">
-                  <div className="w-full sm:w-1/2">
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Degree / Major <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={item.degree}
-                      onChange={(e) => handleUpdateField(item.id, 'degree', e.target.value)}
-                      placeholder="e.g. Bachelor of Information Systems"
-                      className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                    />
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                        Degree / Major <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={item.degree}
+                        onChange={(e) => handleUpdateField(item.id, 'degree', e.target.value)}
+                        placeholder="e.g. Bachelor of Information Systems"
+                        className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                        GPA / Grade <span className="text-slate-400 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={item.gpa || ''}
+                        onChange={(e) => handleUpdateField(item.id, 'gpa', e.target.value)}
+                        placeholder="e.g. GPA: 4.0 of 4.0"
+                        className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                      />
+                    </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => handleRemoveItem(item.id)}
-                    className="p-1.5 mt-5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition"
+                    className="p-1.5 mt-5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition flex-shrink-0"
                     title="Delete Education"
                   >
                     <Trash2 size={15} />
                   </button>
                 </div>
 
-                {/* Row 2: Institution, Dates, GPA */}
+                {/* Row 2: Institution & Dates */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="sm:col-span-2">
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
@@ -194,32 +213,18 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                       placeholder="Pilih Tanggal Lulus"
                     />
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      GPA / Grade <span className="text-slate-400 font-normal">(Optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={item.gpa || ''}
-                      onChange={(e) => handleUpdateField(item.id, 'gpa', e.target.value)}
-                      placeholder="e.g. GPA: 4.0 of 4.0"
-                      className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-3">
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Description <span className="text-slate-400 font-normal">(Optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={item.description || ''}
-                      onChange={(e) => handleUpdateField(item.id, 'description', e.target.value)}
-                      placeholder="e.g., info about scholarships, student activity, etc."
-                      className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                    />
-                  </div>
+                {/* Row 3: Description (full width, rich text) */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    Description <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
+                  <RichTextEditor
+                    initialContent={item.description || ''}
+                    onChange={(newHtml) => handleUpdateField(item.id, 'description', newHtml)}
+                    hideActions={true}
+                  />
                 </div>
 
                 {/* Separator between items */}
@@ -262,7 +267,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
       ) : (
         <div
           onClick={() => {
-            setItems(data.items.length > 0 && !isPlaceholder ? (data.items || []).map(normalizeEduItem) : [{ id: `edu-${Date.now()}`, degree: '', institution: '', period: '', gpa: '', startDate: '', endDate: '' }]);
+            setItems(data.items.length > 0 && !isPlaceholder ? sortByPeriodDesc((data.items || []).map(normalizeEduItem)) : [{ id: `edu-${Date.now()}`, degree: '', institution: '', period: '', gpa: '', startDate: '', endDate: '' }]);
             setIsEditing(true);
           }}
           className="cursor-pointer space-y-1 hover:bg-slate-50/70 p-1 -m-1 rounded transition"
@@ -283,7 +288,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
               </div>
             </div>
           ) : (
-            data.items.map((item) => (
+            sortByPeriodDesc(data.items || []).map((item) => (
               <div key={item.id} className="avoid-break">
                 {/* Line 1: Degree & Period */}
                 <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
@@ -299,9 +304,10 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
 
                 {/* Line 3: Description */}
                 {item.description && (
-                  <div className="text-slate-700 text-[7.75pt] leading-snug mt-0.5">
-                    {item.description}
-                  </div>
+                  <div
+                    className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
+                    dangerouslySetInnerHTML={{ __html: item.description }}
+                  />
                 )}
               </div>
             ))

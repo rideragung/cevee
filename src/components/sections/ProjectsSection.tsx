@@ -4,6 +4,7 @@ import { ProjectItem } from '../../types/resume';
 import { Plus, Trash2, ExternalLink } from 'lucide-react';
 import { RichTextEditor } from '../RichTextEditor';
 import { DatePicker } from '../DatePicker';
+import { sortByPeriodDesc } from '../../utils/periodSort';
 
 interface ProjectsSectionProps {
   title: string;
@@ -50,7 +51,9 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   isLast,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [items, setItems] = useState<ProjectItem[]>(() => (data.items || []).map(normalizeProjItem));
+  const [items, setItems] = useState<ProjectItem[]>(() =>
+    sortByPeriodDesc((data.items || []).map(normalizeProjItem))
+  );
 
   const handleSave = () => {
     const updated = items.map((it) => {
@@ -68,7 +71,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   };
 
   const handleCancel = () => {
-    setItems((data.items || []).map(normalizeProjItem));
+    setItems(sortByPeriodDesc((data.items || []).map(normalizeProjItem)));
     setIsEditing(false);
   };
 
@@ -105,7 +108,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
           onMoveDown={onMoveDown}
           onDelete={onDelete}
           onToggleEdit={() => {
-            setItems((data.items || []).map(normalizeProjItem));
+            setItems(sortByPeriodDesc((data.items || []).map(normalizeProjItem)));
             setIsEditing(true);
           }}
           isFirst={isFirst}
@@ -249,7 +252,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
       ) : (
         <div
           onClick={() => {
-            setItems(data.items.length > 0 && !isPlaceholder ? (data.items || []).map(normalizeProjItem) : [{ id: `proj-${Date.now()}`, name: '', url: '', period: '', bullets: '', startDate: '', endDate: '' }]);
+            setItems(data.items.length > 0 && !isPlaceholder ? sortByPeriodDesc((data.items || []).map(normalizeProjItem)) : [{ id: `proj-${Date.now()}`, name: '', url: '', period: '', bullets: '', startDate: '', endDate: '' }]);
             setIsEditing(true);
           }}
           className="cursor-pointer space-y-2 hover:bg-slate-50/70 p-1 -m-1 rounded transition"
@@ -268,7 +271,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
               </div>
             </div>
           ) : (
-            data.items.map((item) => (
+            sortByPeriodDesc(data.items || []).map((item) => (
               <div key={item.id} className="avoid-break">
               {/* Line 1: Name + Link icon & Period */}
               <div className="flex justify-between items-baseline leading-snug">

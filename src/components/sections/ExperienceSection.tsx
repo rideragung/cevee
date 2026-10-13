@@ -4,6 +4,7 @@ import { ExperienceItem, ExperiencePosition } from '../../types/resume';
 import { Plus, Trash2, X, TrendingUp } from 'lucide-react';
 import { RichTextEditor } from '../RichTextEditor';
 import { DatePicker } from '../DatePicker';
+import { sortByPeriodDesc } from '../../utils/periodSort';
 
 interface ExperienceSectionProps {
   title: string;
@@ -51,7 +52,9 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
   isLast,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [items, setItems] = useState<ExperienceItem[]>(() => (data.items || []).map(normalizeItem));
+  const [items, setItems] = useState<ExperienceItem[]>(() =>
+    sortByPeriodDesc((data.items || []).map(normalizeItem))
+  );
   const isOrgVol = title.toUpperCase().includes('ORGANIZATIONAL') || title.toUpperCase().includes('VOLUNTEER');
 
   const computePeriod = (item: {
@@ -123,7 +126,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
   };
 
   const handleCancel = () => {
-    setItems((data.items || []).map(normalizeItem));
+    setItems(sortByPeriodDesc((data.items || []).map(normalizeItem)));
     setIsEditing(false);
   };
 
@@ -236,7 +239,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
           onMoveDown={onMoveDown}
           onDelete={onDelete}
           onToggleEdit={() => {
-            setItems((data.items || []).map(normalizeItem));
+            setItems(sortByPeriodDesc((data.items || []).map(normalizeItem)));
             setIsEditing(true);
           }}
           isFirst={isFirst}
@@ -461,7 +464,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
       ) : (
         <div
           onClick={() => {
-            setItems((data.items || []).map(normalizeItem));
+            setItems(sortByPeriodDesc((data.items || []).map(normalizeItem)));
             setIsEditing(true);
           }}
           className="cursor-pointer space-y-2 hover:bg-slate-50/70 p-1 -m-1 rounded transition"
@@ -482,7 +485,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
               </div>
             </div>
           ) : (
-            data.items.map((item) => {
+            sortByPeriodDesc(data.items || []).map((item) => {
               if (item.positions && item.positions.length > 1) {
                 return (
                   <div key={item.id} className="avoid-break mb-2">
@@ -494,7 +497,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
 
                     {/* Positions / Promotions */}
                     <div className="space-y-1.5 mt-0.5">
-                      {item.positions.map((pos, posIdx) => (
+                      {sortByPeriodDesc(item.positions).map((pos, posIdx) => (
                         <div key={pos.id || posIdx}>
                           <div className="flex justify-between items-baseline leading-snug">
                             <span className="font-semibold text-slate-900 text-[7.75pt]">{pos.role}</span>

@@ -76,6 +76,7 @@
 /* Universal Bullet List Styling for Canvas, Preview, and Print */
 .resume-a4-page ul,
 .a4-page-sheet ul,
+.a4-measure-container ul,
 .resume-bullet-list,
 .ProseMirror ul {
   list-style-type: disc !important;
@@ -89,12 +90,37 @@
 
 .resume-a4-page li,
 .a4-page-sheet li,
+.a4-measure-container li,
 .resume-bullet-list li,
 .ProseMirror li {
   list-style-type: disc !important;
   display: list-item !important;
   margin-bottom: 0.12rem !important;
   padding-left: 0.1rem !important;
+  font-size: 7.75pt !important;
+  line-height: 1.48 !important;
+}
+
+/* Split-bullet: satu butir per elemen list agar butir terakhir bisa mengalir ke halaman berikutnya
+   tanpa memindahkan seluruh poin. Margin di-nol-kan supaya tampak menyatu seperti list utuh. */
+.resume-a4-page .resume-bullet-single,
+.a4-page-sheet .resume-bullet-single,
+.a4-measure-container .resume-bullet-single {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.resume-a4-page .resume-bullet-single li,
+.a4-page-sheet .resume-bullet-single li,
+.a4-measure-container .resume-bullet-single li {
+  margin-bottom: 0 !important;
+}
+
+/* Split-paragraph: satu paragraf per elemen agar bisa mengalir lintas halaman */
+.resume-a4-page .resume-paragraph-single,
+.a4-page-sheet .resume-paragraph-single,
+.a4-measure-container .resume-paragraph-single {
+  margin: 0 !important;
   font-size: 7.75pt !important;
   line-height: 1.48 !important;
 }

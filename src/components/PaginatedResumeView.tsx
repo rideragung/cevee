@@ -2,6 +2,7 @@ import React, { useMemo, useState, useRef, useLayoutEffect } from 'react';
 import { ResumeDocument } from '../types/resume';
 import { getWhatsAppUrl } from './ResumeHeader';
 import { ExternalLink } from 'lucide-react';
+import { sortByPeriodDesc } from '../utils/periodSort';
 
 interface PaginatedResumeViewProps {
   resume: ResumeDocument;
@@ -11,7 +12,15 @@ interface PaginatedResumeViewProps {
 
 interface ContentBlock {
   id: string;
-  type: 'header' | 'section-title' | 'summary' | 'skills' | 'item';
+  type:
+    | 'header'
+    | 'section-title'
+    | 'summary'
+    | 'skills'
+    | 'item'
+    | 'item-head'
+    | 'item-subhead'
+    | 'item-bullet';
   height: number;
   render: () => React.ReactNode;
 }
@@ -19,6 +28,61 @@ interface ContentBlock {
 // Helper stripping HTML
 const stripHtml = (html: string): string => {
   return html ? html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : '';
+};
+
+// Satu bagian konten (butir list atau paragraf) agar bisa mengalir lintas halaman
+interface ContentPart {
+  kind: 'list' | 'paragraph';
+  html: string;
+}
+
+// Pecah HTML menjadi bagian-bagian kecil (per <li> atau per <p>)
+const parseContentParts = (html: string): ContentPart[] => {
+  if (!html || !html.trim()) return [];
+
+  const liMatches = html.match(/<li[^>]*>[\s\S]*?<\/li>/gi);
+  if (liMatches && liMatches.length > 0) {
+    return liMatches.map((li) => ({
+      kind: 'list' as const,
+      html: li.replace(/^<li[^>]*>/i, '').replace(/<\/li>\s*$/i, '').trim(),
+    }));
+  }
+
+  const pMatches = html.match(/<p[^>]*>[\s\S]*?<\/p>/gi);
+  if (pMatches && pMatches.length > 0) {
+    return pMatches
+      .map((p) => p.replace(/^<p[^>]*>/i, '').replace(/<\/p>\s*$/i, '').trim())
+      .filter((t) => stripHtml(t).length > 0)
+      .map((t) => ({ kind: 'paragraph' as const, html: t }));
+  }
+
+  const text = stripHtml(html);
+  return text ? [{ kind: 'paragraph' as const, html: text }] : [];
+};
+
+// Estimasi tinggi satu bagian konten (list lebih sempit karena indent)
+const estimateContentPartHeight = (part: ContentPart): number => {
+  const text = stripHtml(part.html);
+  const charsPerLine = part.kind === 'list' ? 92 : 95;
+  const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
+  return lines * 15.5 + (part.kind === 'list' ? 2.5 : 4);
+};
+
+// Render satu bagian konten agar aman saat dipecah antar halaman
+const renderContentPart = (part: ContentPart) => {
+  if (part.kind === 'list') {
+    return (
+      <ul className="resume-bullet-single text-slate-800 text-justify">
+        <li dangerouslySetInnerHTML={{ __html: part.html }} />
+      </ul>
+    );
+  }
+  return (
+    <p
+      className="resume-paragraph-single text-slate-800 text-justify"
+      dangerouslySetInnerHTML={{ __html: part.html }}
+    />
+  );
 };
 
 // Estimasi tinggi teks/HTML realistis berbasis font Inter 7.75pt (lebar 184mm, 1 baris ~ 92-95 karakter)
@@ -75,48 +139,6 @@ const estimateSkillsCategoryHeight = (category: string, items: string, isLast: b
   return lines * 15.5 + (isLast ? 8 : 2);
 };
 
-const estimateExperienceItemHeight = (item: any, isPlaceholder?: boolean): number => {
-  if (isPlaceholder) return 60;
-  if (item?.positions && item.positions.length > 1) {
-    let height = 20; // Company name + location line
-    for (const pos of item.positions) {
-      height += 16; // Position role + period line
-      if (pos.bullets) {
-        height += estimateHtmlHeight(pos.bullets);
-      }
-      height += 6; // spacing between positions
-    }
-    height += 6; // mb-2
-    return Math.max(40, height);
-  }
-  let height = 34; // Role line + company line
-  if (item?.bullets) {
-    height += estimateHtmlHeight(item.bullets);
-  }
-  height += 8; // mb-2
-  return Math.max(36, height);
-};
-
-const estimateProjectItemHeight = (item: any, isPlaceholder?: boolean): number => {
-  if (isPlaceholder) return 55;
-  let height = 20; // Title + period line
-  if (item?.bullets) {
-    height += estimateHtmlHeight(item.bullets);
-  }
-  height += 8; // mb-2
-  return Math.max(28, height);
-};
-
-const estimateEducationItemHeight = (item: any, isPlaceholder?: boolean): number => {
-  if (isPlaceholder) return 40;
-  let height = 34; // Degree line + institution line
-  if (item?.description) {
-    height += estimateHtmlHeight(item.description);
-  }
-  height += 6; // mb-1.5
-  return Math.max(34, height);
-};
-
 const estimateCustomItemHeight = (item: any, sectionTitle: string, isPlaceholder?: boolean): number => {
   if (isPlaceholder) return 24;
   const upper = (sectionTitle || '').toUpperCase();
@@ -149,9 +171,10 @@ function runPagination(
       ? measuredHeights[b.id]
       : b.height;
 
-    // Anti-orphan rule for Section Titles:
-    // Pastikan judul section DAN seluruh blok pertama di bawahnya muat bersama di halaman ini.
-    if (b.type === 'section-title') {
+    // Anti-orphan rule untuk judul section, header item, dan sub-header posisi:
+    // Pastikan blok header TIDAK pernah tertinggal sendirian di dasar halaman.
+    // Blok header wajib muat bersama minimal satu blok konten berikutnya.
+    if (b.type === 'section-title' || b.type === 'item-head' || b.type === 'item-subhead') {
       const nextBlock = i + 1 < blocks.length ? blocks[i + 1] : null;
       const nextH = nextBlock
         ? (measuredHeights && measuredHeights[nextBlock.id] !== undefined
@@ -381,59 +404,110 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          section.data.items?.forEach((item: any) => {
-            list.push({
-              id: `item-${section.id}-${item.id}`,
-              type: 'item',
-              height: estimateExperienceItemHeight(item, false),
-              render: () => {
-                if (item.positions && item.positions.length > 1) {
-                  return (
-                    <div className="mb-2">
-                      <div className="flex justify-between items-baseline leading-snug">
-                        <span className="font-bold text-slate-900 text-[8pt]">{item.company}</span>
-                        <span className="text-slate-700 text-[8pt]">{item.location}</span>
-                      </div>
-                      <div className="space-y-1.5 mt-0.5">
-                        {item.positions.map((pos: any, posIdx: number) => (
-                          <div key={pos.id || posIdx}>
-                            <div className="flex justify-between items-baseline leading-snug">
-                              <span className="font-semibold text-slate-900 text-[7.75pt]">{pos.role}</span>
-                              <span className="text-[7.75pt] font-semibold text-slate-800">{pos.period}</span>
-                            </div>
-                            {pos.bullets && (
-                              <div
-                                className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
-                                dangerouslySetInnerHTML={{ __html: pos.bullets }}
-                              />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
+          sortByPeriodDesc(section.data.items || []).forEach((item: any) => {
+            const hasMultiPositions = item.positions && item.positions.length > 1;
 
-                return (
-                  <div className="mb-2">
-                    <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
-                      <span>{item.role}</span>
-                      <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
-                    </div>
-                    <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]">
-                      <span className="font-semibold">{item.company}</span>
-                      <span className="text-slate-700">{item.location}</span>
-                    </div>
-                    {item.bullets && (
-                      <div
-                        className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
-                        dangerouslySetInnerHTML={{ __html: item.bullets }}
-                      />
-                    )}
+            if (hasMultiPositions) {
+              const sortedPositions = sortByPeriodDesc(item.positions);
+              // Blok 1: nama perusahaan + lokasi (sticky dengan posisi pertama)
+              list.push({
+                id: `item-${section.id}-${item.id}-company`,
+                type: 'item-head',
+                height: 20,
+                render: () => (
+                  <div className="flex justify-between items-baseline leading-snug">
+                    <span className="font-bold text-slate-900 text-[8pt]">{item.company}</span>
+                    <span className="text-slate-700 text-[8pt]">{item.location}</span>
                   </div>
-                );
-              },
+                ),
+              });
+
+              sortedPositions.forEach((pos: any, posIdx: number) => {
+                const positionBullets = parseContentParts(pos.bullets || '');
+                const isLastPosition = posIdx === sortedPositions.length - 1;
+
+                // Sub-header posisi (role + periode) — sticky dengan bullet pertama
+                list.push({
+                  id: `item-${section.id}-${item.id}-pos-${pos.id || posIdx}-head`,
+                  type: 'item-subhead',
+                  height: 16,
+                  render: () => (
+                    <div className={`flex justify-between items-baseline leading-snug ${posIdx > 0 ? 'mt-1.5' : 'mt-0.5'}`}>
+                      <span className="font-semibold text-slate-900 text-[7.75pt]">{pos.role}</span>
+                      <span className="text-[7.75pt] font-semibold text-slate-800">{pos.period}</span>
+                    </div>
+                  ),
+                });
+
+                positionBullets.forEach((part, bIdx: number) => {
+                  const isLastBulletOfItem = isLastPosition && bIdx === positionBullets.length - 1;
+                  list.push({
+                    id: `item-${section.id}-${item.id}-pos-${pos.id || posIdx}-b-${bIdx}`,
+                    type: 'item-bullet',
+                    height: estimateContentPartHeight(part),
+                    render: () => (
+                      <div className={`${bIdx === 0 ? 'mt-0.5' : ''} ${isLastBulletOfItem ? 'mb-2' : ''}`}>
+                        {renderContentPart(part)}
+                      </div>
+                    ),
+                  });
+                });
+
+                if (positionBullets.length === 0 && isLastPosition) {
+                  list.push({
+                    id: `item-${section.id}-${item.id}-pos-${pos.id || posIdx}-spacer`,
+                    type: 'item-bullet',
+                    height: 8,
+                    render: () => <div className="mb-2" />,
+                  });
+                }
+              });
+              return;
+            }
+
+            const itemBullets = parseContentParts(item.bullets || '');
+
+            // Blok header: role + company (sticky dengan bullet pertama)
+            list.push({
+              id: `item-${section.id}-${item.id}-head`,
+              type: 'item-head',
+              height: 34,
+              render: () => (
+                <>
+                  <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
+                    <span>{item.role}</span>
+                    <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
+                  </div>
+                  <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]">
+                    <span className="font-semibold">{item.company}</span>
+                    <span className="text-slate-700">{item.location}</span>
+                  </div>
+                </>
+              ),
             });
+
+            itemBullets.forEach((part, bIdx: number) => {
+              const isLastBulletOfItem = bIdx === itemBullets.length - 1;
+              list.push({
+                id: `item-${section.id}-${item.id}-b-${bIdx}`,
+                type: 'item-bullet',
+                height: estimateContentPartHeight(part),
+                render: () => (
+                  <div className={`${bIdx === 0 ? 'mt-0.5' : ''} ${isLastBulletOfItem ? 'mb-2' : ''}`}>
+                    {renderContentPart(part)}
+                  </div>
+                ),
+              });
+            });
+
+            if (itemBullets.length === 0) {
+              list.push({
+                id: `item-${section.id}-${item.id}-spacer`,
+                type: 'item-bullet',
+                height: 8,
+                render: () => <div className="mb-2" />,
+              });
+            }
           });
         }
       } else if (section.type === 'projects') {
@@ -459,39 +533,57 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          section.data.items?.forEach((item: any) => {
+          sortByPeriodDesc(section.data.items || []).forEach((item: any) => {
+            const itemBullets = parseContentParts(item.bullets || '');
+
+            // Blok header proyek: nama + periode (sticky dengan bullet pertama)
             list.push({
-              id: `item-${section.id}-${item.id}`,
-              type: 'item',
-              height: estimateProjectItemHeight(item, false),
+              id: `item-${section.id}-${item.id}-head`,
+              type: 'item-head',
+              height: 20,
               render: () => (
-                <div className="mb-2">
-                  <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
-                    {item.url ? (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-bold text-slate-900 hover:text-blue-700 inline-flex items-center gap-1 group/link"
-                        title={item.url}
-                      >
-                        <span className="group-hover/link:underline">{item.name}</span>
-                        <ExternalLink size={11} className="inline opacity-80 group-hover/link:opacity-100 flex-shrink-0 text-slate-700" />
-                      </a>
-                    ) : (
-                      <span>{item.name}</span>
-                    )}
-                    <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
-                  </div>
-                  {item.bullets && (
-                    <div
-                      className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
-                      dangerouslySetInnerHTML={{ __html: item.bullets }}
-                    />
+                <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
+                  {item.url ? (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-slate-900 hover:text-blue-700 inline-flex items-center gap-1 group/link"
+                      title={item.url}
+                    >
+                      <span className="group-hover/link:underline">{item.name}</span>
+                      <ExternalLink size={11} className="inline opacity-80 group-hover/link:opacity-100 flex-shrink-0 text-slate-700" />
+                    </a>
+                  ) : (
+                    <span>{item.name}</span>
                   )}
+                  <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
                 </div>
               ),
             });
+
+            itemBullets.forEach((part, bIdx: number) => {
+              const isLastBulletOfItem = bIdx === itemBullets.length - 1;
+              list.push({
+                id: `item-${section.id}-${item.id}-b-${bIdx}`,
+                type: 'item-bullet',
+                height: estimateContentPartHeight(part),
+                render: () => (
+                  <div className={`${bIdx === 0 ? 'mt-0.5' : ''} ${isLastBulletOfItem ? 'mb-2' : ''}`}>
+                    {renderContentPart(part)}
+                  </div>
+                ),
+              });
+            });
+
+            if (itemBullets.length === 0) {
+              list.push({
+                id: `item-${section.id}-${item.id}-spacer`,
+                type: 'item-bullet',
+                height: 8,
+                render: () => <div className="mb-2" />,
+              });
+            }
           });
         }
       } else if (section.type === 'education') {
@@ -517,13 +609,16 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          section.data.items?.forEach((item: any) => {
+          sortByPeriodDesc(section.data.items || []).forEach((item: any) => {
+            const descBlocks = parseContentParts(item.description || '');
+
+            // Blok header pendidikan: degree + institution (sticky dengan deskripsi pertama)
             list.push({
-              id: `item-${section.id}-${item.id}`,
-              type: 'item',
-              height: estimateEducationItemHeight(item, false),
+              id: `item-${section.id}-${item.id}-head`,
+              type: 'item-head',
+              height: 34,
               render: () => (
-                <div className="mb-1.5">
+                <>
                   <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
                     <span>{item.degree}</span>
                     <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
@@ -532,14 +627,32 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                     <span>{item.institution}</span>
                     {item.gpa && <span className="font-medium text-slate-800">{item.gpa}</span>}
                   </div>
-                  {item.description && (
-                    <div className="text-slate-700 text-[7.75pt] leading-snug mt-0.5">
-                      {item.description}
-                    </div>
-                  )}
-                </div>
+                </>
               ),
             });
+
+            descBlocks.forEach((part, bIdx: number) => {
+              const isLast = bIdx === descBlocks.length - 1;
+              list.push({
+                id: `item-${section.id}-${item.id}-d-${bIdx}`,
+                type: 'item-bullet',
+                height: estimateContentPartHeight(part),
+                render: () => (
+                  <div className={`${bIdx === 0 ? 'mt-0.5' : ''} ${isLast ? 'mb-1.5' : ''}`}>
+                    {renderContentPart(part)}
+                  </div>
+                ),
+              });
+            });
+
+            if (descBlocks.length === 0) {
+              list.push({
+                id: `item-${section.id}-${item.id}-spacer`,
+                type: 'item-bullet',
+                height: 6,
+                render: () => <div className="mb-1.5" />,
+              });
+            }
           });
         }
       } else {
@@ -605,7 +718,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          section.data.items?.forEach((item: any) => {
+          sortByPeriodDesc(section.data.items || []).forEach((item: any) => {
             list.push({
               id: `item-${section.id}-${item.id}`,
               type: 'item',
