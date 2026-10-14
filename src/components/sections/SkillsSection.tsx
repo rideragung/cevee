@@ -113,7 +113,8 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
                     type="button"
                     onClick={() => handleRemoveCategory(cat.id)}
                     className="p-1.5 mt-5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition"
-                    title="Delete Category"
+                    title="Delete category"
+                    aria-label="Delete category"
                   >
                     <Trash2 size={15} />
                   </button>
@@ -122,7 +123,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
                 {/* List of skills textarea */}
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    List of skills <span className="text-red-500">*</span>
+                    Skills <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     value={cat.items}
@@ -132,7 +133,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
                     className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 resize-y bg-white"
                   />
                   <p className="text-[10.5px] text-slate-400 mt-0.5">
-                    Use comma to separate each skill
+                    Separate skills with commas
                   </p>
                 </div>
 
@@ -144,7 +145,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
             ))}
           </div>
 
-          {/* Action Bar (Add More on left, Cancel & Save on right) */}
+          {/* Action Bar (Add category on left, Cancel & Save on right) */}
           <div className="flex flex-wrap items-center justify-between gap-y-3 gap-x-3 pt-6 mt-4 border-t border-slate-100">
             <button
               type="button"
@@ -152,7 +153,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
               className="inline-flex items-center gap-1 px-4 py-1.5 border border-emerald-500 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold rounded-lg transition"
             >
               <Plus size={13} />
-              <span>Add More</span>
+              <span>Add category</span>
             </button>
 
             <div className="flex items-center gap-3">

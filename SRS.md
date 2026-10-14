@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.25.0  
+**Dokumen Versi:** 1.29.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Responsive — Desktop, Tablet & Mobile)  
@@ -35,6 +35,7 @@ Cevee memungkinkan pengguna:
 10. Mengunduh CV langsung dalam format file `.pdf` dengan penamaan file otomatis dan kualitas vektor bersih.
 11. Menyimpan data otomatis ke database Supabase dan cadangan lokal `localStorage`.
 12. Mengedit CV secara penuh dari perangkat mobile (tata letak responsif penuh tanpa *horizontal scroll*), dengan kanvas A4 yang mengalir ulang sesuai lebar layar di bawah ambang `900px`.
+13. Memilih format layout saat membuat CV baru dan mengganti layout secara fleksibel langsung dari kanvas editor dengan preservasi konten 100%.
 
 ### 1.3 Batasan Biaya & Aturan Non-AI (Strict Constraints)
 - **Zero Cost (Rp 0):** Seluruh infrastruktur wajib berjalan di tingkat gratis permanen (*free tier*) tanpa kewajiban kartu kredit.
@@ -101,17 +102,21 @@ Cevee memungkinkan pengguna:
 ### 3.2 FR-2: Manajemen Multi-CV & Resume Dashboard
 - **FR-2.1 (Resume Dashboard & Default Landing View):**
   - **Halaman Awal:** Saat pengguna membuka aplikasi, pengguna pertama kali diarahkan ke halaman **Resume Dashboard** (`ResumeDashboard`) yang menampilkan daftar seluruh CV yang dimiliki sebelum memasuki kanvas kustomisasi.
-  - **Kartu Resume Terstruktur:** Setiap resume ditampilkan dalam kartu informatif memuat judul CV, nama kandidat, tanggal pembaruan terakhir, jumlah section, serta tombol aksi cepat: *Customize* (membuka editor kanvas), *Quick Preview* (modal pratinjau instan), *Duplicate*, dan *Delete*.
+  - **Kartu Resume Terstruktur:** Setiap resume ditampilkan dalam kartu informatif memuat judul CV, nama kandidat, tanggal pembaruan terakhir, jumlah section, serta tombol aksi cepat: *Edit resume* (membuka editor kanvas), *Quick Preview* (modal pratinjau instan), *Duplicate*, dan *Delete*.
   - **Kondisi Kosong (Empty State Anti-Slop):** Jika pengguna belum memiliki resume sama sekali (0 resume), dashboard menampilkan antarmuka bersih tanpa ilustrasi generik:
     - Judul: *"No resumes created yet"*
-    - Penjelasan: *"You haven't created any resumes yet. Start building your first ATS-friendly resume to customize and download."*
-    - Tombol primer: *"Start Building Resume"* yang langsung menginisialisasi template standar dan mengarahkan pengguna ke kanvas editor.
+    - Penjelasan: *"You haven't created any resumes yet. Start building your first ATS-friendly resume to edit and download."*
+    - Tombol primer: *"Start building resume"* yang langsung menginisialisasi template standar dan mengarahkan pengguna ke kanvas editor.
   - **Navigasi Antar Halaman:** Di kanvas editor, pengguna dapat kembali ke halaman Dashboard kapan saja melalui logo Cevee atau tombol navigasi *"Dashboard"* di bilah navbar atas.
-- **FR-2.2 (Create New Resume Standard Template):** Saat pengguna membuat CV baru, sistem secara otomatis menginisialisasi dokumen dengan struktur standar referensi:
-  1. **Header:** 'Your Name', 'City, State/Country', 'email@address.com', '+65 1234 5678', serta 3 tautan portofolio (`linkedin.com/in/your_linkedin`, `github.com/username`, `otherlink.com`).
-  2. **Urutan Section Bawaan:** Summary (tanpa judul), WORK EXPERIENCE, EDUCATION, PROJECTS, SKILLS.
-  3. **Warna Teks Acuan:** Seluruh teks pada dokumen baru dimulai dalam status placeholder berwarna abu-abu redup (`text-slate-400`).
-  4. **Formulir Kosong Saat Edit:** Saat pengguna mengklik untuk mengedit header maupun section, seluruh kolom input dimulai dalam keadaan kosong (`value=""`) dengan panduan di atribut `placeholder`.
+- **FR-2.2 (Create New Resume & Pre-Creation Layout Selection):**
+  - **Alur Pemilihan Layout:** Saat pengguna membuat CV baru (baik melalui tombol *"Create Resume"* di dashboard, *"Start Building Resume"* di empty state, maupun tombol `+` di navbar), sistem menampilkan dialog/modal pemilihan layout terlebih dahulu (`LayoutSelectModal`) sebelum dokumen dibuat.
+  - Pengguna memilih format layout (baseline: `classic-ats`) lalu menekan konfirmasi untuk menginisialisasi dokumen dengan layout tersebut.
+  - **Struktur Standar Bawaan:** Sistem menginisialisasi dokumen dengan struktur standar referensi:
+    1. **Layout ID:** `classic-ats` (Standard Single-Column ATS).
+    2. **Header:** 'Your Name', 'City, State/Country', 'email@address.com', '+65 1234 5678', serta 3 tautan portofolio (`linkedin.com/in/your_linkedin`, `github.com/username`, `otherlink.com`).
+    3. **Urutan Section Bawaan:** Summary (tanpa judul), WORK EXPERIENCE, EDUCATION, PROJECTS, SKILLS.
+    4. **Warna Teks Acuan:** Seluruh teks pada dokumen baru dimulai dalam status placeholder berwarna abu-abu redup (`text-slate-400`).
+    5. **Formulir Kosong Saat Edit:** Saat pengguna mengklik untuk mengedit header maupun section, seluruh kolom input dimulai dalam keadaan kosong (`value=""`) dengan panduan di atribut `placeholder`.
 - **FR-2.3 (Duplicate):** Pengguna dapat menduplikasi CV yang sudah ada untuk membuat variasi CV (misal: "CV - Product Designer" dan "CV - Frontend Dev").
 - **FR-2.4 (Rename):** Pengguna dapat mengubah nama internal dokumen CV.
 - **FR-2.5 (Delete & Danger Prevention Modal via React Portal):**
@@ -121,7 +126,7 @@ Cevee memungkinkan pengguna:
   - Dialog modal memuat ikon peringatan segitiga merah (`AlertTriangle bg-red-50 text-red-600`), judul spesifik dengan nama objek, penjelasan konsekuensi permanen, tombol penolakan berorientasi verba (`Keep Resume` / `Keep Section`), dan tombol destruktif primer (`Delete Resume` / `Delete Section`).
   - Mendukung navigasi keyboard: tombol `Escape` untuk membatalkan dialog serta penguncian scroll latar belakang (`overflow: hidden`) saat modal aktif.
 - **FR-2.6 (Switch Active):** Pengguna dapat berpindah dari satu CV ke CV lain tanpa me-refresh halaman.
-- **FR-2.7 (UX Writing & Microcopy Standards):** Seluruh tombol aksi, tooltip, status indikator, dan teks konfirmasi distandarisasi ke bahasa Inggris profesional yang ringkas, berorientasi tindakan (*verb-oriented*), dan bebas dari emoji atau jargon generik.
+- **FR-2.7 (UX Writing & Microcopy Standards):** Seluruh tombol aksi, tooltip, status indikator, dialog modal konfirmasi, pesan kesalahan autentikasi, serta placeholder input pada seluruh section distandarisasi 100% ke bahasa Inggris (English US) profesional yang ringkas, berorientasi tindakan (*verb-oriented*), dan konsisten tanpa residu teks multibahasa. Teks dialog penghapusan disesuaikan agar akurat untuk lingkungan penyimpanan lokal maupun akun cloud.
 
 ### 3.3 FR-3: In-Place Canvas & Editor (WYSIWYG)
 - **FR-3.1 (A4 Container & Margin Padat):** Area kerja menampilkan lembar putih dengan rasio aspek A4 (210mm x 297mm) dengan margin padat standar ATS: `10mm` (atas), `13mm` (samping kiri-kanan), dan `12mm` (bawah) guna memaksimalkan kepadatan informasi dokumen.
@@ -249,7 +254,7 @@ Sistem mendukung beragam tipe struktur section:
     - Lapisan 2 (CSS Media Print): Aturan `@media print { body > *:not(#root) { display: none !important; left: -99999px !important; } }` dan penyematan inline SVG data-URI favicon menjamin 0% kebocoran artefak ekstensi ke lembar halaman 2+.
   - **Kontainer Alur Statis:** Kontainer cetak menggunakan alur statis (`position: static`) sehingga engine browser print memecah lembaran A4 fisik (`break-after: page`) secara presisi ke jumlah halaman yang tepat.
 - **FR-10.2 (Page-Break Avoidance):** Setiap blok section item (pekerjaan, proyek, pendidikan) dilindungi dengan properti CSS `break-inside: avoid` agar tidak terbelah di batas halaman.
-- **FR-10.3 (Client-Side Photo Compressor Readiness):** Disertakan modul utilitas kompresi kanvas HTML5 client-side (`compressProfilePhoto`) yang otomatis mengubah ukuran dan mengompresi foto profil menjadi maksimal 320x320 px (~20-40 KB) sebelum disematkan ke dokumen, menjaga file PDF tetap di bawah 100 KB bahkan ketika layout foto diaktifkan.
+- **FR-10.3 (Client-Side Photo Compressor Readiness):** Disertakan modul utilitas kompresi kanvas HTML5 client-side (`compressProfilePhoto`) yang otomatis melakukan crop tengah (*center-crop*) presisi rasio 3:4 dan meresize ke dimensi target 300x400 px (~25-40 KB) sebelum disematkan ke dokumen, mengeliminasi efek distorsi/stretch dan menjaga file PDF tetap di bawah 100 KB.
 
 ### 3.11 FR-11: Responsive Mobile & Touch Experience
 Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib dapat digunakan penuh dari perangkat mobile tanpa *horizontal scroll* dan tanpa kehilangan kontrol editing yang sebelumnya bergantung pada *hover*. Ambang responsif utama adalah `≤ 900px` (kanvas) dan breakpoint Tailwind standar (`sm 640`, `md 768`, `lg 1024`).
@@ -266,6 +271,31 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
 - **FR-11.6 (Preview PDF Fit-to-Width):** Modal preview PDF menghitung zoom awal agar lembar A4 pas dengan lebar viewport, menyembunyikan kontrol zoom di bawah `sm`, memakai padding lebih rapat (`p-3`), dan men-`truncate` judul agar toolbar tidak meluber.
 - **FR-11.7 (Tipografi & Sentuhan):** Target sentuh tombol ikon minimal mengikuti ukuran Tailwind (`p-1.5` s.d. `p-2`), dan pemilih teks tidak bergantung pada efek transisi khusus *pointer*. Tidak ada elemen yang `display: none` hanya karena perangkat adalah seluler.
 - **FR-11.8 (Non-Regresi Cetak):** Seluruh penyesuaian responsif bersifat *screen-only* (dibungkus `@media screen`) dan tidak mengubah output cetak/PDF 1:1 maupun kalkulasi paginasi item.
+
+### 3.12 FR-12: Fitur Pemilihan & Pergantian Layout Resume (Layout Selector)
+- **FR-12.1 (Alur Pemilihan Layout Pra-Pembuatan / Pre-Creation Selection):**
+  - Sebelum dokumen CV baru dibuat dan masuk ke kanvas editor, pengguna **wajib** melalui tahap pemilihan format/layout melalui modal atau panel dialog pilihan (`LayoutSelectModal`).
+  - Tahap ini dipicu saat menekan tombol pembuatan CV baru (*Create Resume* di Dashboard, *Start Building Resume* di Empty State, atau tombol `+` di Navbar).
+  - Modal menampilkan daftar layout yang tersedia dengan thumbnail/pratinjau visual dan deskripsi ringkas format.
+  - Pengguna memilih format layout yang diinginkan (default terpilih: layout standar aktif) dan menekan tombol konfirmasi pembuatan (*Use Layout* / *Create*) untuk membuat dokumen.
+- **FR-12.2 (Left Sidebar Container & Layout Selector Murni Visual / Mobbin-Style Left Panel):**
+  - Pada halaman editor CV (`currentView === 'editor'`), antarmuka mengadopsi arsitektur container panel kiri (`LayoutSidebar`) di sebelah kanvas A4, merujuk pada standar pola desain editor modern di Mobbin (Adobe Express, Ditto, Canva):
+    - **Container Sisi Kiri (Left Sidebar Container):** Sebuah kontainer panel vertikal (`w-56 xl:w-64 bg-white border-r border-slate-200/90 shadow-2xs sticky top-14 h-[calc(100vh-3.5rem)]`) yang berdiri di sisi kiri workspace di bawah navbar.
+    - **Layout Selector di Dalam Container:** Di dalam kontainer tersebut, selector layout ditata rapi secara vertikal (`overflow-y-auto p-4 flex flex-col items-center gap-4`).
+    - **Tampilan Pratinjau Terkalibrasi & Proporsional (High-Fidelity Document Preview):** Setiap item layout di dalam kontainer maupun dialog modal menampilkan pratinjau dokumen A4 presisi (vektor SVG `ResumeMiniPreview`) dengan tipografi Inter mikro, rasio margin padat A4 (10mm/13mm) otentik, serta hierarki section utuh (Header, Summary, Experience, Education, Projects, Skills, Certifications) yang proporsional (~80% kepadatan lembar) tanpa kekosongan/whitespace berlebihan atau bentuk skeleton baris generik.
+    - **Indikator Aktif & Interaktivitas:** Thumbnail layout yang aktif dibungkus border hijau emerald tebal (`border-2 border-emerald-600`), ring fokus aksen (`ring-4 ring-emerald-500/15`), bayangan halus, dan lencana centang di sudut kanan atas. Mengklik thumbnail langsung memperbarui format layout CV secara reaktif tanpa modal dan tanpa reload.
+    - **Responsivitas & Isolasi Media Cetak:** Pada layar desktop (`≥ 1024px`), container tampil terpasang (*docked*) di sisi kiri layar; pada layar tablet/mobile (`< 1024px`), container diakses via tombol pemicu mengambang di kiri atas yang membuka drawer slide-over; serta 100% diisolasi/disembunyikan saat cetak PDF (`no-print`).
+- **FR-12.3 (Katalog Layout & Presets):**
+  - Sistem menyediakan 2 pilihan preset layout standar:
+    1. **`classic-ats` (Standard Single-Column ATS):** Format resume 1 kolom standar industri ATS, header tengah adaptif tanpa foto, margin padat (10mm/13mm/12mm), tipografi seragam 7.75pt, dan pembatas garis hairline.
+    2. **`modern-photo` (Photo Header Single-Column):** Format resume 1 kolom dengan bingkai foto profil portrait rasio 3:4 (~22mm x 28mm pada cetak fisik A4) di sisi kiri header, serta nama kandidat bold dan baris kontak dot separator terpadu rata kiri (*left-aligned*) di sisi kanan foto. Seluruh section lain (Summary rata kiri-kanan, Skills, Experience, Education, Projects, Custom Section) 100% identik dan tetap di posisi aslinya.
+  - Komponen upload foto terintegrasi pada form edit header dengan kompresi kanvas client-side (`compressProfilePhoto`) berukuran max 300x400 px rasio 3:4 (~25-40 KB) dengan preservasi state foto pada mode edit form.
+  - Seluruh struktur komponen dialog pemilih, tipe data, dan alur kerja diimplementasikan secara dinamis (*data-driven*) mempermudah ekspansi template di masa mendatang.
+- **FR-12.4 (Preservasi Data & Integritas Konten):**
+  - Pemilihan maupun pergantian format layout hanya mengubah metadata `layoutId` pada dokumen resume.
+  - Seluruh data konten (kontak header, riwayat pekerjaan, pendidikan, proyek, keahlian, dan custom section) dipertahankan 100% tanpa adanya pemotongan atau penghapusan data (*zero data loss*).
+- **FR-12.5 (Sinkronisasi Pratinjau & Output Cetak PDF):**
+  - Mesin pratinjau live PDF (`PreviewModal` & `PaginatedResumeView`) serta aturan cetak `@media print` merender dokumen berdasarkan `layoutId` yang tersimpan pada resume aktif, menjamin hasil ekspor PDF 1:1 persis sama dengan yang dilihat pengguna di editor.
 
 ---
 
@@ -428,10 +458,13 @@ export interface ResumeSection {
   data: any;             // Menampung array items atau string HTML sesuai tipe
 }
 
+export type ResumeLayoutId = 'classic-ats' | 'modern-photo';
+
 export interface ResumeDocument {
   id: string;
   title: string;
-  layoutId?: string; // Layout template selector ('classic-ats' | 'modern-sidebar')
+  layoutId?: ResumeLayoutId | string; // Layout selector (default: 'classic-ats')
+  createdAt?: string; // ISO timestamp pembuatan CV
   updatedAt: string;
   content: ResumeContent;
 }
@@ -485,6 +518,55 @@ export interface ResumeDocument {
 ---
 
 ## 7. RIWAYAT VERSI (CHANGELOG)
+
+### 1.29.0 — High-Fidelity Vector Document Layout Previews
+- **Eliminasi Skeleton AI Generik:** Mengganti baris skeleton `h-1.5` / `rounded-full` yang terdistorsi dan meninggalkan whitespace berlebihan dengan komponen vektor SVG `ResumeMiniPreview` presisi koordinat milimeter A4 (210 × 297).
+- **Struktur Konten Proporsional & Otentik:** Pratinjau layout kini mencerminkan konten nyata Cevee secara proporsional (~80% kepadatan halaman):
+  - Header adaptif (`classic-ats` simetris tengah vs `modern-photo` asimetris foto portrait 3:4 dengan siluet formal).
+  - Paragraf Summary 3 baris rata kiri-kanan tanpa judul bawaan.
+  - Section Work Experience dengan 2 posisi kerja, tanggal rata kanan, dan poin pencapaian berpeluru dot `•`.
+  - Section Education, Projects (dengan tautan), Skills terstruktur, dan Certifications.
+- **Konsistensi Lintas Komponen:** Dipakai seragam pada sidebar kanvas editor (`LayoutSidebar` via `LayoutThumbnail`) dan dialog modal pra-pembuatan resume (`LayoutSelectModal`).
+
+### 1.28.0 — Full English (US) UX Writing & Microcopy Standardization
+- **Standarisasi Bahasa Menyeluruh:** Mengeliminasi seluruh residu teks bahasa Indonesia pada antarmuka pengguna sesuai standar `Default Language: English (US)`.
+- **Pembersihan Komponen & CTA:**
+  - `Navbar`: Normalisasi istilah konsisten `Resume` (menghapus "CV" pada `Rename resume`), sentence case pada menu dropdown (`Create new resume`, `Duplicate resume`, `Delete resume`), dan penambahan `aria-label` aksesibilitas.
+  - `ResumeDashboard`: Tombol kartu diubah dari `Customize` menjadi `Edit resume` (`[Verb] [object]`), label metadata waktu menjadi `Updated:` (paralel dengan `Created:`), dan empty state CTA menjadi `Start building resume`.
+  - `LayoutSelectModal` & `LayoutSidebar`: Modal title dan tombol konfirmasi diselaraskan ke sentence case (`Choose resume layout`, `Create resume` / `Apply layout`).
+  - `DatePicker`: Normalisasi placeholder default menjadi `Select date`, tombol aksi footer menjadi `This month` dan `Clear`.
+  - `AuthPage`: Pembaruan pesan galat OAuth Google (`Google sign-in is not enabled in your Supabase project...`), penulisan pesan validasi tanpa filler `please`, dan pesan error login yang actionable.
+  - `RichTextEditor`: Perbaikan dialog URL link menjadi `Enter link URL (e.g. https://example.com):`.
+  - `SummarySection` & `PaginatedResumeView`: Penggantian teks placeholder summary lama menjadi panduan ATS profesional 3 baris presisi (`Results-driven professional with proven experience...`).
+  - `ExperienceSection`: Normalisasi placeholder bullets rich text (`Describe your responsibilities and achievements...`), label promosi multi-posisi (`Position {n} (Latest / Promotion)`), tombol hapus posisi (`Delete Position`), tombol tambah posisi (`Add Position`), tombol tambah pengalaman (`Add Experience`), dan placeholder tanggal (`Select start date`, `Select end date`).
+  - `SkillsSection`: Label form disederhanakan menjadi `Skills *`, petunjuk pemisah koma menjadi `Separate skills with commas`, tombol tambah menjadi `Add category`, dan penambahan aria-labels.
+  - `ProjectsSection`: Normalisasi placeholder bullets (`Describe project goals, technical highlights, and key results...`), label deskripsi (`Project Description`), tombol tambah menjadi `Add project`, dan placeholder tanggal (`Select start date`, `Select end date`).
+  - `EducationSection`: Tombol tambah menjadi `Add education`, placeholder tanggal (`Select start date`, `Select graduation date`).
+  - `CustomSection`: Normalisasi placeholder tanggal sertifikasi/kustom (`Select issue date`, `Select expiry date`, `Select date`), tombol tambah menjadi `Add item`, serta koreksi label menjadi `Expiry Date`.
+  - `AddSectionBar`: Normalisasi tombol custom menjadi `Add custom section`.
+- **Refinement Modal Konfirmasi:** Teks konfirmasi destruktif pada `ResumeDashboard` dan `Navbar` disederhanakan menjadi pesan universal yang akurat untuk akun lokal maupun cloud (`...permanently deleted.`).
+
+### 1.27.1 — Profile Photo 3:4 Aspect Ratio Fix & State Preservation
+- **Perbaikan Bug:** Eliminasi kalkulasi dimensi kompresi kanvas yang menyebabkan gambar terdistorsi vertikal ("gepeng"). `compressProfilePhoto` kini melakukan crop tengah otomatis (*center-crop*) presisi rasio 3:4 (300x400 px).
+- **Perbaikan State:** Nilai `data.photoUrl` kini dipreservasi secara konsisten saat membuka mode edit header (bahkan ketika resume berstatus placeholder), serta ditampilkan langsung pada kotak pratinjau form edit.
+
+### 1.27.0 — Modern Photo Layout Preset with 3:4 Portrait Profile Frame
+- **Baru:** Preset layout kedua `modern-photo` (Photo Header Single-Column) — header asimetris dengan bingkai foto profil portrait rasio 3:4 (~22mm x 28mm) di sisi kiri, serta nama kandidat bold dan kontak terpadu rata kiri di samping foto.
+- **Pembaruan:** Uploader foto profil terintegrasi pada form edit header dengan kompresi kanvas client-side (`compressProfilePhoto`) Base64 hemat memori (~30 KB).
+- **Pratinjau Sinkron:** Wireframe thumbnail pada sidebar kiri secara otomatis membedakan layout `classic-ats` (header tengah) dan `modern-photo` (header berfoto 3:4) secara visual murni tanpa teks.
+- **Dukungan Cetak:** `PaginatedResumeView` merender foto profil secara deterministik pada mode pratinjau dan ekspor cetak PDF 1:1.
+
+### 1.26.2 — Left Sidebar Container Architecture (Mobbin-Aligned)
+- **Pembaruan:** FR-12.2 disempurnakan sesuai referensi Mobbin (Adobe Express / Ditto / Canva) — arsitektur tata letak kini menggunakan **Left Sidebar Container** mandiri yang terpasang (*docked*) di sisi kiri layar di bawah navbar, dengan selector layout murni visual (tanpa teks) tertata rapi di dalamnya.
+
+### 1.26.1 — Left Sidebar Pure Preview Layout Selector
+- **Pembaruan:** FR-12.2 dimodifikasi — kontrol pergantian layout pada halaman editor kini ditempatkan di **sidebar kiri** (`LayoutSidebar`) dengan tampilan **pratinjau visual murni (thumbnail wireframe A4) tanpa teks apa pun** di dalam atau di sekitar kartu.
+- **Desain Responsif:** Desktop (`≥ 1040px`) sticky di sisi kiri kanvas A4; mobile/tablet via drawer flyout kiri yang terisolasi dari cetak (`no-print`).
+
+### 1.26.0 — Resume Layout Selection & Switching
+- **Baru:** FR-12 (Fitur Pemilihan & Pergantian Layout Resume) — implementasi alur wajib memilih format layout sebelum membuat dokumen baru (`Pre-Creation Selection`) dan opsi mengganti layout kapan saja saat kanvas editor terbuka (`In-Editor Switching`).
+- **Baseline Katalog:** Mengukuhkan 1 pilihan layout awal `classic-ats` (Standard Single-Column ATS) dengan arsitektur terbuka yang siap menerima format baru tanpa perombakan struktur data.
+- **Diperbarui:** Lingkup Produk (§1.2 butir 13), Alur Pembuatan Resume (§3.2 FR-2.2), serta Skema Data TypeScript (§4.2 `ResumeLayoutId`).
 
 ### 1.25.0 — Responsive Mobile & Touch Experience
 - **Baru:** FR-11 (Responsive Mobile & Touch Experience) — kanvas A4 mengalir ulang di bawah `900px`, navbar dua baris di mobile, kontrol editor berbasis `hover` selalu tampil di layar sentuh, baris aksi form edit membungkus, popover tanggal aman viewport, dan modal preview PDF *fit-to-width*.

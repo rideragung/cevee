@@ -33,7 +33,7 @@ const normalizeItem = (item: ExperienceItem): ExperienceItem => {
         startDate: item.startDate || '',
         endDate: item.endDate || '',
         current: item.current || false,
-        bullets: item.bullets || '<ul><li>Tuliskan deskripsi pencapaian di sini...</li></ul>',
+        bullets: item.bullets || '<ul><li>Describe your responsibilities and achievements...</li></ul>',
       },
     ],
   };
@@ -141,7 +141,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
       startDate: '',
       endDate: '',
       current: false,
-      bullets: '<ul><li>Tuliskan deskripsi pencapaian di sini...</li></ul>',
+      bullets: '<ul><li>Describe your responsibilities and achievements...</li></ul>',
       positions: [
         {
           id: `pos-${newId}-0`,
@@ -150,7 +150,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
           startDate: '',
           endDate: '',
           current: false,
-          bullets: '<ul><li>Tuliskan deskripsi pencapaian di sini...</li></ul>',
+          bullets: '<ul><li>Describe your responsibilities and achievements...</li></ul>',
         },
       ],
     };
@@ -177,7 +177,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
             startDate: it.startDate || '',
             endDate: it.endDate || '',
             current: it.current || false,
-            bullets: it.bullets || '<ul><li>Tuliskan deskripsi pencapaian di sini...</li></ul>',
+            bullets: it.bullets || '<ul><li>Describe your responsibilities and achievements...</li></ul>',
           },
         ];
         const newPos: ExperiencePosition = {
@@ -187,7 +187,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
           startDate: '',
           endDate: '',
           current: false,
-          bullets: '<ul><li>Tuliskan deskripsi pencapaian pada posisi baru ini...</li></ul>',
+          bullets: '<ul><li>Describe your responsibilities and achievements for this role...</li></ul>',
         };
         return {
           ...it,
@@ -329,17 +329,17 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                             <div className="flex items-center gap-1.5">
                               <TrendingUp size={13} className="text-emerald-600" />
                               <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                                Posisi {pIdx + 1} {pIdx === 0 ? '(Terbaru / Promosi)' : ''}
+                                Position {pIdx + 1} {pIdx === 0 ? '(Latest / Promotion)' : ''}
                               </span>
                             </div>
                             <button
                               type="button"
                               onClick={() => handleRemovePosition(item.id, pos.id)}
                               className="text-xs text-red-500 hover:text-red-700 inline-flex items-center gap-1 hover:underline"
-                              title="Hapus posisi ini"
+                              title="Delete this position"
                             >
                               <Trash2 size={12} />
-                              <span>Hapus Posisi</span>
+                              <span>Delete Position</span>
                             </button>
                           </div>
                         )}
@@ -383,7 +383,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                             <DatePicker
                               value={pos.startDate || ''}
                               onChange={(val) => handleUpdatePositionField(item.id, pos.id, 'startDate', val)}
-                              placeholder="Pilih Tanggal Mulai"
+                              placeholder="Select start date"
                             />
                           </div>
 
@@ -395,7 +395,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                               value={pos.current ? 'Present' : (pos.endDate || '')}
                               disabled={pos.current || false}
                               onChange={(val) => handleUpdatePositionField(item.id, pos.id, 'endDate', val)}
-                              placeholder="Pilih Tanggal Selesai"
+                              placeholder="Select end date"
                             />
                           </div>
                         </div>
@@ -423,7 +423,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                         className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 px-2.5 py-1.5 rounded-lg border border-emerald-200 transition"
                       >
                         <Plus size={13} />
-                        <span>Posisi/Promosi</span>
+                        <span>Add Position</span>
                       </button>
                     </div>
                   </div>
@@ -440,7 +440,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
               className="inline-flex items-center gap-1 px-4 py-1.5 border border-emerald-500 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold rounded-lg transition"
             >
               <Plus size={13} />
-              <span>Add More Company</span>
+              <span>Add Experience</span>
             </button>
 
             <div className="flex items-center gap-3">

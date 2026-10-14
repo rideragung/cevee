@@ -32,7 +32,7 @@ const MONTHS_FULL: Record<string, number> = {
 export const DatePicker: React.FC<DatePickerProps> = ({
   value,
   onChange,
-  placeholder = 'Pilih Tanggal',
+  placeholder = 'Select date',
   disabled = false,
   className = '',
 }) => {
@@ -229,7 +229,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               onClick={handleCurrentMonth}
               className="text-emerald-600 hover:text-emerald-700 font-semibold hover:underline"
             >
-              Bulan Ini
+              This month
             </button>
 
             <button
@@ -237,7 +237,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               onClick={handleClear}
               className="text-slate-400 hover:text-red-600 transition"
             >
-              Hapus
+              Clear
             </button>
           </div>
         </div>

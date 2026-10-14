@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ResumeDocument } from '../types/resume';
-import { FileText, Plus, Copy, Trash2, Eye, ArrowRight, Cloud, CalendarDays, LogOut, User as UserIcon, MoreVertical, Download } from 'lucide-react';
+import { FileText, Plus, Copy, Trash2, Eye, ArrowRight, Cloud, CalendarDays, LogOut, User as UserIcon, MoreVertical, Download, LayoutTemplate } from 'lucide-react';
 import { ConfirmDialog } from './ConfirmDialog';
+import { getLayoutById } from '../data/layouts';
 
 interface ResumeDashboardProps {
   resumes: ResumeDocument[];
@@ -141,9 +142,9 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
         {/* Title Section */}
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Your Resumes</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Your resumes</h1>
             <p className="text-sm text-slate-500 mt-1">
-              Manage, customize, and export your professional ATS-compliant resumes.
+              Manage, edit, and export your professional ATS-compliant resumes.
             </p>
           </div>
 
@@ -154,7 +155,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
               className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex-shrink-0 whitespace-nowrap"
             >
               <Plus size={15} />
-              <span>Create Resume</span>
+              <span>Create resume</span>
             </button>
           )}
         </div>
@@ -167,7 +168,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
             </div>
             <h2 className="text-base font-bold text-slate-900">No resumes created yet</h2>
             <p className="text-xs text-slate-500 mt-1.5 mb-6 max-w-sm mx-auto leading-relaxed">
-              You haven't created any resumes yet. Start building your first ATS-friendly resume to customize and download.
+              You haven't created any resumes yet. Start building your first ATS-friendly resume to edit and download.
             </p>
             <button
               type="button"
@@ -175,7 +176,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition"
             >
               <Plus size={15} />
-              <span>Start Building Resume</span>
+              <span>Start building resume</span>
             </button>
           </div>
         ) : (
@@ -254,7 +255,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                                   className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition"
                                 >
                                   <Download size={14} className="text-emerald-600" />
-                                  <span>Download</span>
+                                  <span>Download PDF</span>
                                 </button>
                                 <div className="border-t border-slate-100 my-1" />
                                 <button
@@ -278,8 +279,8 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                           type="button"
                           onClick={() => onPreviewResume(resume.id)}
                           className="p-1.5 border border-slate-200 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition"
-                          title="Preview PDF"
-                          aria-label="Preview PDF"
+                          title="Preview resume"
+                          aria-label="Preview resume"
                         >
                           <Eye size={15} />
                         </button>
@@ -288,10 +289,19 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
 
                     {/* Metadata */}
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-slate-400 border-t border-slate-100 pt-3 mt-3">
+                      <span className="flex items-center gap-1" title="Resume layout">
+                        <LayoutTemplate size={12} className="text-slate-400 flex-shrink-0" />
+                        <span>
+                          Layout:{' '}
+                          <span className="text-slate-600 font-medium">
+                            {getLayoutById(resume.layoutId).name}
+                          </span>
+                        </span>
+                      </span>
                       <span className="flex items-center gap-1" title="Last updated">
                         <Cloud size={12} className="text-emerald-500 flex-shrink-0" />
                         <span>
-                          Last update:{' '}
+                          Updated:{' '}
                           <span className="text-slate-500 font-medium">
                             {formatDate(resume.updatedAt)}
                           </span>
@@ -316,7 +326,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                       onClick={() => onSelectResume(resume.id)}
                       className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg shadow-2xs transition"
                     >
-                      <span>Customize</span>
+                      <span>Edit resume</span>
                       <ArrowRight size={13} />
                     </button>
                   </div>
@@ -331,7 +341,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
       <ConfirmDialog
         isOpen={Boolean(deletingResume)}
         title={`Delete "${deletingResume?.title}"?`}
-        description="This action cannot be undone. All customized sections, contact details, and formatted content in this resume will be permanently removed from your browser storage."
+        description="This action cannot be undone. All customized sections, contact details, and formatted content in this resume will be permanently deleted."
         confirmLabel="Delete Resume"
         cancelLabel="Keep Resume"
         isDestructive={true}
@@ -353,7 +363,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
             className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition"
           >
             <Plus size={16} />
-            <span>Create Resume</span>
+            <span>Create resume</span>
           </button>
         </div>
       )}

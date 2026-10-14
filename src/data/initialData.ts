@@ -4,6 +4,7 @@ export const initialResumes: ResumeDocument[] = [
   {
     id: 'resume-sample-1',
     title: 'Standard ATS Resume',
+    layoutId: 'classic-ats',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     content: {

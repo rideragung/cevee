@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initialResumes } from './data/initialData';
-import { ResumeDocument, HeaderData, SectionType } from './types/resume';
+import { ResumeDocument, HeaderData, SectionType, ResumeLayoutId } from './types/resume';
 import { Navbar } from './components/Navbar';
 import { ResumeHeader } from './components/ResumeHeader';
 import { SummarySection } from './components/sections/SummarySection';
@@ -14,6 +14,8 @@ import { PreviewModal } from './components/PreviewModal';
 import { PaginatedResumeView } from './components/PaginatedResumeView';
 import { ResumeDashboard } from './components/ResumeDashboard';
 import { ConfirmDialog } from './components/ConfirmDialog';
+import { LayoutSelectModal } from './components/LayoutSelectModal';
+import { LayoutSidebar } from './components/LayoutSidebar';
 import { AuthPage } from './components/AuthPage';
 import { getSupabase } from './lib/supabase';
 import { fetchUserResumes, saveUserResume, deleteUserResume } from './lib/resumeService';
@@ -51,6 +53,10 @@ export function App() {
   // Default view is 'dashboard' so user always lands on the resume list first!
   const [currentView, setCurrentView] = useState<'dashboard' | 'editor'>('dashboard');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [layoutModal, setLayoutModal] = useState<{ isOpen: boolean; mode: 'create' | 'switch' }>({
+    isOpen: false,
+    mode: 'create',
+  });
   const [deletingSectionId, setDeletingSectionId] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'error'>('saved');
 
@@ -354,12 +360,36 @@ export function App() {
     }));
   };
 
-  // Multi-CV actions
+  // Multi-CV actions: Open layout selector before creating resume
   const handleCreateResume = () => {
+    setLayoutModal({
+      isOpen: true,
+      mode: 'create',
+    });
+  };
+
+  const handleSelectLayout = (layoutId: ResumeLayoutId) => {
+    updateActiveResume((res) => ({
+      ...res,
+      layoutId,
+    }));
+  };
+
+  const handleConfirmLayout = (layoutId: ResumeLayoutId) => {
+    if (layoutModal.mode === 'create') {
+      executeCreateResume(layoutId);
+    } else {
+      handleSelectLayout(layoutId);
+    }
+    setLayoutModal((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const executeCreateResume = (layoutId: ResumeLayoutId = 'classic-ats') => {
     const newId = `resume-${Date.now()}`;
     const newResume: ResumeDocument = {
       id: newId,
       title: 'Untitled Resume',
+      layoutId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       content: {
@@ -629,13 +659,23 @@ export function App() {
             isCloudUser={Boolean(user)}
           />
 
-          {/* Editor Canvas Area */}
-          <main className="no-print-area flex-1 pt-4 pb-24 px-2.5 sm:py-8 sm:px-6 flex justify-center items-start">
-            <div className="resume-a4-page w-full rounded-[20px] transition-all">
+          {/* Editor Workspace: Left Sidebar Container + Canvas Area */}
+          <div className="flex-1 flex flex-row items-stretch min-w-0">
+            {/* Left Sidebar Container with Layout Selector inside */}
+            <LayoutSidebar
+              activeLayoutId={activeResume.layoutId || 'classic-ats'}
+              onSelectLayout={handleSelectLayout}
+            />
+
+            {/* Editor Canvas Area */}
+            <main className="no-print-area flex-1 pt-4 pb-24 px-2.5 sm:py-8 sm:px-6 flex justify-center items-start overflow-x-hidden min-w-0">
+              {/* A4 Canvas Page */}
+              <div className="resume-a4-page w-full rounded-[20px] transition-all">
               {/* Header */}
               <ResumeHeader
                 data={activeResume.content.header}
                 onChange={handleHeaderChange}
+                layoutId={activeResume.layoutId}
               />
 
               {/* Dynamic Sections */}
@@ -772,6 +812,7 @@ export function App() {
             </div>
           </main>
         </div>
+      </div>
       )}
 
       {/* Print-Only Paginated Sheets (used when downloading PDF) */}
@@ -806,6 +847,15 @@ export function App() {
           }
         }}
         onCancel={() => setDeletingSectionId(null)}
+      />
+
+      {/* Layout Selection & Switching Modal */}
+      <LayoutSelectModal
+        isOpen={layoutModal.isOpen}
+        mode={layoutModal.mode}
+        currentLayoutId={activeResume?.layoutId}
+        onConfirm={handleConfirmLayout}
+        onClose={() => setLayoutModal((prev) => ({ ...prev, isOpen: false }))}
       />
     </>
   );

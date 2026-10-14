@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef, useLayoutEffect } from 'react';
 import { ResumeDocument } from '../types/resume';
 import { getWhatsAppUrl } from './ResumeHeader';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, User as UserIcon } from 'lucide-react';
 import { sortByPeriodDesc } from '../utils/periodSort';
 
 interface PaginatedResumeViewProps {
@@ -107,7 +107,7 @@ const estimateHtmlHeight = (html: string): number => {
   return lines * 15.5 + 4;
 };
 
-const estimateHeaderHeight = (header: any): number => {
+const estimateHeaderHeight = (header: any, layoutId?: string): number => {
   let height = 32; // Nama
   if (header.headline || (header.roles && header.roles.length > 0)) {
     height += 18;
@@ -118,10 +118,10 @@ const estimateHeaderHeight = (header: any): number => {
     (header.email?.length || 0) +
     (header.phone?.length || 0) +
     linksCount * 22;
-  const contactLines = Math.max(1, Math.ceil(contactTextLen / 95));
+  const contactLines = Math.max(1, Math.ceil(contactTextLen / (layoutId === 'modern-photo' ? 76 : 95)));
   height += contactLines * 16;
   height += 10; // mb-2 + pb-0.5
-  return Math.max(55, height);
+  return Math.max(layoutId === 'modern-photo' ? 104 : 55, height);
 };
 
 const estimateSummaryHeight = (html: string, isPlaceholder?: boolean): number => {
@@ -226,11 +226,13 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
   const allBlocks: ContentBlock[] = useMemo(() => {
     const list: ContentBlock[] = [];
 
+    const isModernPhoto = resume.layoutId === 'modern-photo';
+
     // 1. Header Block
     list.push({
       id: 'block-header',
       type: 'header',
-      height: estimateHeaderHeight(header),
+      height: estimateHeaderHeight(header, resume.layoutId),
       render: () => {
         const activeRoles = (
           header.roles && header.roles.length > 0
@@ -243,6 +245,91 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
         const isRelocating =
           header.willingToRelocate ??
           (header.relocationStatus && header.relocationStatus.includes('Willing'));
+
+        if (isModernPhoto) {
+          return (
+            <div className="resume-header mb-2.5 pb-0.5">
+              <div className="flex items-center gap-4 text-left">
+                {/* 3:4 Profile Photo */}
+                <div className="w-[66px] h-[88px] sm:w-[72px] sm:h-[96px] aspect-[3/4] rounded-xs overflow-hidden border border-slate-300 bg-slate-100 flex-shrink-0">
+                  {header.photoUrl ? (
+                    <img
+                      src={header.photoUrl}
+                      alt={header.fullName || 'Profile photo'}
+                      className="w-full h-full object-cover block"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50 select-none">
+                      <UserIcon size={32} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Text Block (Left-Aligned) */}
+                <div className="flex-1 min-w-0">
+                  <h1
+                    className={`text-[17pt] font-bold tracking-tight mb-0.5 leading-tight ${
+                      header.isPlaceholder ? 'text-slate-400' : 'text-slate-900'
+                    }`}
+                  >
+                    {header.fullName || 'Your Name'}
+                  </h1>
+
+                  {displayedRoles && (
+                    <div className="text-[8.5pt] text-slate-800 font-normal leading-tight mb-1">
+                      {displayedRoles}
+                    </div>
+                  )}
+
+                  <div
+                    className={`text-[8.5pt] flex flex-wrap items-center justify-start gap-x-1 leading-tight ${
+                      header.isPlaceholder ? 'text-slate-400' : 'text-slate-700'
+                    }`}
+                  >
+                    <span>{header.location || 'City, State/Country'}</span>
+                    {isRelocating && ' (Willing to relocate)'}
+
+                    <span>•</span>
+                    <a
+                      href={header.email ? `mailto:${header.email}` : '#'}
+                      className={`underline ${header.isPlaceholder ? 'text-slate-400' : 'text-slate-800'}`}
+                    >
+                      {header.email || 'email@address.com'}
+                    </a>
+
+                    <span>•</span>
+                    <a
+                      href={header.phone ? getWhatsAppUrl(header.phone) : '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`underline ${header.isPlaceholder ? 'text-slate-400' : 'text-slate-800'}`}
+                      title="Contact via WhatsApp"
+                    >
+                      {header.phone || '+65 1234 5678'}
+                    </a>
+
+                    {header.links &&
+                      header.links.map((link) => (
+                        <React.Fragment key={link.id}>
+                          <span>•</span>
+                          <a
+                            href={link.url || '#'}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`underline inline-flex items-center ${
+                              header.isPlaceholder ? 'text-slate-400' : 'text-slate-800'
+                            }`}
+                          >
+                            {link.label}
+                          </a>
+                        </React.Fragment>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
 
         return (
           <div className="resume-header text-center mb-2 pb-0.5">
@@ -338,7 +425,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             <div className="mb-1">
               {section.isPlaceholder ? (
                 <p className="text-slate-400 text-justify text-[7.75pt] leading-[1.48]">
-                  A summary includes short, concise and targeted statements to summarize your skills and experiences. Mostly people will start with why they are here. What is the reason why they do what they do. Followed by “how” they do it and close it with “what” is the thing that they currently doing right now with respect to the ‘why’ and the ‘how’.
+                  Results-driven professional with proven experience delivering impactful solutions and collaborating across multidisciplinary teams. Skilled in problem-solving, project execution, and standardizing workflows that drive measurable business outcomes. Passionate about continuous learning and contributing to high-performing product environments.
                 </p>
               ) : (
                 <div
@@ -819,7 +906,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
     });
 
     return list;
-  }, [header, sections]);
+  }, [header, sections, resume.layoutId]);
 
   // Initial deterministic pagination
   const [pages, setPages] = useState<ContentBlock[][]>(() => runPagination(allBlocks));

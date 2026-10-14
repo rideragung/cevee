@@ -70,7 +70,7 @@ export const AddSectionBar: React.FC<AddSectionBarProps> = ({
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border border-emerald-500 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-sm transition"
           >
             <Plus size={13} />
-            <span>Add Custom Section</span>
+            <span>Add custom section</span>
           </button>
         ) : (
           <form

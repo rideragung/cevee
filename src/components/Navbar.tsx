@@ -62,13 +62,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   const syncTitle =
     syncStatus === 'saving'
       ? isCloudUser
-        ? 'Saving to Cloud...'
+        ? 'Saving to cloud...'
         : 'Saving...'
       : syncStatus === 'error'
-      ? 'Saved Locally'
+      ? 'Saved locally'
       : isCloudUser
-      ? 'Synced to Cloud'
-      : 'Saved Locally';
+      ? 'Synced to cloud'
+      : 'Saved locally';
 
   return (
     <>
@@ -81,7 +81,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={onBackToDashboard}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-1.5 rounded-md hover:bg-slate-100 transition flex-shrink-0"
-              title="Back to Dashboard"
+              title="Back to dashboard"
+              aria-label="Back to dashboard"
             >
               <ArrowLeft size={15} />
               <span className="hidden md:inline">Back</span>
@@ -144,7 +145,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     setIsRenaming(true);
                   }}
                   className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition flex-shrink-0"
-                  title="Rename CV"
+                  title="Rename resume"
+                  aria-label="Rename resume"
                 >
                   <Edit2 size={13} />
                 </button>
@@ -162,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 <div className="absolute left-1/2 -translate-x-1/2 mt-1.5 w-64 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-200 rounded-lg shadow-lg py-1.5 z-50 animate-in fade-in-50">
                   <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                    Your Resumes ({resumes.length})
+                    Your resumes ({resumes.length})
                   </div>
 
                   <div className="max-h-56 overflow-y-auto">
@@ -199,7 +201,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition"
                   >
                     <Plus size={14} className="text-emerald-600" />
-                    <span>Create New Resume</span>
+                    <span>Create new resume</span>
                   </button>
 
                   <button
@@ -211,7 +213,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition"
                   >
                     <Copy size={14} className="text-blue-600" />
-                    <span>Duplicate Resume</span>
+                    <span>Duplicate resume</span>
                   </button>
 
                   {resumes.length > 1 && (
@@ -225,7 +227,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       className="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition cursor-pointer"
                     >
                       <Trash2 size={14} />
-                      <span>Delete Resume</span>
+                      <span>Delete resume</span>
                     </button>
                   )}
                 </div>
@@ -241,6 +243,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onOpenPreview}
             className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition shadow-2xs flex-shrink-0"
             title="Preview ATS layout (A4 format)"
+            aria-label="Preview resume"
           >
             <Eye size={14} />
             <span className="hidden sm:inline">Preview</span>
@@ -251,6 +254,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onDownloadPdf}
             className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm transition flex-shrink-0"
             title="Download PDF document"
+            aria-label="Download PDF"
           >
             <Download size={14} />
             <span className="hidden sm:inline">Download</span>
@@ -262,7 +266,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <ConfirmDialog
         isOpen={isConfirmingDelete}
         title={`Delete "${currentResume.title}"?`}
-        description="This action cannot be undone. All customized sections, contact details, and formatted content in this resume will be permanently removed from your browser storage."
+        description="This action cannot be undone. All customized sections, contact details, and formatted content in this resume will be permanently deleted."
         confirmLabel="Delete Resume"
         cancelLabel="Keep Resume"
         isDestructive={true}
@@ -281,7 +285,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={onOpenPreview}
           className="p-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex-shrink-0"
           title="Preview ATS layout (A4 format)"
-          aria-label="Preview"
+          aria-label="Preview resume"
         >
           <Eye size={18} />
         </button>

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { HeaderData, ContactLink } from '../types/resume';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { HeaderData, ContactLink, ResumeLayoutId } from '../types/resume';
+import { Pencil, Plus, Trash2, Upload, User as UserIcon } from 'lucide-react';
+import { compressProfilePhoto } from '../utils/imageCompressor';
 
 export const getWhatsAppUrl = (phone: string): string => {
   let cleaned = phone.replace(/\D/g, '');
@@ -13,10 +14,12 @@ export const getWhatsAppUrl = (phone: string): string => {
 interface ResumeHeaderProps {
   data: HeaderData;
   onChange: (updated: HeaderData) => void;
+  layoutId?: ResumeLayoutId | string;
 }
 
-export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange }) => {
+export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layoutId }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isPlaceholder = Boolean(data.isPlaceholder);
 
   const getCleanFormData = (): HeaderData => {
@@ -30,6 +33,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange }) =>
         relocationStatus: '',
         email: '',
         phone: '',
+        photoUrl: data.photoUrl || '',
         links: [
           { id: `link-${Date.now()}-1`, label: '', url: '' },
           { id: `link-${Date.now()}-2`, label: '', url: '' },
@@ -45,6 +49,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange }) =>
         : [''];
     return {
       ...data,
+      photoUrl: data.photoUrl || '',
       roles: initialRoles.slice(0, 4),
       willingToRelocate: data.willingToRelocate ?? true,
     };
@@ -52,9 +57,35 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange }) =>
 
   const [formData, setFormData] = useState<HeaderData>(getCleanFormData);
 
+  useEffect(() => {
+    if (!isEditing) {
+      setFormData(getCleanFormData());
+    }
+  }, [data, isEditing]);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressProfilePhoto(file, 300, 400, 0.85);
+      setFormData((prev) => ({ ...prev, photoUrl: compressed }));
+    } catch (err) {
+      console.error('Failed to compress profile photo', err);
+    } finally {
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
+
   const handleSave = () => {
     const cleanedRoles = (formData.roles || []).map((r) => r.trim()).filter(Boolean);
-    const hasContent = Boolean(formData.fullName.trim() || formData.email.trim() || formData.location.trim());
+    const hasContent = Boolean(
+      formData.fullName.trim() ||
+      formData.email.trim() ||
+      formData.location.trim() ||
+      formData.photoUrl
+    );
     const updated: HeaderData = {
       ...formData,
       roles: cleanedRoles,
@@ -210,6 +241,63 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange }) =>
             </label>
           </div>
 
+          {/* Profile Photo (3:4 ratio for modern-photo layout) */}
+          {layoutId === 'modern-photo' && (
+            <div className="pt-2 border-t border-slate-200">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-2">
+                Profile Photo <span className="text-slate-400 font-normal">(Formal portrait, 3:4 aspect ratio)</span>
+              </label>
+
+              <div className="flex items-center gap-4">
+                {/* 3:4 Preview Container */}
+                <div className="w-[66px] h-[88px] aspect-[3/4] rounded-lg border border-slate-300 bg-white overflow-hidden flex items-center justify-center flex-shrink-0 shadow-2xs">
+                  {formData.photoUrl ? (
+                    <img
+                      src={formData.photoUrl}
+                      alt="Profile preview"
+                      className="w-full h-full object-cover block"
+                    />
+                  ) : (
+                    <UserIcon size={28} className="text-slate-300" />
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 hover:border-slate-400 text-xs font-semibold text-slate-700 rounded-lg transition shadow-2xs cursor-pointer"
+                    >
+                      <Upload size={13} />
+                      <span>{formData.photoUrl ? 'Change Photo' : 'Upload Photo'}</span>
+                    </button>
+                    {formData.photoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, photoUrl: '' })}
+                        className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg border border-slate-200 transition cursor-pointer"
+                        title="Remove photo"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-normal">
+                    Auto-compressed to ~30 KB for clean vector PDF export.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Roles (Max 4, automatically joined with |) */}
           <div className="pt-2 border-t border-slate-200">
             <div className="flex items-center justify-between mb-2">
@@ -317,6 +405,108 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange }) =>
             >
               Save
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (layoutId === 'modern-photo') {
+    return (
+      <div className="resume-header group relative mb-2.5 pb-0.5">
+        {/* Edit trigger button */}
+        <button
+          type="button"
+          data-editor-control="true"
+          onClick={() => {
+            setFormData(getCleanFormData());
+            setIsEditing(true);
+          }}
+          className="absolute top-0 right-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-xs rounded-md px-1.5 py-1 text-slate-600 hover:text-slate-900 transition no-print"
+          title="Edit Contact Information"
+        >
+          <Pencil size={13} />
+        </button>
+
+        <div className="flex items-center gap-4 text-left">
+          {/* 3:4 Profile Photo */}
+          <div className="w-[66px] h-[88px] sm:w-[72px] sm:h-[96px] aspect-[3/4] rounded-xs overflow-hidden border border-slate-300 bg-slate-100 flex-shrink-0 shadow-2xs">
+            {data.photoUrl ? (
+              <img
+                src={data.photoUrl}
+                alt={data.fullName || 'Profile photo'}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50 select-none">
+                <UserIcon size={32} />
+              </div>
+            )}
+          </div>
+
+          {/* Right Text Block (Left-Aligned) */}
+          <div className="flex-1 min-w-0">
+            {/* Full Name */}
+            <h1
+              className={`text-[17pt] font-bold tracking-tight mb-0.5 leading-tight ${
+                isPlaceholder ? 'text-slate-400' : 'text-slate-900'
+              }`}
+            >
+              {data.fullName || 'Your Name'}
+            </h1>
+
+            {/* Optional Roles */}
+            {displayedRoles && (
+              <div className="text-[8.5pt] text-slate-800 font-normal leading-tight mb-1">
+                {displayedRoles}
+              </div>
+            )}
+
+            {/* Contact Line */}
+            <div
+              className={`text-[8.5pt] flex flex-wrap items-center justify-start gap-x-1 leading-tight ${
+                isPlaceholder ? 'text-slate-400' : 'text-slate-700'
+              }`}
+            >
+              <span>{data.location || 'City, State/Country'}</span>
+              {isRelocating && ' (Willing to relocate)'}
+
+              <span>•</span>
+              <a
+                href={data.email ? `mailto:${data.email}` : '#'}
+                className={`underline hover:text-black ${isPlaceholder ? 'text-slate-400' : 'text-slate-800'}`}
+              >
+                {data.email || 'email@address.com'}
+              </a>
+
+              <span>•</span>
+              <a
+                href={data.phone ? getWhatsAppUrl(data.phone) : '#'}
+                target="_blank"
+                rel="noreferrer"
+                className={`underline hover:text-black ${isPlaceholder ? 'text-slate-400' : 'text-slate-800'}`}
+                title="Contact via WhatsApp"
+              >
+                {data.phone || '+65 1234 5678'}
+              </a>
+
+              {data.links &&
+                data.links.map((link) => (
+                  <React.Fragment key={link.id}>
+                    <span>•</span>
+                    <a
+                      href={link.url || '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`underline hover:text-black inline-flex items-center ${
+                        isPlaceholder ? 'text-slate-400' : 'text-slate-800'
+                      }`}
+                    >
+                      {link.label}
+                    </a>
+                  </React.Fragment>
+                ))}
+            </div>
           </div>
         </div>
       </div>

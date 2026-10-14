@@ -103,10 +103,12 @@ export interface ResumeContent {
   sections: ResumeSection[];
 }
 
+export type ResumeLayoutId = 'classic-ats' | 'modern-photo';
+
 export interface ResumeDocument {
   id: string;
   title: string;
-  layoutId?: string; // Layout selector e.g. 'classic-ats' | 'modern-sidebar'
+  layoutId?: ResumeLayoutId | string; // Layout selector (default: 'classic-ats')
   createdAt?: string; // ISO timestamp when the resume was first created
   updatedAt: string;
   content: ResumeContent;

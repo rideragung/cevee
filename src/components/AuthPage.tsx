@@ -62,7 +62,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     } catch (err: any) {
       const message = err.message || '';
       if (message.toLowerCase().includes('provider is not enabled') || message.toLowerCase().includes('unsupported provider')) {
-        setErrorMsg('Google OAuth belum diaktifkan di dashboard Supabase. Masukkan Client ID & Secret di Authentication → Providers → Google.');
+        setErrorMsg('Google sign-in is not enabled in your Supabase project. Enable it in Authentication → Providers → Google.');
       } else {
         setErrorMsg(message || 'Failed to authenticate with Google');
       }
@@ -82,7 +82,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
 
     if (!email || !password) {
-      setErrorMsg('Please enter both email and password');
+      setErrorMsg('Enter both email and password to continue.');
       return;
     }
 
@@ -101,7 +101,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           onAuthSuccess();
         } else if (data.user && !data.session) {
           setSuccessMsg(
-            'Confirmation link sent to your email. Please verify to complete registration.'
+            'Verification link sent. Check your email to finish creating your account.'
           );
         }
       } else {
@@ -114,7 +114,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         onAuthSuccess();
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Authentication error');
+      setErrorMsg(err.message || 'Unable to sign in. Check your credentials and try again.');
     } finally {
       setLoading(false);
     }
@@ -123,13 +123,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
     if (!configUrl.trim() || !configKey.trim()) {
-      setErrorMsg('Please provide both Project URL and Anon Key');
+      setErrorMsg('Enter both Project URL and Anon Key to continue.');
       return;
     }
     saveSupabaseCredentials(configUrl, configKey);
     setShowConfigModal(false);
     setErrorMsg(null);
-    setSuccessMsg('Supabase credentials saved successfully.');
+    setSuccessMsg('Supabase credentials saved.');
   };
 
   return (

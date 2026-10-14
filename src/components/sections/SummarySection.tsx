@@ -159,7 +159,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         >
           {isPlaceholder ? (
             <p className="text-slate-400">
-              A summary includes short, concise and targeted statements to summarize your skills and experiences. Mostly people will start with why they are here. What is the reason why they do what they do. Followed by “how” they do it and close it with “what” is the thing that they currently doing right now with respect to the ‘why’ and the ‘how’.
+              Results-driven professional with proven experience delivering impactful solutions and collaborating across multidisciplinary teams. Skilled in problem-solving, project execution, and standardizing workflows that drive measurable business outcomes. Passionate about continuous learning and contributing to high-performing product environments.
             </p>
           ) : (
             <div dangerouslySetInnerHTML={{ __html: data.html }} />

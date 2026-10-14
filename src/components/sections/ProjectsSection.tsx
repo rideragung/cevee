@@ -83,7 +83,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
       period: '',
       startDate: '',
       endDate: '',
-      bullets: '<ul><li>Jelaskan tujuan dan dampak proyek di sini...</li></ul>',
+      bullets: '<ul><li>Describe project goals, technical highlights, and key results...</li></ul>',
     };
     setItems([...items, newItem]);
   };
@@ -148,7 +148,8 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                     type="button"
                     onClick={() => handleRemoveItem(item.id)}
                     className="p-1.5 mt-5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition"
-                    title="Delete Project"
+                    title="Delete project"
+                    aria-label="Delete project"
                   >
                     <Trash2 size={15} />
                   </button>
@@ -180,7 +181,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                         const period = val && end ? `${val} - ${end}` : (val || end || '');
                         setItems(items.map((it) => it.id === item.id ? { ...it, startDate: val, period } : it));
                       }}
-                      placeholder="Pilih Tanggal Mulai"
+                      placeholder="Select start date"
                     />
                   </div>
 
@@ -195,7 +196,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                         const period = start && val ? `${start} - ${val}` : (val || start || '');
                         setItems(items.map((it) => it.id === item.id ? { ...it, endDate: val, period } : it));
                       }}
-                      placeholder="Pilih Tanggal Selesai"
+                      placeholder="Select end date"
                     />
                   </div>
                 </div>
@@ -203,7 +204,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                 {/* Row 3: Descriptions Rich Text */}
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Project Descriptions <span className="text-red-500">*</span>
+                    Project Description <span className="text-red-500">*</span>
                   </label>
                   <RichTextEditor
                     initialContent={item.bullets}
@@ -228,7 +229,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
               className="inline-flex items-center gap-1 px-4 py-1.5 border border-emerald-500 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold rounded-lg transition"
             >
               <Plus size={13} />
-              <span>Add More</span>
+              <span>Add project</span>
             </button>
 
             <div className="flex items-center gap-3">

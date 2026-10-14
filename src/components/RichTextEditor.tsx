@@ -58,7 +58,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const setLink = () => {
     const previousUrl = editor.getAttributes('link').href;
-    const url = window.prompt('URL link:', previousUrl);
+    const url = window.prompt('Enter link URL (e.g. https://example.com):', previousUrl || '');
 
     if (url === null) return;
     if (url === '') {

@@ -163,7 +163,8 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                     type="button"
                     onClick={() => handleRemoveItem(item.id)}
                     className="p-1.5 mt-5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition flex-shrink-0"
-                    title="Delete Education"
+                    title="Delete education"
+                    aria-label="Delete education"
                   >
                     <Trash2 size={15} />
                   </button>
@@ -195,7 +196,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                         const period = val && end ? `${val} - ${end}` : (val || end || '');
                         setItems(items.map((it) => it.id === item.id ? { ...it, startDate: val, period } : it));
                       }}
-                      placeholder="Pilih Tanggal Mulai"
+                      placeholder="Select start date"
                     />
                   </div>
 
@@ -210,7 +211,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                         const period = start && val ? `${start} - ${val}` : (val || start || '');
                         setItems(items.map((it) => it.id === item.id ? { ...it, endDate: val, period } : it));
                       }}
-                      placeholder="Pilih Tanggal Lulus"
+                      placeholder="Select graduation date"
                     />
                   </div>
                 </div>
@@ -243,7 +244,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
               className="inline-flex items-center gap-1 px-4 py-1.5 border border-emerald-500 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold rounded-lg transition"
             >
               <Plus size={13} />
-              <span>Add More</span>
+              <span>Add education</span>
             </button>
 
             <div className="flex items-center gap-3">

@@ -184,7 +184,8 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                     type="button"
                     onClick={() => handleRemoveItem(item.id)}
                     className="p-1.5 mt-5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition"
-                    title="Delete Item"
+                    title="Delete item"
+                    aria-label="Delete item"
                   >
                     <Trash2 size={15} />
                   </button>
@@ -239,18 +240,18 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                         <DatePicker
                           value={item.issueDate || ''}
                           onChange={(val) => handleCertDateChange(item.id, 'issueDate', val)}
-                          placeholder="Pilih Tanggal Terbit"
+                          placeholder="Select issue date"
                         />
                       </div>
 
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                          Expired Date <span className="text-slate-400 font-normal">(Optional)</span>
+                          Expiry Date <span className="text-slate-400 font-normal">(Optional)</span>
                         </label>
                         <DatePicker
                           value={item.expiryDate || ''}
                           onChange={(val) => handleCertDateChange(item.id, 'expiryDate', val)}
-                          placeholder="Pilih Tanggal Kedaluwarsa"
+                          placeholder="Select expiry date"
                         />
                       </div>
                     </>
@@ -273,7 +274,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                           <DatePicker
                             value={item.period || ''}
                             onChange={(val) => handleUpdateField(item.id, 'period', val)}
-                            placeholder="Pilih Tanggal"
+                            placeholder="Select date"
                           />
                         )}
                       </div>
@@ -358,7 +359,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
               className="inline-flex items-center gap-1 px-4 py-1.5 border border-emerald-500 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold rounded-lg transition"
             >
               <Plus size={13} />
-              <span>Add More</span>
+              <span>Add item</span>
             </button>
 
             <div className="flex items-center gap-3">
