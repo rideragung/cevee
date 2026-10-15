@@ -81,7 +81,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
       )}
 
       {isEditing ? (
-        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-xs my-2.5 no-print font-sans">
+        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm my-2.5 no-print font-sans">
           {/* Header Section Title */}
           <div className="border-b border-slate-900 pb-1 mb-5">
             <h3 className="text-[10pt] font-bold text-slate-900 uppercase tracking-wider">
@@ -132,7 +132,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
                     rows={2}
                     className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 resize-y bg-white"
                   />
-                  <p className="text-[10.5px] text-slate-400 mt-0.5">
+                  <p className="text-[10.5px] text-slate-500 mt-0.5">
                     Separate skills with commas
                   </p>
                 </div>
@@ -167,7 +167,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-6 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg shadow-2xs transition"
+                className="px-6 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition"
               >
                 Save
               </button>

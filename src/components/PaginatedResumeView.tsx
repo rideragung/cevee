@@ -1,8 +1,18 @@
 import React, { useMemo, useState, useRef, useLayoutEffect } from 'react';
-import { ResumeDocument } from '../types/resume';
-import { getWhatsAppUrl } from './ResumeHeader';
+import {
+  ResumeDocument,
+  HeaderData,
+  SkillCategory,
+  ExperienceItem,
+  ExperiencePosition,
+  ProjectItem,
+  EducationItem,
+  CustomSectionItem,
+} from '../types/resume';
+import { getWhatsAppUrl } from '../utils/whatsApp';
 import { ExternalLink, User as UserIcon } from 'lucide-react';
 import { sortByPeriodDesc } from '../utils/periodSort';
+import { sanitizeHtml } from '../utils/sanitize';
 
 interface PaginatedResumeViewProps {
   resume: ResumeDocument;
@@ -73,14 +83,14 @@ const renderContentPart = (part: ContentPart) => {
   if (part.kind === 'list') {
     return (
       <ul className="resume-bullet-single text-slate-800 text-justify">
-        <li dangerouslySetInnerHTML={{ __html: part.html }} />
+        <li dangerouslySetInnerHTML={{ __html: sanitizeHtml(part.html) }} />
       </ul>
     );
   }
   return (
     <p
       className="resume-paragraph-single text-slate-800 text-justify"
-      dangerouslySetInnerHTML={{ __html: part.html }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(part.html) }}
     />
   );
 };
@@ -107,7 +117,7 @@ const estimateHtmlHeight = (html: string): number => {
   return lines * 15.5 + 4;
 };
 
-const estimateHeaderHeight = (header: any, layoutId?: string): number => {
+const estimateHeaderHeight = (header: HeaderData, layoutId?: string): number => {
   let height = 32; // Nama
   if (header.headline || (header.roles && header.roles.length > 0)) {
     height += 18;
@@ -139,7 +149,7 @@ const estimateSkillsCategoryHeight = (category: string, items: string, isLast: b
   return lines * 15.5 + (isLast ? 8 : 2);
 };
 
-const estimateCustomItemHeight = (item: any, sectionTitle: string, isPlaceholder?: boolean): number => {
+const estimateCustomItemHeight = (item: CustomSectionItem, sectionTitle: string, isPlaceholder?: boolean): number => {
   if (isPlaceholder) return 24;
   const upper = (sectionTitle || '').toUpperCase();
   if (upper.includes('CERTIFICATION') || upper.includes('LANGUAGE') || upper.includes('REFERENCE')) {
@@ -251,7 +261,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             <div className="resume-header mb-2.5 pb-0.5">
               <div className="flex items-center gap-4 text-left">
                 {/* 3:4 Profile Photo */}
-                <div className="w-[66px] h-[88px] sm:w-[72px] sm:h-[96px] aspect-[3/4] rounded-xs overflow-hidden border border-slate-300 bg-slate-100 flex-shrink-0">
+                <div className="w-[66px] h-[88px] sm:w-[72px] sm:h-[96px] aspect-[3/4] rounded-sm overflow-hidden border border-slate-300 bg-slate-100 flex-shrink-0">
                   {header.photoUrl ? (
                     <img
                       src={header.photoUrl}
@@ -417,10 +427,11 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
       }
 
       if (section.type === 'summary') {
+        const summaryData = section.data;
         list.push({
           id: `content-${section.id}`,
           type: 'summary',
-          height: estimateSummaryHeight(section.data?.html, section.isPlaceholder),
+          height: estimateSummaryHeight(summaryData.html, section.isPlaceholder),
           render: () => (
             <div className="mb-1">
               {section.isPlaceholder ? (
@@ -430,7 +441,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
               ) : (
                 <div
                   className="resume-summary-text text-justify text-[7.75pt] leading-[1.48] text-slate-800"
-                  dangerouslySetInnerHTML={{ __html: section.data.html }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(summaryData.html) }}
                 />
               )}
             </div>
@@ -450,8 +461,8 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          const cats = section.data.categories || [];
-          cats.forEach((cat: any, catIdx: number) => {
+          const cats = (section.data as { categories?: SkillCategory[] }).categories || [];
+          cats.forEach((cat: SkillCategory, catIdx: number) => {
             const isLastCat = catIdx === cats.length - 1;
             const catHeight = estimateSkillsCategoryHeight(cat.category || '', cat.items || '', isLastCat);
 
@@ -491,11 +502,11 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          sortByPeriodDesc(section.data.items || []).forEach((item: any) => {
+          sortByPeriodDesc((section.data as { items?: ExperienceItem[] }).items || []).forEach((item: ExperienceItem) => {
             const hasMultiPositions = item.positions && item.positions.length > 1;
 
             if (hasMultiPositions) {
-              const sortedPositions = sortByPeriodDesc(item.positions);
+              const sortedPositions = sortByPeriodDesc(item.positions || []);
               // Blok 1: nama perusahaan + lokasi (sticky dengan posisi pertama)
               list.push({
                 id: `item-${section.id}-${item.id}-company`,
@@ -509,7 +520,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
                 ),
               });
 
-              sortedPositions.forEach((pos: any, posIdx: number) => {
+              sortedPositions.forEach((pos: ExperiencePosition, posIdx: number) => {
                 const positionBullets = parseContentParts(pos.bullets || '');
                 const isLastPosition = posIdx === sortedPositions.length - 1;
 
@@ -620,7 +631,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          sortByPeriodDesc(section.data.items || []).forEach((item: any) => {
+          sortByPeriodDesc((section.data as { items?: ProjectItem[] }).items || []).forEach((item: ProjectItem) => {
             const itemBullets = parseContentParts(item.bullets || '');
 
             // Blok header proyek: nama + periode (sticky dengan bullet pertama)
@@ -696,7 +707,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          sortByPeriodDesc(section.data.items || []).forEach((item: any) => {
+          sortByPeriodDesc((section.data as { items?: EducationItem[] }).items || []).forEach((item: EducationItem) => {
             const descBlocks = parseContentParts(item.description || '');
 
             // Blok header pendidikan: degree + institution (sticky dengan deskripsi pertama)
@@ -805,7 +816,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
             ),
           });
         } else {
-          sortByPeriodDesc(section.data.items || []).forEach((item: any) => {
+          sortByPeriodDesc((section.data as { items?: CustomSectionItem[] }).items || []).forEach((item: CustomSectionItem) => {
             list.push({
               id: `item-${section.id}-${item.id}`,
               type: 'item',

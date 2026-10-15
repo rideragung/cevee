@@ -3,19 +3,26 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const envUrl = import.meta.env.VITE_SUPABASE_URL;
 const envAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Allow stored configuration in localStorage for instant local setup if .env is not present
-const storedUrl = typeof window !== 'undefined' ? localStorage.getItem('cevee_supabase_url') : null;
-const storedKey = typeof window !== 'undefined' ? localStorage.getItem('cevee_supabase_key') : null;
+// Allow stored configuration in localStorage for instant local setup if .env is not present.
+// Resolved lazily so saving credentials takes effect without a full page reload.
+export const getSupabaseUrl = (): string => {
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('cevee_supabase_url') : null;
+  return (envUrl || stored || '').trim();
+};
 
-export const supabaseUrl = (envUrl || storedUrl || '').trim();
-export const supabaseAnonKey = (envAnonKey || storedKey || '').trim();
+export const getSupabaseAnonKey = (): string => {
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('cevee_supabase_key') : null;
+  return (envAnonKey || stored || '').trim();
+};
 
 export const isSupabaseConfigured = (): boolean => {
+  const url = getSupabaseUrl();
+  const key = getSupabaseAnonKey();
   return Boolean(
-    supabaseUrl &&
-    supabaseAnonKey &&
-    supabaseUrl.startsWith('https://') &&
-    !supabaseUrl.includes('your-project-id')
+    url &&
+    key &&
+    url.startsWith('https://') &&
+    !url.includes('your-project-id')
   );
 };
 
@@ -26,7 +33,7 @@ export const getSupabase = (): SupabaseClient | null => {
 
   if (isSupabaseConfigured()) {
     try {
-      clientInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      clientInstance = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
         auth: {
           persistSession: true,
           autoRefreshToken: true,

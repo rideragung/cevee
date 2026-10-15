@@ -89,14 +89,93 @@ export type SectionType =
   | 'custom_text'
   | 'custom_list';
 
-export interface ResumeSection {
-  id: string;
-  type: SectionType;
-  title: string; // Customizable title!
-  showTitle?: boolean; // Can be hidden (e.g. for summary)
-  isPlaceholder?: boolean; // When newly added, shows dummy template in view mode and empty inputs in edit mode
-  data: any;
+export interface SummarySectionData {
+  html: string;
 }
+
+export interface SkillsSectionData {
+  categories: SkillCategory[];
+}
+
+export interface ExperienceSectionData {
+  items: ExperienceItem[];
+}
+
+export interface ProjectsSectionData {
+  items: ProjectItem[];
+}
+
+export interface EducationSectionData {
+  items: EducationItem[];
+}
+
+export interface CustomListSectionData {
+  items: CustomSectionItem[];
+}
+
+export interface CustomTextSectionData {
+  html: string;
+}
+
+export type SectionData =
+  | SummarySectionData
+  | SkillsSectionData
+  | ExperienceSectionData
+  | ProjectsSectionData
+  | EducationSectionData
+  | CustomListSectionData
+  | CustomTextSectionData;
+
+export interface BaseResumeSection {
+  id: string;
+  title: string;
+  showTitle?: boolean;
+  isPlaceholder?: boolean;
+}
+
+export interface SummaryResumeSection extends BaseResumeSection {
+  type: 'summary';
+  data: SummarySectionData;
+}
+
+export interface SkillsResumeSection extends BaseResumeSection {
+  type: 'skills';
+  data: SkillsSectionData;
+}
+
+export interface ExperienceResumeSection extends BaseResumeSection {
+  type: 'experience';
+  data: ExperienceSectionData;
+}
+
+export interface ProjectsResumeSection extends BaseResumeSection {
+  type: 'projects';
+  data: ProjectsSectionData;
+}
+
+export interface EducationResumeSection extends BaseResumeSection {
+  type: 'education';
+  data: EducationSectionData;
+}
+
+export interface CustomTextResumeSection extends BaseResumeSection {
+  type: 'custom_text';
+  data: CustomTextSectionData;
+}
+
+export interface CustomListResumeSection extends BaseResumeSection {
+  type: 'custom_list';
+  data: CustomListSectionData;
+}
+
+export type ResumeSection =
+  | SummaryResumeSection
+  | SkillsResumeSection
+  | ExperienceResumeSection
+  | ProjectsResumeSection
+  | EducationResumeSection
+  | CustomTextResumeSection
+  | CustomListResumeSection;
 
 export interface ResumeContent {
   header: HeaderData;

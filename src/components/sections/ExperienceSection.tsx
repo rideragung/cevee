@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
 import { ExperienceItem, ExperiencePosition } from '../../types/resume';
-import { Plus, Trash2, X, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, TrendingUp } from 'lucide-react';
 import { RichTextEditor } from '../RichTextEditor';
 import { DatePicker } from '../DatePicker';
 import { sortByPeriodDesc } from '../../utils/periodSort';
+import { sanitizeHtml } from '../../utils/sanitize';
 
 interface ExperienceSectionProps {
   title: string;
@@ -161,7 +162,11 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
     setItems(items.filter((item) => item.id !== id));
   };
 
-  const handleUpdateField = (id: string, field: keyof ExperienceItem, value: any) => {
+  const handleUpdateField = <K extends keyof ExperienceItem>(
+    id: string,
+    field: K,
+    value: ExperienceItem[K]
+  ) => {
     setItems(items.map((it) => (it.id === id ? { ...it, [field]: value } : it)));
   };
 
@@ -211,11 +216,11 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
     );
   };
 
-  const handleUpdatePositionField = (
+  const handleUpdatePositionField = <K extends keyof ExperiencePosition>(
     itemId: string,
     posId: string,
-    field: keyof ExperiencePosition,
-    value: any
+    field: K,
+    value: ExperiencePosition[K]
   ) => {
     setItems(
       items.map((it) => {
@@ -248,7 +253,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
       )}
 
       {isEditing ? (
-        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-xs my-2.5 no-print font-sans">
+        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm my-2.5 no-print font-sans">
           {/* Header Title */}
           <div className="border-b border-slate-900 pb-1 mb-5">
             <h3 className="text-[10pt] font-bold text-slate-900 uppercase tracking-wider">
@@ -273,7 +278,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
               const hasMultiplePositions = positions.length > 1;
 
               return (
-                <div key={item.id} className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-4">
+                <div key={item.id} className="p-4 bg-white rounded-xl border border-slate-200/90 space-y-4">
                   {/* Top Bar: Company Name, Location & Trash */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
@@ -454,7 +459,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-6 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg shadow-2xs transition"
+                className="px-6 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition"
               >
                 Save
               </button>
@@ -506,7 +511,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                           {pos.bullets && (
                             <div
                               className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
-                              dangerouslySetInnerHTML={{ __html: pos.bullets }}
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(pos.bullets) }}
                             />
                           )}
                         </div>
@@ -534,7 +539,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                   {item.bullets && (
                     <div
                       className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
-                      dangerouslySetInnerHTML={{ __html: item.bullets }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.bullets) }}
                     />
                   )}
                 </div>

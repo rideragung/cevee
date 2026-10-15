@@ -11,10 +11,14 @@ export const ResumeMiniPreview: React.FC<ResumeMiniPreviewProps> = ({
   className = '',
 }) => {
   const isModernPhoto = layoutId === 'modern-photo';
+  // Unique per-instance ids: several mini previews can render on one page.
+  const uid = React.useId().replace(/:/g, '');
+  const photoClipId = `photoClip-${uid}`;
+  const photoGradId = `photoGrad-${uid}`;
 
   return (
     <div
-      className={`aspect-[210/297] bg-white rounded-lg border border-slate-200/90 shadow-2xs overflow-hidden select-none pointer-events-none ${className}`}
+      className={`aspect-[210/297] bg-white rounded-lg border border-slate-200/90 overflow-hidden select-none pointer-events-none ${className}`}
       aria-hidden="true"
     >
       <svg
@@ -26,10 +30,10 @@ export const ResumeMiniPreview: React.FC<ResumeMiniPreviewProps> = ({
         }}
       >
         <defs>
-          <clipPath id="photoClip">
+          <clipPath id={photoClipId}>
             <rect x="13" y="10" width="16.5" height="22" rx="1.5" />
           </clipPath>
-          <linearGradient id="photoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={photoGradId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#e2e8f0" />
             <stop offset="100%" stopColor="#cbd5e1" />
           </linearGradient>
@@ -46,12 +50,12 @@ export const ResumeMiniPreview: React.FC<ResumeMiniPreviewProps> = ({
               width="16.5"
               height="22"
               rx="1.5"
-              fill="url(#photoGrad)"
+              fill={`url(#${photoGradId})`}
               stroke="#94a3b8"
               strokeWidth="0.4"
             />
             {/* Elegant Portrait Silhouette */}
-            <g clipPath="url(#photoClip)">
+            <g clipPath={`url(#${photoClipId})`}>
               <circle cx="21.25" cy="18" r="3.8" fill="#64748b" />
               <path
                 d="M 14.5 30 C 14.5 24.2, 28 24.2, 28 30 Z"

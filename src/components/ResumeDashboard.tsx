@@ -34,6 +34,9 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
   const [deletingResume, setDeletingResume] = useState<ResumeDocument | null>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [isConfirmingSignOut, setIsConfirmingSignOut] = useState(false);
+
+  const isGuest = !userEmail;
 
   const getInitials = (name?: string | null) => {
     const source = (name || userEmail || '').trim();
@@ -67,7 +70,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="font-extrabold text-lg tracking-tight text-slate-900 flex items-center gap-2">
-              <span className="bg-emerald-600 text-white p-1.5 rounded-lg shadow-2xs">
+              <span className="bg-emerald-600 text-white p-1.5 rounded-lg">
                 <FileText size={18} />
               </span>
               Cevee
@@ -80,7 +83,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsUserMenuOpen((open) => !open)}
-                  className="w-9 h-9 rounded-full overflow-hidden border border-slate-200 hover:border-slate-300 shadow-2xs transition flex items-center justify-center bg-emerald-600 text-white"
+                  className="w-9 h-9 rounded-full overflow-hidden border border-slate-200 hover:border-slate-300 transition flex items-center justify-center bg-emerald-600 text-white"
                   title="Account"
                   aria-label="Account menu"
                   aria-haspopup="menu"
@@ -108,7 +111,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                       onClick={() => setIsUserMenuOpen(false)}
                     />
 
-                    <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50 animate-in fade-in-50">
+                    <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50">
                       {userEmail && (
                         <>
                           <div className="px-3 py-2 text-[11px] text-slate-500 truncate" title={userEmail}>
@@ -121,12 +124,16 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                         type="button"
                         onClick={() => {
                           setIsUserMenuOpen(false);
-                          onSignOut();
+                          if (isGuest) {
+                            setIsConfirmingSignOut(true);
+                          } else {
+                            onSignOut();
+                          }
                         }}
                         className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition"
                       >
                         <LogOut size={14} />
-                        <span>Log out</span>
+                        <span>{isGuest ? 'Exit guest mode' : 'Log out'}</span>
                       </button>
                     </div>
                   </>
@@ -162,7 +169,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
 
         {/* Empty State */}
         {resumes.length === 0 ? (
-          <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center max-w-lg mx-auto shadow-2xs my-8">
+          <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center max-w-lg mx-auto my-8">
             <div className="w-12 h-12 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center mx-auto mb-4">
               <FileText size={24} />
             </div>
@@ -188,7 +195,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
               return (
                 <div
                   key={resume.id}
-                  className="bg-white border border-slate-200 hover:border-slate-300 rounded-xl p-5 shadow-xs hover:shadow-sm transition-all flex flex-col justify-between group"
+                  className="bg-white border border-slate-200 hover:border-slate-300 rounded-xl p-5 shadow-sm hover:shadow transition-all flex flex-col justify-between group"
                 >
                   <div>
                     {/* Top Card Bar: title + actions (more, preview) */}
@@ -234,7 +241,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                                 className="fixed inset-0 z-40 cursor-default"
                                 onClick={() => setOpenMenuId(null)}
                               />
-                              <div className="absolute right-0 mt-1.5 w-40 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50 animate-in fade-in-50">
+                              <div className="absolute right-0 mt-1.5 w-40 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -288,21 +295,21 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                     </div>
 
                     {/* Metadata */}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-slate-400 border-t border-slate-100 pt-3 mt-3">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-3 mt-3">
                       <span className="flex items-center gap-1" title="Resume layout">
-                        <LayoutTemplate size={12} className="text-slate-400 flex-shrink-0" />
+                        <LayoutTemplate size={12} className="text-slate-500 flex-shrink-0" />
                         <span>
                           Layout:{' '}
-                          <span className="text-slate-600 font-medium">
+                          <span className="text-slate-700 font-medium">
                             {getLayoutById(resume.layoutId).name}
                           </span>
                         </span>
                       </span>
                       <span className="flex items-center gap-1" title="Last updated">
-                        <Cloud size={12} className="text-emerald-500 flex-shrink-0" />
+                        <Cloud size={12} className="text-emerald-600 flex-shrink-0" />
                         <span>
                           Updated:{' '}
-                          <span className="text-slate-500 font-medium">
+                          <span className="text-slate-600 font-medium">
                             {formatDate(resume.updatedAt)}
                           </span>
                         </span>
@@ -311,7 +318,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                         <CalendarDays size={12} className="flex-shrink-0" />
                         <span>
                           Created:{' '}
-                          <span className="text-slate-500 font-medium">
+                          <span className="text-slate-600 font-medium">
                             {formatDate(resume.createdAt || resume.updatedAt)}
                           </span>
                         </span>
@@ -324,7 +331,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                     <button
                       type="button"
                       onClick={() => onSelectResume(resume.id)}
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg shadow-2xs transition"
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg shadow-sm transition"
                     >
                       <span>Edit resume</span>
                       <ArrowRight size={13} />
@@ -352,6 +359,21 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
           }
         }}
         onCancel={() => setDeletingResume(null)}
+      />
+
+      {/* Confirmation Modal for Exiting Guest Mode (deletes local-only resumes) */}
+      <ConfirmDialog
+        isOpen={isConfirmingSignOut}
+        title="Exit guest mode?"
+        description="Your resumes are stored only in this browser while using guest mode. Exiting deletes them permanently and returns you to the sign-in screen."
+        confirmLabel="Exit and delete"
+        cancelLabel="Stay"
+        isDestructive={true}
+        onConfirm={() => {
+          setIsConfirmingSignOut(false);
+          onSignOut?.();
+        }}
+        onCancel={() => setIsConfirmingSignOut(false)}
       />
 
       {/* Mobile Bottom Action Bar: Create Resume (fixed white overlay) */}

@@ -53,18 +53,19 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-desc"
       onClick={onCancel}
-      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 no-print"
+      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 no-print"
     >
       <div
-        className="bg-white rounded-xl border border-slate-200 shadow-2xl max-w-md w-full p-6 relative font-sans animate-in zoom-in-95 duration-150"
+        className="bg-white rounded-xl border border-slate-200 shadow-2xl max-w-md w-full p-6 relative font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           type="button"
           onClick={onCancel}
-          className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+          className="absolute top-4 right-4 p-1 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition"
           title="Close dialog"
+          aria-label="Close dialog"
         >
           <X size={16} />
         </button>

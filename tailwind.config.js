@@ -19,6 +19,13 @@ export default {
           foreground: "hsl(var(--muted-foreground, 215.4 16.3% 46.9%))",
         },
       },
+      boxShadow: {
+        '2xs': '0 1px 2px 0 rgb(0 0 0 / 0.03)',
+        'xs': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+      },
+      backdropBlur: {
+        'xs': '2px',
+      },
     },
   },
   plugins: [],

@@ -5,6 +5,7 @@ import { Plus, Trash2, ExternalLink } from 'lucide-react';
 import { RichTextEditor } from '../RichTextEditor';
 import { DatePicker } from '../DatePicker';
 import { sortByPeriodDesc } from '../../utils/periodSort';
+import { sanitizeHtml } from '../../utils/sanitize';
 
 interface ProjectsSectionProps {
   title: string;
@@ -117,7 +118,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
       )}
 
       {isEditing ? (
-        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-xs my-2.5 no-print font-sans">
+        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm my-2.5 no-print font-sans">
           {/* Header Title */}
           <div className="border-b border-slate-900 pb-1 mb-5">
             <h3 className="text-[10pt] font-bold text-slate-900 uppercase tracking-wider">
@@ -159,7 +160,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Project Link <span className="text-slate-400 font-normal">(Optional)</span>
+                      Project Link <span className="text-slate-500 font-normal">(Optional)</span>
                     </label>
                     <input
                       type="text"
@@ -243,7 +244,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-6 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg shadow-2xs transition"
+                className="px-6 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition"
               >
                 Save
               </button>
@@ -297,7 +298,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                 {/* Bullet Points */}
                 <div
                   className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"
-                  dangerouslySetInnerHTML={{ __html: item.bullets }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.bullets) }}
                 />
               </div>
             ))

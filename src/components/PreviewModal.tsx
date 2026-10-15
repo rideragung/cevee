@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ResumeDocument } from '../types/resume';
 import { X, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
 import { PaginatedResumeView } from './PaginatedResumeView';
@@ -25,10 +25,29 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
 
   const [zoom, setZoom] = useState(getInitialZoom);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-between overflow-hidden animate-in fade-in no-print">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Resume preview"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-between overflow-hidden no-print"
+    >
       {/* Top Toolbar */}
       <div className="bg-slate-900 text-white px-3 sm:px-4 py-3 flex items-center justify-between gap-3 shadow-md z-30">
         <div className="flex items-center gap-3 min-w-0">
@@ -48,6 +67,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
               onClick={() => setZoom((z) => Math.max(0.25, Number((z - 0.1).toFixed(2))))}
               className="p-1.5 text-slate-300 hover:text-white"
               title="Zoom Out"
+              aria-label="Zoom out"
             >
               <ZoomOut size={15} />
             </button>
@@ -59,14 +79,16 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
               onClick={() => setZoom((z) => Math.min(1.5, Number((z + 0.1).toFixed(2))))}
               className="p-1.5 text-slate-300 hover:text-white"
               title="Zoom In"
+              aria-label="Zoom in"
             >
               <ZoomIn size={15} />
             </button>
             <button
               type="button"
-              onClick={() => setZoom(0.9)}
-              className="p-1.5 text-slate-400 hover:text-white"
+              onClick={() => setZoom(getInitialZoom())}
+              className="p-1.5 text-slate-300 hover:text-white"
               title="Reset Zoom"
+              aria-label="Reset zoom"
             >
               <RotateCcw size={13} />
             </button>
@@ -75,7 +97,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
           <button
             type="button"
             onClick={onDownload}
-            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition shadow-xs"
+            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition shadow-sm"
           >
             <Download size={14} />
             <span>Download PDF</span>
@@ -84,8 +106,9 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-md hover:bg-slate-800 transition"
+            className="p-1.5 text-slate-300 hover:text-white rounded-md hover:bg-slate-800 transition"
             title="Close (Esc)"
+            aria-label="Close preview"
           >
             <X size={18} />
           </button>

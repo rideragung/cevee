@@ -130,7 +130,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
       )}
 
       {isEditing ? (
-        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-xs my-2.5 no-print font-sans">
+        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm my-2.5 no-print font-sans">
           {/* Header Title */}
           <div className="border-b border-slate-900 pb-1 mb-5">
             <h3 className="text-[10pt] font-bold text-slate-900 uppercase tracking-wider">
@@ -206,7 +206,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                         : isRef
                         ? 'Role & Company'
                         : 'Subtitle / Organization'}{' '}
-                      <span className={isCert || isLang || isRef ? 'text-red-500' : 'text-slate-400 font-normal'}>
+                      <span className={isCert || isLang || isRef ? 'text-red-500' : 'text-slate-500 font-normal'}>
                         {isCert || isLang || isRef ? '*' : '(Optional)'}
                       </span>
                     </label>
@@ -246,7 +246,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
 
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                          Expiry Date <span className="text-slate-400 font-normal">(Optional)</span>
+                          Expiry Date <span className="text-slate-500 font-normal">(Optional)</span>
                         </label>
                         <DatePicker
                           value={item.expiryDate || ''}
@@ -289,7 +289,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                            Credential ID <span className="text-slate-400 font-normal">(Optional)</span>
+                            Credential ID <span className="text-slate-500 font-normal">(Optional)</span>
                           </label>
                           <input
                             type="text"
@@ -306,7 +306,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                         </div>
                         <div>
                           <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                            Credential Link / URL <span className="text-slate-400 font-normal">(Optional)</span>
+                            Credential Link / URL <span className="text-slate-500 font-normal">(Optional)</span>
                           </label>
                           <input
                             type="text"
@@ -323,7 +323,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                     ) : (
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                          Description <span className="text-slate-400 font-normal">(Optional)</span>
+                          Description <span className="text-slate-500 font-normal">(Optional)</span>
                         </label>
                         <input
                           type="text"
@@ -373,7 +373,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-6 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg shadow-2xs transition"
+                className="px-6 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition"
               >
                 Save
               </button>

@@ -63,11 +63,11 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
       aria-labelledby="layout-modal-title"
       aria-describedby="layout-modal-desc"
       onClick={onClose}
-      className="fixed inset-0 z-[9999] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 no-print animate-in fade-in duration-150"
+      className="fixed inset-0 z-[9999] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 no-print"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl border border-slate-200/90 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col relative font-sans animate-in zoom-in-95 duration-150"
+        className="bg-white rounded-2xl border border-slate-200/90 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col relative font-sans"
       >
         {/* Modal Header */}
         <div className="flex items-start justify-between gap-4 p-5 sm:p-6 border-b border-slate-100 flex-shrink-0">
@@ -96,7 +96,7 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition flex-shrink-0"
+            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition flex-shrink-0"
             title="Close dialog"
             aria-label="Close"
           >
@@ -116,7 +116,7 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
                   onClick={() => setSelectedId(layout.id)}
                   className={`cursor-pointer rounded-xl p-4 sm:p-5 border transition-all flex flex-col sm:flex-row gap-4 sm:gap-5 items-start text-left relative ${
                     isSelected
-                      ? 'border-emerald-600 bg-emerald-50/20 ring-2 ring-emerald-600/20 shadow-xs'
+                      ? 'border-emerald-600 bg-emerald-50/20 ring-2 ring-emerald-600/20 shadow-sm'
                       : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
                   }`}
                 >
@@ -160,7 +160,7 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
                     <div
                       className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
                         isSelected
-                          ? 'border-emerald-600 bg-emerald-600 text-white shadow-2xs'
+                          ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
                           : 'border-slate-300 bg-white'
                       }`}
                     >
@@ -174,7 +174,7 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
 
           {/* Modal Footer */}
           <div className="pt-4 mt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
-            <span className="text-[11px] text-slate-400 font-medium">
+            <span className="text-[11px] text-slate-500 font-medium">
               ATS-optimized vector output • Zero data loss
             </span>
 

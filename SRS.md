@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.29.0  
+**Dokumen Versi:** 1.30.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Responsive — Desktop, Tablet & Mobile)  
@@ -53,9 +53,11 @@ Cevee memungkinkan pengguna:
 | **Styling** | Tailwind CSS | Utility-first styling + print media rules |
 | **UI Components** | shadcn/ui + Radix UI | Komponen aksesibel headless (Dropdown, Dialog, Tooltip, Input, Button) |
 | **Rich Text Editor** | Tiptap (`@tiptap/react`, `@tiptap/starter-kit`) | Headless in-place rich text editing |
+| **Sanitasi HTML** | DOMPurify | Sanitasi XSS konten rich text & markup dokumen |
 | **Icons** | Lucide React | Ikon antarmuka ringan dan konsisten |
 | **Backend & DB** | Supabase (PostgreSQL 15+) | Autentikasi email, database JSONB, Row Level Security (RLS) |
-| **PDF Engine** | Native Print Engine (`window.print()` + CSS `@page`) & PDF.js | Cetak vektor PDF presisi A4 tanpa watermark |
+| **PDF Engine** | Native Print Engine (`window.print()` + CSS `@page`) | Cetak vektor PDF presisi A4 tanpa watermark |
+| **Code Quality** | ESLint 10 + Prettier | Flat config strict typing, hooks check, & automated lint |
 | **Deployment** | Vercel / Cloudflare Pages | Hosting static web gratis |
 
 ### 2.2 Diagram Alur Arsitektur
@@ -334,6 +336,7 @@ create table public.resumes (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   title text not null default 'Untitled Resume',
+  layout_id text not null default 'classic-ats',
   content jsonb not null default '{}'::jsonb,
   is_favorite boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -449,14 +452,93 @@ export type SectionType =
   | 'custom_list'
   | 'custom_text';
 
-export interface ResumeSection {
+export interface SummarySectionData {
+  html: string;
+}
+
+export interface SkillsSectionData {
+  categories: SkillCategory[];
+}
+
+export interface ExperienceSectionData {
+  items: ExperienceItem[];
+}
+
+export interface ProjectsSectionData {
+  items: ProjectItem[];
+}
+
+export interface EducationSectionData {
+  items: EducationItem[];
+}
+
+export interface CustomListSectionData {
+  items: CustomSectionItem[];
+}
+
+export interface CustomTextSectionData {
+  html: string;
+}
+
+export type SectionData =
+  | SummarySectionData
+  | SkillsSectionData
+  | ExperienceSectionData
+  | ProjectsSectionData
+  | EducationSectionData
+  | CustomListSectionData
+  | CustomTextSectionData;
+
+export interface BaseResumeSection {
   id: string;
-  type: SectionType;
   title: string;          // BEBAS DIKUSTOMISASI OLEH USER
   showTitle?: boolean;    // Dapat disembunyikan (misal: default false untuk summary)
   isPlaceholder?: boolean;// Menampilkan format dummy saat baru ditambahkan tanpa mengunci input
-  data: any;             // Menampung array items atau string HTML sesuai tipe
 }
+
+export interface SummaryResumeSection extends BaseResumeSection {
+  type: 'summary';
+  data: SummarySectionData;
+}
+
+export interface SkillsResumeSection extends BaseResumeSection {
+  type: 'skills';
+  data: SkillsSectionData;
+}
+
+export interface ExperienceResumeSection extends BaseResumeSection {
+  type: 'experience';
+  data: ExperienceSectionData;
+}
+
+export interface ProjectsResumeSection extends BaseResumeSection {
+  type: 'projects';
+  data: ProjectsSectionData;
+}
+
+export interface EducationResumeSection extends BaseResumeSection {
+  type: 'education';
+  data: EducationSectionData;
+}
+
+export interface CustomTextResumeSection extends BaseResumeSection {
+  type: 'custom_text';
+  data: CustomTextSectionData;
+}
+
+export interface CustomListResumeSection extends BaseResumeSection {
+  type: 'custom_list';
+  data: CustomListSectionData;
+}
+
+export type ResumeSection =
+  | SummaryResumeSection
+  | SkillsResumeSection
+  | ExperienceResumeSection
+  | ProjectsResumeSection
+  | EducationResumeSection
+  | CustomTextResumeSection
+  | CustomListResumeSection;
 
 export type ResumeLayoutId = 'classic-ats' | 'modern-photo';
 
@@ -519,7 +601,22 @@ export interface ResumeDocument {
 
 ## 7. RIWAYAT VERSI (CHANGELOG)
 
-### 1.29.0 — High-Fidelity Vector Document Layout Previews
+### 1.30.0 — Full Codebase Quality, Security & Cloud Audit Hardening
+- **Sinkronisasi Kolom Layout Cloud:** Penambahan kolom `layout_id TEXT NOT NULL DEFAULT 'classic-ats'` ke database Supabase `resumes` dengan migrasi otomatis dan mekanisme fallback graceful degradation di `resumeService.ts`.
+- **Kredensial Supabase Reaktif:** Getter lazy `getSupabaseUrl()` dan `getSupabaseAnonKey()` di `supabase.ts` dan `AuthPage.tsx` menggantikan konstanta statis agar konfigurasi kredensial lokal langsung aktif tanpa reload halaman.
+- **Eliminasi Race Condition Unduh PDF:** Penggantian `setTimeout(250ms)` arbitrer dengan siklus `pendingPrintIdRef` dan `useEffect` di `App.tsx` yang memastikan dokumen target telah ter-render penuh di area print sebelum pencetakan dieksekusi.
+- **Proteksi Data Mode Tamu (Guest Exit Confirmation):** Menu "Log out" untuk pengguna guest diubah menjadi "Exit guest mode" dengan dialog konfirmasi eksplisit (`ConfirmDialog`) sebelum data lokal dihapus.
+- **Sanitasi Konten & XSS Hardening:** Integrasi library `dompurify` dan utilitas `sanitizeHtml` pada seluruh 8 titik render `dangerouslySetInnerHTML`. Penggantian dialog `window.prompt` pada `RichTextEditor` dengan komponen inline link input terintegrasi.
+- **Aksesibilitas & Anti-Slop Visual:**
+  - Penambahan atribut `aria-label` yang konsisten pada seluruh tombol ikon interaktif (`PreviewModal`, `RichTextEditor`, `DatePicker`, `SectionHeader`, `AddSectionBar`, `ConfirmDialog`, `Navbar`, `ResumeHeader`).
+  - Penggantian kelas non-standar `rounded-xs` menjadi `rounded-sm` pada frame foto `ResumeHeader` dan `PaginatedResumeView`.
+  - Peningkatan kontras teks helper/opsional dari `text-slate-400` menjadi `text-slate-500` (WCAG AA).
+  - Modal `PreviewModal`: dukungan navigasi tombol `Escape`, penguncian body-scroll saat terbuka, dan kalkulasi dinamis reset zoom.
+  - Perbaikan SVG `ResumeMiniPreview` menggunakan `React.useId()` agar ID klip/gradien unik per instance.
+- **Optimalisasi Bundle & Tooling:**
+  - Konfigurasi code splitting `manualChunks` di `vite.config.ts` untuk memecah vendor chunk (supabase, tiptap, lucide), mengeliminasi warning chunk >500 kB.
+  - Penambahan konfigurasi flat ESLint 10 (`eslint.config.js`) dan Prettier (`.prettierrc.json`) serta script `lint`, `lint:fix`, `format`, `format:check`. Pembersihan seluruh `any` type via *discriminated union* pada `ResumeSection`.
+  - Penambahan meta `description` dan `theme-color` pada `index.html`. Pembersihan dependensi tak terpakai `shadcn`.
 - **Eliminasi Skeleton AI Generik:** Mengganti baris skeleton `h-1.5` / `rounded-full` yang terdistorsi dan meninggalkan whitespace berlebihan dengan komponen vektor SVG `ResumeMiniPreview` presisi koordinat milimeter A4 (210 × 297).
 - **Struktur Konten Proporsional & Otentik:** Pratinjau layout kini mencerminkan konten nyata Cevee secara proporsional (~80% kepadatan halaman):
   - Header adaptif (`classic-ats` simetris tengah vs `modern-photo` asimetris foto portrait 3:4 dengan siluet formal).

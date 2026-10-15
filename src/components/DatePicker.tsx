@@ -147,8 +147,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 e.stopPropagation();
                 handleClear();
               }}
-              className="text-slate-400 hover:text-slate-600 p-0.5 rounded transition"
+              className="text-slate-500 hover:text-slate-700 p-0.5 rounded transition"
               title="Clear date"
+              aria-label="Clear date"
             >
               <X size={12} />
             </button>
@@ -167,6 +168,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               disabled ? 'text-slate-400 cursor-not-allowed' : 'text-slate-500 hover:text-emerald-600'
             }`}
             title="Open Date Picker"
+            aria-label="Open date picker"
           >
             <Calendar size={14} />
           </button>
@@ -174,7 +176,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       </div>
 
       {isOpen && !disabled && (
-        <div className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full mt-1 z-50 w-full sm:w-64 max-w-[calc(100vw-1.5rem)] bg-white rounded-xl border border-slate-200/90 shadow-lg p-3 font-sans animate-in fade-in duration-100`}>
+        <div className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full mt-1 z-50 w-full sm:w-64 max-w-[calc(100vw-1.5rem)] bg-white rounded-xl border border-slate-200/90 shadow-lg p-3 font-sans`}>
           {/* Header: Year Navigation */}
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
             <button
@@ -182,6 +184,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               onClick={() => setViewYear((y) => y - 1)}
               className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition"
               title="Previous Year"
+              aria-label="Previous year"
             >
               <ChevronLeft size={16} />
             </button>
@@ -195,6 +198,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               onClick={() => setViewYear((y) => y + 1)}
               className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition"
               title="Next Year"
+              aria-label="Next year"
             >
               <ChevronRight size={16} />
             </button>
@@ -212,7 +216,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                   onClick={() => handleSelectMonth(idx)}
                   className={`py-1.5 text-xs rounded-lg transition font-medium ${
                     isSelected
-                      ? 'bg-emerald-600 text-white font-semibold shadow-2xs'
+                      ? 'bg-emerald-600 text-white font-semibold shadow-sm'
                       : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700'
                   }`}
                 >
@@ -235,7 +239,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             <button
               type="button"
               onClick={handleClear}
-              className="text-slate-400 hover:text-red-600 transition"
+              className="text-slate-500 hover:text-red-600 transition"
             >
               Clear
             </button>

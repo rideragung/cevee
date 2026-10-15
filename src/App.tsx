@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initialResumes } from './data/initialData';
-import { ResumeDocument, HeaderData, SectionType, ResumeLayoutId } from './types/resume';
+import {
+  ResumeDocument,
+  HeaderData,
+  SectionType,
+  ResumeLayoutId,
+  SectionData,
+  ResumeSection,
+  CustomSectionItem,
+} from './types/resume';
 import { Navbar } from './components/Navbar';
 import { ResumeHeader } from './components/ResumeHeader';
 import { SummarySection } from './components/sections/SummarySection';
@@ -29,6 +37,7 @@ export function App() {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
   const fetchedUserIdRef = useRef<string | null>(null);
+  const pendingPrintIdRef = useRef<string | null>(null);
 
   const [resumes, setResumes] = useState<ResumeDocument[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -171,7 +180,7 @@ export function App() {
     }, 800);
 
     return () => clearTimeout(timeout);
-  }, [activeResume, activeResumeId, user?.id, resumes.length]);
+  }, [activeResume, activeResumeId, user, resumes.length]);
 
   // Auto-save to localStorage
   useEffect(() => {
@@ -226,18 +235,18 @@ export function App() {
   };
 
   // Section data update
-  const handleUpdateSectionData = (sectionId: string, newData: any, isPlaceholder?: boolean) => {
+  const handleUpdateSectionData = (sectionId: string, newData: SectionData, isPlaceholder?: boolean) => {
     updateActiveResume((res) => ({
       ...res,
       content: {
         ...res.content,
         sections: res.content.sections.map((sec) =>
           sec.id === sectionId
-            ? {
+            ? ({
                 ...sec,
                 data: newData,
                 isPlaceholder: isPlaceholder !== undefined ? isPlaceholder : sec.isPlaceholder,
-              }
+              } as ResumeSection)
             : sec
         ),
       },
@@ -298,7 +307,7 @@ export function App() {
   // Add section
   const handleAddSection = (title: string, type: SectionType) => {
     const newSectionId = `sec-${Date.now()}`;
-    let defaultData: any = {};
+    let defaultData: SectionData;
 
     if (type === 'summary') {
       defaultData = { html: '' };
@@ -328,7 +337,36 @@ export function App() {
           },
         ],
       };
-    } else if (type === 'custom_list') {
+    } else if (type === 'education') {
+      defaultData = {
+        items: [
+          {
+            id: `edu-${Date.now()}`,
+            degree: '',
+            institution: '',
+            period: '',
+            startDate: '',
+            endDate: '',
+            gpa: '',
+            description: '',
+          },
+        ],
+      };
+    } else if (type === 'projects') {
+      defaultData = {
+        items: [
+          {
+            id: `proj-${Date.now()}`,
+            name: '',
+            url: '',
+            period: '',
+            startDate: '',
+            endDate: '',
+            bullets: '',
+          },
+        ],
+      };
+    } else {
       defaultData = {
         items: [
           {
@@ -354,7 +392,7 @@ export function App() {
             title,
             isPlaceholder: true,
             data: defaultData,
-          },
+          } as ResumeSection,
         ],
       },
     }));
@@ -529,11 +567,11 @@ export function App() {
   const printResume = (resume: ResumeDocument) => {
     const originalTitle = document.title;
     const cleanFullName = (resume.content.header.fullName || 'Candidate')
-      .replace(/[\/\\:*?"<>|]/g, '')
+      .replace(/[/\\:*?"<>|]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
     const cleanTitle = (resume.title || 'Resume')
-      .replace(/[\/\\:*?"<>|]/g, '')
+      .replace(/[/\\:*?"<>|]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
 
@@ -584,6 +622,15 @@ export function App() {
     }, 200);
   };
 
+  // Print the resume that was just activated, but only once it is actually
+  // rendered inside the print-only area (avoids printing a stale document).
+  useEffect(() => {
+    const pendingId = pendingPrintIdRef.current;
+    if (!pendingId || !activeResume || activeResume.id !== pendingId) return;
+    pendingPrintIdRef.current = null;
+    printResume(activeResume);
+  }, [activeResume]);
+
   // Download PDF handler (editor / active resume)
   const handleDownloadPdf = () => {
     if (!activeResume) return;
@@ -594,9 +641,12 @@ export function App() {
   const handleDownloadResumeById = (id: string) => {
     const target = resumes.find((r) => r.id === id);
     if (!target) return;
+    if (activeResumeId === id && activeResume) {
+      printResume(activeResume);
+      return;
+    }
+    pendingPrintIdRef.current = id;
     setActiveResumeId(id);
-    // Wait a tick so the print-only area renders the target resume before printing
-    setTimeout(() => printResume(target), 250);
   };
 
   if (isAuthChecking) {
@@ -643,28 +693,28 @@ export function App() {
           />
         </div>
       ) : (
-        <div className="min-h-screen flex flex-col bg-slate-100 no-print">
-          <Navbar
-            resumes={resumes}
-            currentResumeId={activeResumeId}
-            onSelectResume={setActiveResumeId}
-            onCreateResume={handleCreateResume}
-            onDuplicateResume={handleDuplicateResume}
-            onDeleteResume={handleDeleteResume}
-            onRenameResume={handleRenameResume}
-            onOpenPreview={() => setIsPreviewOpen(true)}
-            onDownloadPdf={handleDownloadPdf}
-            onBackToDashboard={() => setCurrentView('dashboard')}
-            syncStatus={syncStatus}
-            isCloudUser={Boolean(user)}
+        <div className="min-h-screen flex flex-row bg-slate-100 no-print">
+          {/* Left Sidebar Container with Layout Selector inside */}
+          <LayoutSidebar
+            activeLayoutId={activeResume.layoutId || 'classic-ats'}
+            onSelectLayout={handleSelectLayout}
           />
 
-          {/* Editor Workspace: Left Sidebar Container + Canvas Area */}
-          <div className="flex-1 flex flex-row items-stretch min-w-0">
-            {/* Left Sidebar Container with Layout Selector inside */}
-            <LayoutSidebar
-              activeLayoutId={activeResume.layoutId || 'classic-ats'}
-              onSelectLayout={handleSelectLayout}
+          {/* Editor Workspace: Top Navbar (aligned to Canvas) + Canvas Area */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <Navbar
+              resumes={resumes}
+              currentResumeId={activeResumeId}
+              onSelectResume={setActiveResumeId}
+              onCreateResume={handleCreateResume}
+              onDuplicateResume={handleDuplicateResume}
+              onDeleteResume={handleDeleteResume}
+              onRenameResume={handleRenameResume}
+              onOpenPreview={() => setIsPreviewOpen(true)}
+              onDownloadPdf={handleDownloadPdf}
+              onBackToDashboard={() => setCurrentView('dashboard')}
+              syncStatus={syncStatus}
+              isCloudUser={Boolean(user)}
             />
 
             {/* Editor Canvas Area */}
@@ -790,7 +840,7 @@ export function App() {
                     key={section.id}
                     title={section.title}
                     isPlaceholder={section.isPlaceholder}
-                    data={section.data}
+                    data={section.data as { items: CustomSectionItem[] }}
                     onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
                     onUpdateData={(newData, isPlaceholder) =>
                       handleUpdateSectionData(section.id, newData, isPlaceholder)
@@ -815,8 +865,10 @@ export function App() {
       </div>
       )}
 
-      {/* Print-Only Paginated Sheets (used when downloading PDF) */}
-      {activeResume && (
+      {/* Print-Only Paginated Sheets (used when downloading PDF).
+          Skipped while the preview modal is open to avoid mounting the
+          paginated view twice at once. */}
+      {activeResume && !isPreviewOpen && (
         <div className="print-only-area">
           <PaginatedResumeView resume={activeResume} scale={1} showPageNumbers={false} />
         </div>

@@ -89,14 +89,16 @@ export const AddSectionBar: React.FC<AddSectionBarProps> = ({
               type="submit"
               className="p-1 text-emerald-600 hover:text-emerald-700 rounded-full"
               title="Add"
+              aria-label="Add section"
             >
               <Check size={14} />
             </button>
             <button
               type="button"
               onClick={() => setIsCustomOpen(false)}
-              className="p-1 text-slate-400 hover:text-slate-600 rounded-full"
+              className="p-1 text-slate-500 hover:text-slate-800 rounded-full"
               title="Cancel"
+              aria-label="Cancel"
             >
               <X size={14} />
             </button>

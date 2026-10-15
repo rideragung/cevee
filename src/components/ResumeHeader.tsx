@@ -1,15 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { HeaderData, ContactLink, ResumeLayoutId } from '../types/resume';
 import { Pencil, Plus, Trash2, Upload, User as UserIcon } from 'lucide-react';
 import { compressProfilePhoto } from '../utils/imageCompressor';
-
-export const getWhatsAppUrl = (phone: string): string => {
-  let cleaned = phone.replace(/\D/g, '');
-  if (cleaned.startsWith('0')) {
-    cleaned = '62' + cleaned.slice(1);
-  }
-  return `https://wa.me/${cleaned}`;
-};
+import { getWhatsAppUrl } from '../utils/whatsApp';
 
 interface ResumeHeaderProps {
   data: HeaderData;
@@ -22,7 +15,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isPlaceholder = Boolean(data.isPlaceholder);
 
-  const getCleanFormData = (): HeaderData => {
+  const getCleanFormData = useCallback((): HeaderData => {
     if (data.isPlaceholder) {
       return {
         fullName: '',
@@ -53,7 +46,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
       roles: initialRoles.slice(0, 4),
       willingToRelocate: data.willingToRelocate ?? true,
     };
-  };
+  }, [data]);
 
   const [formData, setFormData] = useState<HeaderData>(getCleanFormData);
 
@@ -61,7 +54,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
     if (!isEditing) {
       setFormData(getCleanFormData());
     }
-  }, [data, isEditing]);
+  }, [isEditing, getCleanFormData]);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -163,7 +156,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
 
   if (isEditing) {
     return (
-      <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-xs my-2.5 no-print font-sans">
+      <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm my-2.5 no-print font-sans">
         {/* Title */}
         <div className="border-b border-slate-900 pb-1 mb-5">
           <h3 className="text-[10pt] font-bold text-slate-900 uppercase tracking-wider">
@@ -245,12 +238,12 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
           {layoutId === 'modern-photo' && (
             <div className="pt-2 border-t border-slate-200">
               <label className="block text-[11px] font-semibold text-slate-700 mb-2">
-                Profile Photo <span className="text-slate-400 font-normal">(Formal portrait, 3:4 aspect ratio)</span>
+                Profile Photo <span className="text-slate-500 font-normal">(Formal portrait, 3:4 aspect ratio)</span>
               </label>
 
               <div className="flex items-center gap-4">
                 {/* 3:4 Preview Container */}
-                <div className="w-[66px] h-[88px] aspect-[3/4] rounded-lg border border-slate-300 bg-white overflow-hidden flex items-center justify-center flex-shrink-0 shadow-2xs">
+                <div className="w-[66px] h-[88px] aspect-[3/4] rounded-lg border border-slate-300 bg-white overflow-hidden flex items-center justify-center flex-shrink-0">
                   {formData.photoUrl ? (
                     <img
                       src={formData.photoUrl}
@@ -274,7 +267,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 hover:border-slate-400 text-xs font-semibold text-slate-700 rounded-lg transition shadow-2xs cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 hover:border-slate-400 text-xs font-semibold text-slate-700 rounded-lg transition shadow-sm cursor-pointer"
                     >
                       <Upload size={13} />
                       <span>{formData.photoUrl ? 'Change Photo' : 'Upload Photo'}</span>
@@ -285,12 +278,13 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                         onClick={() => setFormData({ ...formData, photoUrl: '' })}
                         className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg border border-slate-200 transition cursor-pointer"
                         title="Remove photo"
+                        aria-label="Remove photo"
                       >
                         <Trash2 size={13} />
                       </button>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-normal">
+                  <p className="text-[11px] text-slate-500 leading-normal">
                     Auto-compressed to ~30 KB for clean vector PDF export.
                   </p>
                 </div>
@@ -302,7 +296,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
           <div className="pt-2 border-t border-slate-200">
             <div className="flex items-center justify-between mb-2">
               <label className="block text-[11px] font-semibold text-slate-700">
-                Target Roles / Positions <span className="text-slate-400 font-normal">(Max 4 roles, automatically separated by "|")</span>
+                Target Roles / Positions <span className="text-slate-500 font-normal">(Max 4 roles, automatically separated by "|")</span>
               </label>
               {(formData.roles || []).length < 4 && (
                 <button
@@ -331,6 +325,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                       onClick={() => handleRemoveRole(idx)}
                       className="p-1.5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition"
                       title="Delete Role"
+                      aria-label="Delete role"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -369,6 +364,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                       onClick={() => handleRemoveLink(link.id)}
                       className="p-1.5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition flex-shrink-0"
                       title="Delete Link"
+                      aria-label="Delete link"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -401,7 +397,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
             <button
               type="button"
               onClick={handleSave}
-              className="px-6 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg shadow-2xs transition"
+              className="px-6 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition"
             >
               Save
             </button>
@@ -422,15 +418,16 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
             setFormData(getCleanFormData());
             setIsEditing(true);
           }}
-          className="absolute top-0 right-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-xs rounded-md px-1.5 py-1 text-slate-600 hover:text-slate-900 transition no-print"
+          className="absolute top-0 right-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md px-1.5 py-1 text-slate-600 hover:text-slate-900 transition no-print"
           title="Edit Contact Information"
+          aria-label="Edit contact information"
         >
           <Pencil size={13} />
         </button>
 
         <div className="flex items-center gap-4 text-left">
           {/* 3:4 Profile Photo */}
-          <div className="w-[66px] h-[88px] sm:w-[72px] sm:h-[96px] aspect-[3/4] rounded-xs overflow-hidden border border-slate-300 bg-slate-100 flex-shrink-0 shadow-2xs">
+          <div className="w-[66px] h-[88px] sm:w-[72px] sm:h-[96px] aspect-[3/4] rounded-sm overflow-hidden border border-slate-300 bg-slate-100 flex-shrink-0">
             {data.photoUrl ? (
               <img
                 src={data.photoUrl}
@@ -523,8 +520,9 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
           setFormData(getCleanFormData());
           setIsEditing(true);
         }}
-        className="absolute top-0 right-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-xs rounded-md px-1.5 py-1 text-slate-600 hover:text-slate-900 transition no-print"
+        className="absolute top-0 right-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md px-1.5 py-1 text-slate-600 hover:text-slate-900 transition no-print"
         title="Edit Contact Information"
+          aria-label="Edit contact information"
       >
         <Pencil size={13} />
       </button>

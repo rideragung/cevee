@@ -26,6 +26,7 @@ export const fetchUserResumes = async (): Promise<ResumeDocument[] | null> => {
     return data.map((row) => ({
       id: row.id,
       title: row.title,
+      layoutId: row.layout_id ?? 'classic-ats',
       createdAt: row.created_at ?? row.updated_at,
       updatedAt: row.updated_at,
       content: row.content,
@@ -44,16 +45,24 @@ export const saveUserResume = async (resume: ResumeDocument): Promise<boolean> =
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
 
-    const { error } = await supabase.from('resumes').upsert(
-      {
-        id: resume.id,
-        user_id: user.id,
-        title: resume.title,
-        content: resume.content,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' }
-    );
+    const payload: Record<string, unknown> = {
+      id: resume.id,
+      user_id: user.id,
+      title: resume.title,
+      layout_id: resume.layoutId ?? 'classic-ats',
+      content: resume.content,
+      updated_at: new Date().toISOString(),
+    };
+
+    let { error } = await supabase
+      .from('resumes')
+      .upsert(payload, { onConflict: 'id' });
+
+    // Graceful degradation until the layout_id column migration is applied.
+    if (error && /layout_id/i.test(error.message)) {
+      delete payload.layout_id;
+      ({ error } = await supabase.from('resumes').upsert(payload, { onConflict: 'id' }));
+    }
 
     if (error) {
       console.error('Error saving resume to Supabase:', error);

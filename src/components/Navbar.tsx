@@ -72,7 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <header className="app-navbar sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-xs no-print">
+      <header className="app-navbar sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm no-print">
       <div className="w-full max-w-[210mm] mx-auto px-2.5 sm:px-6 min-[901px]:px-0 flex items-center justify-between gap-2 sm:gap-3 py-2 lg:h-14 lg:py-0">
         {/* Left: Back button (aligned to canvas left edge) */}
         <div className="flex items-center min-w-0 flex-1">
@@ -121,6 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   type="submit"
                   className="p-1 text-emerald-600 hover:text-emerald-700"
                   title="Save"
+                  aria-label="Save title"
                 >
                   <Check size={14} />
                 </button>
@@ -144,7 +145,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     setEditTitle(currentResume.title);
                     setIsRenaming(true);
                   }}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition flex-shrink-0"
+                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition flex-shrink-0"
                   title="Rename resume"
                   aria-label="Rename resume"
                 >
@@ -162,8 +163,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => setIsDropdownOpen(false)}
                 />
 
-                <div className="absolute left-1/2 -translate-x-1/2 mt-1.5 w-64 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-200 rounded-lg shadow-lg py-1.5 z-50 animate-in fade-in-50">
-                  <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                <div className="absolute left-1/2 -translate-x-1/2 mt-1.5 w-64 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-200 rounded-lg shadow-lg py-1.5 z-50">
+                  <div className="px-3 py-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     Your resumes ({resumes.length})
                   </div>
 
@@ -241,7 +242,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={onOpenPreview}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition shadow-2xs flex-shrink-0"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition shadow-sm flex-shrink-0"
             title="Preview ATS layout (A4 format)"
             aria-label="Preview resume"
           >

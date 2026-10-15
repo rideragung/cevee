@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Pencil, ArrowUp, ArrowDown, Trash2, Check } from 'lucide-react';
 
 interface SectionHeaderProps {
@@ -24,15 +24,29 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
 }) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(title);
+  const isSubmittingRef = useRef(false);
+
+  useEffect(() => {
+    setEditedTitle(title);
+  }, [title]);
 
   const handleTitleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (editedTitle.trim()) {
-      onRename(editedTitle.trim().toUpperCase());
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+
+    const trimmed = editedTitle.trim();
+    if (trimmed) {
+      if (trimmed.toUpperCase() !== title) {
+        onRename(trimmed.toUpperCase());
+      }
     } else {
       setEditedTitle(title);
     }
     setIsEditingTitle(false);
+    setTimeout(() => {
+      isSubmittingRef.current = false;
+    }, 100);
   };
 
   return (
@@ -53,6 +67,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
               type="submit"
               className="p-1 text-emerald-600 hover:text-emerald-700 rounded no-print"
               title="Save Section Title"
+              aria-label="Save section title"
             >
               <Check size={13} />
             </button>
@@ -70,7 +85,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         {/* Section action controls (pen, up, down, trash) in hover pill */}
         <div
           data-editor-control="true"
-          className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-xs rounded-md px-1.5 py-0.5 text-slate-500 no-print transition flex-shrink-0"
+          className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md px-1.5 py-0.5 text-slate-500 no-print transition flex-shrink-0"
         >
           {onToggleEdit && (
             <button
@@ -78,6 +93,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
               onClick={onToggleEdit}
               className="p-1 text-slate-600 hover:text-slate-900 rounded transition"
               title="Edit Section"
+              aria-label="Edit section"
             >
               <Pencil size={13} />
             </button>
@@ -89,6 +105,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
               onClick={onMoveUp}
               className="p-1 text-slate-600 hover:text-slate-900 rounded transition"
               title="Move Up"
+              aria-label="Move section up"
             >
               <ArrowUp size={13} />
             </button>
@@ -100,6 +117,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
               onClick={onMoveDown}
               className="p-1 text-slate-600 hover:text-slate-900 rounded transition"
               title="Move Down"
+              aria-label="Move section down"
             >
               <ArrowDown size={13} />
             </button>
@@ -110,6 +128,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
             onClick={onDelete}
             className="p-1 text-red-500 hover:text-red-700 rounded transition"
             title="Delete Section"
+            aria-label="Delete section"
           >
             <Trash2 size={13} />
           </button>

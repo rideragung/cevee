@@ -15,4 +15,20 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'editor-vendor': [
+            '@tiptap/react',
+            '@tiptap/starter-kit',
+            '@tiptap/extension-underline',
+            '@tiptap/extension-link',
+          ],
+          'icons-vendor': ['lucide-react'],
+        },
+      },
+    },
+  },
 });

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
 import { RichTextEditor } from '../RichTextEditor';
 import { Pencil, ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
+import { sanitizeHtml } from '../../utils/sanitize';
 
 interface SummarySectionProps {
   title: string;
@@ -63,7 +64,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
       {!showTitle && !isEditing && (
         <div
           data-editor-control="true"
-          className="mb-1 w-fit ml-auto flex items-center gap-1 bg-white border border-slate-200 shadow-xs rounded-md px-1.5 py-0.5 text-slate-500 no-print transition z-10 opacity-100 lg:mb-0 lg:ml-0 lg:absolute lg:-top-3.5 lg:right-0 lg:opacity-0 lg:group-hover:opacity-100"
+          className="mb-1 w-fit ml-auto flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md px-1.5 py-0.5 text-slate-500 no-print transition z-10 opacity-100 lg:mb-0 lg:ml-0 lg:absolute lg:-top-3.5 lg:right-0 lg:opacity-0 lg:group-hover:opacity-100"
         >
           <button
             type="button"
@@ -108,7 +109,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
       )}
 
       {isEditing ? (
-        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-xs my-2.5 no-print font-sans">
+        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm my-2.5 no-print font-sans">
           {/* Header Section Title */}
           <div className="border-b border-slate-900 pb-1 mb-5">
             <h3 className="text-[10pt] font-bold text-slate-900 uppercase tracking-wider">
@@ -140,7 +141,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
             <button
               type="button"
               onClick={handleSave}
-              className="px-6 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg shadow-2xs transition"
+              className="px-6 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition"
             >
               Save
             </button>
@@ -162,7 +163,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
               Results-driven professional with proven experience delivering impactful solutions and collaborating across multidisciplinary teams. Skilled in problem-solving, project execution, and standardizing workflows that drive measurable business outcomes. Passionate about continuous learning and contributing to high-performing product environments.
             </p>
           ) : (
-            <div dangerouslySetInnerHTML={{ __html: data.html }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(data.html) }} />
           )}
         </div>
       )}

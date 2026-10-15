@@ -38,9 +38,11 @@ It runs entirely in the browser. Use it as a guest and your work stays in local 
 | Build tool | Vite |
 | Styling | Tailwind CSS |
 | Rich text | Tiptap (StarterKit, Underline, Link) |
+| Sanitization | DOMPurify (XSS prevention) |
 | Icons | Lucide React |
 | Backend & auth | Supabase (PostgreSQL, Auth, Row Level Security) |
 | PDF engine | Native print engine (`window.print()` + CSS `@page`) |
+| Code quality | ESLint 10 (Flat config) + Prettier |
 | Deployment | Vercel (SPA rewrites) |
 
 ## Getting Started
@@ -99,6 +101,7 @@ create table if not exists public.resumes (
   id text primary key,
   user_id uuid references auth.users(id) on delete cascade not null default auth.uid(),
   title text not null default 'Untitled Resume',
+  layout_id text not null default 'classic-ats',
   content jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default timezone('utc'::text, now()),
   updated_at timestamptz not null default timezone('utc'::text, now())
@@ -155,7 +158,9 @@ src/
 │   └── resume.ts               # Document type definitions
 ├── utils/
 │   ├── imageCompressor.ts      # Client-side 3:4 profile photo compression
-│   └── periodSort.ts           # Automatic chronological sorting
+│   ├── periodSort.ts           # Automatic chronological sorting
+│   ├── sanitize.ts             # DOMPurify HTML sanitization wrapper
+│   └── whatsApp.ts             # Phone number normalization & WhatsApp link builder
 ├── App.tsx                     # Root application controller
 ├── index.css                   # A4 dimensions & print styles
 └── main.tsx                    # Entry point
@@ -168,6 +173,10 @@ src/
 | `npm run dev` | Start the Vite dev server with hot reload. |
 | `npm run build` | Type-check with `tsc`, then build to `dist/`. |
 | `npm run preview` | Serve the production build locally. |
+| `npm run lint` | Run ESLint across all TypeScript source files. |
+| `npm run lint:fix` | Automatically fix fixable ESLint warnings/errors. |
+| `npm run format` | Format code using Prettier. |
+| `npm run format:check` | Check code formatting compliance with Prettier. |
 
 ## Deployment
 
