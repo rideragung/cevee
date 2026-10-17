@@ -33,6 +33,7 @@ Thumbs.db
 # Agent skills cache
 .agents
 opencode.json
+*.backup
 
 # Vercel CLI
 .vercel

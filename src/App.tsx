@@ -27,6 +27,7 @@ import { LayoutSidebar } from './components/LayoutSidebar';
 import { AuthPage } from './components/AuthPage';
 import { getSupabase } from './lib/supabase';
 import { fetchUserResumes, saveUserResume, deleteUserResume } from './lib/resumeService';
+import { DEFAULT_LAYOUT_ID, normalizeLayoutId } from './layouts/registry';
 import { User } from '@supabase/supabase-js';
 
 const LOCAL_STORAGE_KEY = 'cevee_resumes_v3';
@@ -43,7 +44,8 @@ export function App() {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved) as ResumeDocument[];
+        return parsed.map((r) => ({ ...r, layoutId: normalizeLayoutId(r.layoutId) }));
       } catch (e) {
         console.error('Failed to parse saved resumes', e);
       }
@@ -422,7 +424,7 @@ export function App() {
     setLayoutModal((prev) => ({ ...prev, isOpen: false }));
   };
 
-  const executeCreateResume = (layoutId: ResumeLayoutId = 'classic-ats') => {
+  const executeCreateResume = (layoutId: ResumeLayoutId = DEFAULT_LAYOUT_ID) => {
     const newId = `resume-${Date.now()}`;
     const newResume: ResumeDocument = {
       id: newId,
@@ -696,7 +698,7 @@ export function App() {
         <div className="min-h-screen flex flex-row bg-slate-100 no-print">
           {/* Left Sidebar Container with Layout Selector inside */}
           <LayoutSidebar
-            activeLayoutId={activeResume.layoutId || 'classic-ats'}
+            activeLayoutId={normalizeLayoutId(activeResume.layoutId)}
             onSelectLayout={handleSelectLayout}
           />
 
@@ -720,7 +722,10 @@ export function App() {
             {/* Editor Canvas Area */}
             <main className="no-print-area flex-1 pt-4 pb-24 px-2.5 sm:py-8 sm:px-6 flex justify-center items-start overflow-x-hidden min-w-0">
               {/* A4 Canvas Page */}
-              <div className="resume-a4-page w-full rounded-[20px] transition-all">
+              <div
+                className="resume-a4-page w-full rounded-[20px] transition-all"
+                data-layout={normalizeLayoutId(activeResume.layoutId)}
+              >
               {/* Header */}
               <ResumeHeader
                 data={activeResume.content.header}

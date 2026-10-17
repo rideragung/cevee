@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Check, CheckCircle2, LayoutTemplate } from 'lucide-react';
 import { ResumeLayoutId } from '../types/resume';
 import { RESUME_LAYOUTS, LayoutDefinition } from '../data/layouts';
+import { DEFAULT_LAYOUT_ID, normalizeLayoutId } from '../layouts/registry';
 import { ResumeMiniPreview } from './ResumeMiniPreview';
 
 interface LayoutSelectModalProps {
@@ -16,17 +17,15 @@ interface LayoutSelectModalProps {
 export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
   isOpen,
   mode,
-  currentLayoutId = 'classic-ats',
+  currentLayoutId = DEFAULT_LAYOUT_ID,
   onConfirm,
   onClose,
 }) => {
-  const [selectedId, setSelectedId] = useState<ResumeLayoutId>(
-    (currentLayoutId as ResumeLayoutId) || 'classic-ats'
-  );
+  const [selectedId, setSelectedId] = useState<ResumeLayoutId>(normalizeLayoutId(currentLayoutId));
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedId((currentLayoutId as ResumeLayoutId) || 'classic-ats');
+      setSelectedId(normalizeLayoutId(currentLayoutId));
     }
   }, [isOpen, currentLayoutId]);
 

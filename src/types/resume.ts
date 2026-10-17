@@ -182,12 +182,14 @@ export interface ResumeContent {
   sections: ResumeSection[];
 }
 
-export type ResumeLayoutId = 'classic-ats' | 'modern-photo';
+export type ResumeLayoutId = 'standard-ats-v1' | 'standard-ats-v2' | 'modern-photo';
+
+export type LegacyResumeLayoutId = 'classic-ats' | 'reference-nodeflair';
 
 export interface ResumeDocument {
   id: string;
   title: string;
-  layoutId?: ResumeLayoutId | string; // Layout selector (default: 'classic-ats')
+  layoutId?: ResumeLayoutId | LegacyResumeLayoutId | string; // Layout selector (default: 'standard-ats-v1')
   createdAt?: string; // ISO timestamp when the resume was first created
   updatedAt: string;
   content: ResumeContent;

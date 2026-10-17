@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ResumeLayoutId } from '../types/resume';
 import { RESUME_LAYOUTS, LayoutDefinition } from '../data/layouts';
+import { normalizeLayoutId } from '../layouts/registry';
 import { LayoutThumbnail } from './LayoutThumbnail';
 import { LayoutTemplate, X } from 'lucide-react';
 
@@ -26,7 +27,7 @@ export const LayoutSidebar: React.FC<LayoutSidebarProps> = ({
         <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center gap-4">
           {/* Layout Selector Inside Container (Pure Visual Preview, Zero Text) */}
           {RESUME_LAYOUTS.map((layout: LayoutDefinition) => {
-            const isActive = (activeLayoutId || 'classic-ats') === layout.id;
+            const isActive = normalizeLayoutId(activeLayoutId) === layout.id;
 
             return (
               <LayoutThumbnail
@@ -81,7 +82,7 @@ export const LayoutSidebar: React.FC<LayoutSidebarProps> = ({
             {/* Layout Selector inside Drawer Container (Pure Visual Preview, Zero Text) */}
             <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center gap-4">
               {RESUME_LAYOUTS.map((layout: LayoutDefinition) => {
-                const isActive = (activeLayoutId || 'classic-ats') === layout.id;
+                const isActive = normalizeLayoutId(activeLayoutId) === layout.id;
 
                 return (
                   <LayoutThumbnail

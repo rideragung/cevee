@@ -16,7 +16,7 @@ export const LayoutThumbnail: React.FC<LayoutThumbnailProps> = ({
   isActive = false,
   onClick,
   className = '',
-  title = 'Classic ATS Layout',
+  title = 'Standard ATS V1 Layout',
 }) => {
   return (
     <button

@@ -1,5 +1,6 @@
 import { getSupabase } from './supabase';
 import { ResumeDocument } from '../types/resume';
+import { normalizeLayoutId } from '../layouts/registry';
 
 export const fetchUserResumes = async (): Promise<ResumeDocument[] | null> => {
   const supabase = getSupabase();
@@ -26,7 +27,7 @@ export const fetchUserResumes = async (): Promise<ResumeDocument[] | null> => {
     return data.map((row) => ({
       id: row.id,
       title: row.title,
-      layoutId: row.layout_id ?? 'classic-ats',
+      layoutId: normalizeLayoutId(row.layout_id),
       createdAt: row.created_at ?? row.updated_at,
       updatedAt: row.updated_at,
       content: row.content,
@@ -49,7 +50,7 @@ export const saveUserResume = async (resume: ResumeDocument): Promise<boolean> =
       id: resume.id,
       user_id: user.id,
       title: resume.title,
-      layout_id: resume.layoutId ?? 'classic-ats',
+      layout_id: normalizeLayoutId(resume.layoutId),
       content: resume.content,
       updated_at: new Date().toISOString(),
     };

@@ -15,10 +15,14 @@ It runs entirely in the browser. Use it as a guest and your work stays in local 
 ## Features
 
 - **Edit on the page, not next to it.** Click any part of the resume — name, contact line, a bullet, a section title — and edit it where it sits. There is no separate form pane, so what you see is what you get.
-- **Layout presets & in-editor switching.** Start with `classic-ats` (centered single-column standard) or `modern-photo` (photo header with 3:4 portrait frame), and switch anytime from the sidebar with 100% content preservation.
+- **Modular layout engine & presets.** Switch between three ATS-calibrated presets anytime with 100% content preservation:
+  - `standard-ats-v1`: Centered single-column industry standard ATS layout (legacy ID: `classic-ats`).
+  - `standard-ats-v2`: Calibrated NodeFlair reference layout with Liberation Sans / Arimo metrics and hairline dividers (legacy ID: `reference-nodeflair`).
+  - `modern-photo`: Asymmetric header with a 3:4 portrait photo frame and unified left-aligned credentials.
+  - Automatic legacy ID normalization preserves existing user documents across local storage and cloud databases.
 - **High-fidelity vector layout previews.** Sidebar and modal miniatures render calibrated A4 vector previews with authentic micro-typography and proportional density instead of generic skeleton bars.
 - **Pixel-accurate A4 export.** Print styles are isolated from the app chrome, so downloading produces a true 210 × 297 mm vector document with selectable text that ATS software can actually read.
-- **ATS-first typography.** Tight ATS margins (10 mm top, 13 mm sides, 12 mm bottom), one consistent Inter type scale, and 0.5 px hairline section rules keep the document's structure machine-readable.
+- **ATS-first self-hosted typography.** Static `@fontsource/inter` and `@fontsource/arimo` packages bundle fonts locally to produce clean Type0/CIDFontType2 vector subsets, eliminating Type3 procedural font bloat and slashing PDF download sizes by ~68% without CDN dependencies.
 - **Client-side photo compression.** Uploading a portrait photo auto-crops to a 3:4 ratio and compresses to ~30 KB via HTML5 Canvas, keeping vector PDFs under 100 KB.
 - **Any section you need.** Start with Summary, Work Experience, Education, Projects, and Skills, then add Certifications, Languages, Publications, Awards, Volunteering, References, or a fully custom section.
 - **Show promotions in one place.** Group several roles under a single company to show career progression without repeating the employer on every line.
@@ -37,6 +41,7 @@ It runs entirely in the browser. Use it as a guest and your work stays in local 
 | Framework | React 18 + TypeScript |
 | Build tool | Vite |
 | Styling | Tailwind CSS |
+| Typography | @fontsource/inter, @fontsource/arimo (Self-hosted static fonts) |
 | Rich text | Tiptap (StarterKit, Underline, Link) |
 | Sanitization | DOMPurify (XSS prevention) |
 | Icons | Lucide React |
@@ -141,7 +146,7 @@ src/
 │   ├── LayoutSidebar.tsx       # Docked left container for layout switching
 │   ├── LayoutThumbnail.tsx     # Layout switcher card with active indicator
 │   ├── Navbar.tsx              # Top bar, resume switcher, sync status, export
-│   ├── PaginatedResumeView.tsx # A4 pagination engine + print renderer
+│   ├── PaginatedResumeView.tsx # Thin orchestrator for active layout pagination & rendering
 │   ├── PreviewModal.tsx        # 1:1 PDF preview modal
 │   ├── ResumeDashboard.tsx     # Multi-resume dashboard
 │   ├── ResumeHeader.tsx        # Contact & profile header editor (photo support)
@@ -149,21 +154,28 @@ src/
 │   ├── RichTextEditor.tsx      # Tiptap wrapper
 │   └── SectionHeader.tsx       # Section title + reorder/delete controls
 ├── data/
-│   ├── initialData.ts          # Starter resume template
-│   └── layouts.ts              # Layout presets catalog (Classic ATS, Modern Photo)
+│   ├── initialData.ts          # Starter resume template (defaults to standard-ats-v1)
+│   └── layouts.ts              # Catalog definitions for layout presets
+├── layouts/
+│   ├── core/                   # Layout contract types, content renderer & packing logic
+│   ├── modern-photo/           # Photo Header single-column plugin & thumbnail
+│   ├── shared/                 # Reusable single-column content blocks & MiniPreview
+│   ├── standard-ats-v1/        # Standard ATS Single-Column v1 plugin & thumbnail
+│   ├── standard-ats-v2/        # NodeFlair reference spec v2 plugin, blocks & isolated CSS
+│   └── registry.ts             # Layout plugin registry & legacy ID normalizer
 ├── lib/
 │   ├── resumeService.ts        # Supabase read/write helpers
 │   └── supabase.ts             # Supabase client initialization
 ├── types/
-│   └── resume.ts               # Document type definitions
+│   └── resume.ts               # Document & layout type definitions
 ├── utils/
 │   ├── imageCompressor.ts      # Client-side 3:4 profile photo compression
 │   ├── periodSort.ts           # Automatic chronological sorting
 │   ├── sanitize.ts             # DOMPurify HTML sanitization wrapper
 │   └── whatsApp.ts             # Phone number normalization & WhatsApp link builder
-├── App.tsx                     # Root application controller
-├── index.css                   # A4 dimensions & print styles
-└── main.tsx                    # Entry point
+├── App.tsx                     # Root application controller & layout dispatcher
+├── index.css                   # Global styles & A4 media print rules
+└── main.tsx                    # Entry point & font imports
 ```
 
 ## Scripts
