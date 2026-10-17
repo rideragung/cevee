@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.30.0  
+**Dokumen Versi:** 1.31.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Responsive — Desktop, Tablet & Mobile)  
@@ -642,6 +642,12 @@ export interface ResumeDocument {
   - `CustomSection`: Normalisasi placeholder tanggal sertifikasi/kustom (`Select issue date`, `Select expiry date`, `Select date`), tombol tambah menjadi `Add item`, serta koreksi label menjadi `Expiry Date`.
   - `AddSectionBar`: Normalisasi tombol custom menjadi `Add custom section`.
 - **Refinement Modal Konfirmasi:** Teks konfirmasi destruktif pada `ResumeDashboard` dan `Navbar` disederhanakan menjadi pesan universal yang akurat untuk akun lokal maupun cloud (`...permanently deleted.`).
+
+### 1.31.0 — Comprehensive PDF Formatting & Layout Specification
+- **Dokumentasi Terpadu:** Pembuatan dokumen `PDF_FORMATTING_SPEC.md` yang merinci 100% parameter tipografi dan tata letak output PDF vektor:
+  - Dimensi lembar fisik A4 (`210mm × 297mm`), margin padat ATS (`10mm` atas, `13mm` samping, `12mm` bawah, printable content `184mm × 275mm`), dan ambang paginasi deterministik `1020px`.
+  - Spesifikasi tipografi terperinci per elemen: Nama `17pt` bold tracking-tight, roles/kontak/section title `8.5pt`, konten/bullet/summary `7.75pt` line-height 1.48 text-justify.
+  - Aturan proteksi anti-orphan untuk header section dan sub-header posisi, split-bullet lintas lembar, serta isolasi `@media print` murni vektor bebas artefak.
 
 ### 1.27.1 — Profile Photo 3:4 Aspect Ratio Fix & State Preservation
 - **Perbaikan Bug:** Eliminasi kalkulasi dimensi kompresi kanvas yang menyebabkan gambar terdistorsi vertikal ("gepeng"). `compressProfilePhoto` kini melakukan crop tengah otomatis (*center-crop*) presisi rasio 3:4 (300x400 px).
