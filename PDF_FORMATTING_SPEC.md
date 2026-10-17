@@ -54,7 +54,7 @@ font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Hel
 
 Cevee menyediakan 2 varian preset layout untuk header:
 
-#### A. Preset `classic-ats` (Standard Single-Column ATS)
+#### A. Preset `standard-ats-v1` (Standard Single-Column ATS; legacy: `classic-ats`)
 - **Kontainer:** `text-center mb-2 pb-0.5`
 - **Nama Lengkap (`<h1>`):**
   - Font Size: `17pt` (~22.67px)

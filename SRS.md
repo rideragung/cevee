@@ -292,7 +292,7 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
   - Sistem menyediakan 3 pilihan preset layout standar:
     1. **`standard-ats-v1` (Standard Single-Column ATS; ID legacy `classic-ats`):** Format resume 1 kolom standar industri ATS, header tengah adaptif tanpa foto, margin padat (10mm/13mm/12mm), tipografi seragam 7.75pt, dan pembatas garis hairline.
     2. **`modern-photo` (Photo Header Single-Column):** Format resume 1 kolom dengan bingkai foto profil portrait rasio 3:4 (~22mm x 28mm pada cetak fisik A4) di sisi kiri header, serta nama kandidat bold dan baris kontak dot separator terpadu rata kiri (*left-aligned*) di sisi kanan foto. Seluruh section lain (Summary rata kiri-kanan, Skills, Experience, Education, Projects, Custom Section) 100% identik dan tetap di posisi aslinya.
-    3. **`standard-ats-v2` (NodeFlair Reference Layout; ID legacy `reference-nodeflair`):** Format resume terkalibrasi persis dengan spesifikasi NodeFlair (`PDF_MAKER_REFERENCE_LAYOUT_SPEC.md`). Menggunakan font stack Liberation Sans / Arimo, nama `18.01pt`, teks konten seragam `8.41pt`, line advance `12.61pt` (rasio 1.5), margin kiri `26.86pt` (~9.48mm) dan kanan `27.11pt` (~9.57mm), garis pembatas `0.60pt solid #1F2937`, perataan kiri (*left-aligned*) untuk summary dan butir pencapaian, serta titik peluru lingkaran solid diameter `2.40pt`.
+    3. **`standard-ats-v2` (Standard ATS V2; ID legacy `reference-nodeflair`):** Format resume terkalibrasi persis dengan spesifikasi layout referensi (`PDF_MAKER_REFERENCE_LAYOUT_SPEC.md`). Menggunakan font stack Liberation Sans / Arimo, nama `18.01pt`, teks konten seragam `8.41pt`, line advance `12.61pt` (rasio 1.5), margin kiri `26.86pt` (~9.48mm) dan kanan `27.11pt` (~9.57mm), garis pembatas `0.60pt solid #1F2937`, perataan kiri (*left-aligned*) untuk summary dan butir pencapaian, serta titik peluru lingkaran solid diameter `2.40pt`.
   - Komponen upload foto terintegrasi pada form edit header dengan kompresi kanvas client-side (`compressProfilePhoto`) berukuran max 300x400 px rasio 3:4 (~25-40 KB) dengan preservasi state foto pada mode edit form.
   - Seluruh struktur komponen dialog pemilih, tipe data, dan alur kerja diimplementasikan secara dinamis (*data-driven*) mempermudah ekspansi template di masa mendatang.
 - **FR-12.4 (Preservasi Data & Integritas Konten):**
@@ -654,7 +654,7 @@ export interface ResumeDocument {
 - **ID Baru + Normalisasi Legacy Non-Destruktif:** `classic-ats` → `standard-ats-v1`, `reference-nodeflair` → `standard-ats-v2` (`modern-photo` tetap). `normalizeLayoutId()` dipanggil di batas pemuatan data (localStorage `cevee_resumes_v3` & respons Supabase) sehingga dokumen lama tetap terbuka tanpa migrasi database. `DEFAULT_LAYOUT_ID = 'standard-ats-v1'`; urutan katalog sidebar: v1 → modern-photo → v2.
 - **Verifikasi Byte-Exact E2E (Helium headless + `Page.printToPDF`, fixture Bangkit identik, guest mode):**
   - `standard-ats-v1`: `69.526` byte — **byte-identik** dengan baseline `e2e-app-current.pdf` kecuali `/CreationDate`+`/ModDate` (10 byte berbeda, 4 rentang, seluruhnya di dalam objek timestamp).
-  - `standard-ats-v2`: `75.547` byte — **byte-identik** dengan baseline `e2e-nodeflair-filled.pdf` kecuali timestamp (10 byte, 2 rentang).
+  - `standard-ats-v2`: `75.547` byte — **byte-identik** dengan baseline `e2e-reference-v2.pdf` kecuali timestamp (10 byte, 2 rentang).
   - `modern-photo`: output kode refactor vs kode pra-refactor (worktree HEAD + font static) — diff `6` byte, 2 rentang, murni timestamp; output final `71.396` byte span-identik (118 span, teks & koordinat sama persis).
   - Ketiga layout: objek `Type3 = 0`, substet `Inter-Bold/Regular/SemiBold/Medium` (Type0/CIDFontType2).
 - **Catatan Paritas Baseline (Keputusan Disengaja):** Markup label kategori skills dipertahankan dalam bentuk 3 text-node `:{' '}` pada `shared/single-column-blocks.tsx` dan `standard-ats-v2/blocks.tsx` agar reproduksi byte-identik dengan artefak baseline yang telah disetujui pengguna (baseline dihasilkan runtime dev lama dengan struktur tersebut). Bentuk 2-node `: ` menghasilkan teks visual 100% sama, hanya berbeda encoding internal stream PDF (+375 byte) — bukan regresi visual.
@@ -670,16 +670,16 @@ export interface ResumeDocument {
   - Pemenggalan halaman dan pembungkusan baris identik di kedua berkas (jumlah & urutan kata sama); deviasi maksimum `1.06pt` vertikal pada 5 baris heading/kontak (pembulatan baseline statis-vs-variabel), tanpa pergeseran horizontal.
 - **Verifikasi:** `npm run build` ✓ (assets WOFF2 Inter ter-bundle), `npm run lint` ✓ (0 error), halaman aplikasi memuat font dari `/node_modules/@fontsource` (tanpa permintaan ke `fonts.googleapis.com`/`fonts.gstatic.com`).
 
-### 1.33.0 — Verifikasi Cetak Presisi NodeFlair & Kalibrasi Ikon Tautan Proyek
-- **Verifikasi Presisi Cetak (Headless Chrome → PDF vektor):** Output cetak `reference-nodeflair` diaudit ankor-per-ankor terhadap PDF referensi NodeFlair (2 halaman, total 217 span teks identik di kedua berkas — bukti zero content loss):
+### 1.33.0 — Verifikasi Cetak Presisi Layout Referensi V2 & Kalibrasi Ikon Tautan Proyek
+- **Verifikasi Presisi Cetak (Headless Chrome → PDF vektor):** Output cetak `standard-ats-v2` (`reference-nodeflair`) diaudit ankor-per-ankor terhadap PDF spesifikasi referensi (2 halaman, total 217 span teks identik di kedua berkas — bukti zero content loss):
   - Seluruh ankor sumbu-Y (nama, baris kontak, heading section, divider, bullet, ikon, pendidikan) menyimpang ≤ `0.38pt` dari referensi — murni kuantisasi grid pipeline cetak Chrome (300 dpi); tanpa deviasi struktural.
   - Titik pemenggalan halaman identik: halaman 1 berakhir tepat di bullet ke-6 proyek Dokidou; halaman 2 memuat sisa konten + EDUCATION.
   - Lingkungan yang memiliki `Liberation Sans` terpasang (font generator referensi) dirender identik dengan referensi; `Arimo` (metric-compatible) tetap menjadi fallback terpasang untuk lingkungan tanpa Liberation Sans.
 - **Perbaikan Bug (Ikon External-Link pada Nama Proyek):** Anchor tautan proyek tidak lagi memakai `inline-flex` (yang menghapus spasi antar elemen dan mengabaikan `vertical-align`); kembali ke aliran inline murni dengan spasi eksplisit — posisi ikon kini presisi (Δ ≤ `0.09pt` terhadap referensi, sebelumnya lenceng hingga `2.3pt`).
 - **Divergensi Diterima (Disengaja & Terdokumentasi):** Pemenggalan halaman menggunakan model *atomic-per-item* (`<li>` utuh tidak pernah terbelah antar halaman), berbeda dari generator referensi yang bersifat *line-atomic*. Konsekuensi: bullet ke-7 Dokidou utuh berpindah ke halaman 2 sehingga heading EDUCATION di halaman 2 berada `+12.6pt` (satu baris) lebih rendah dari referensi. Perilaku ini dipertahankan demi integritas item dan konsistensi dengan preset layout lain.
 
-### 1.32.0 — NodeFlair Reference Layout Preset Integration
-- **Baru:** Preset layout ketiga `reference-nodeflair` (NodeFlair Reference Layout) — implementasi non-destruktif spesifikasi referensi NodeFlair (`PDF_MAKER_REFERENCE_LAYOUT_SPEC.md`):
+### 1.32.0 — Standard ATS V2 Reference Layout Preset Integration
+- **Baru:** Preset layout ketiga `standard-ats-v2` (Standard ATS V2; ID legacy `reference-nodeflair`) — implementasi non-destruktif spesifikasi layout referensi (`PDF_MAKER_REFERENCE_LAYOUT_SPEC.md`):
   - Font stack: `Liberation Sans` / `Arimo` (regular & bold).
   - Tipografi terkalibrasi: Nama `18.01pt` bold `#1F2937`, body & heading seragam `8.41pt` (`#1F2937` / `#212529`), kontak `8.41pt` `#6B7280` dengan underline muted-gray.
   - Line rhythm: `12.61pt` exact baseline-to-baseline advance.

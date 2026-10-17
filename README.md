@@ -8,31 +8,63 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
-Cevee is a resume builder for anyone who has watched a perfectly good CV disappear into an applicant tracking system. Instead of guessing how a PDF will render, you edit directly on a real A4 sheet — type into the page, rearrange sections in place, and export a clean vector PDF that looks exactly like the one you were editing. No watermark, no clipped margins, no mystery blank pages.
-
-It runs entirely in the browser. Use it as a guest and your work stays in local storage, or sign in to keep every resume synced across devices.
+Cevee is a browser-based resume builder that renders a real A4 page while you edit. Type directly on the sheet, reorder sections in place, and export a vector PDF whose text applicant tracking systems can parse. Guest mode keeps documents in the browser; signing in keeps them in sync through Supabase.
 
 ## Features
 
-- **Edit on the page, not next to it.** Click any part of the resume — name, contact line, a bullet, a section title — and edit it where it sits. There is no separate form pane, so what you see is what you get.
-- **Modular layout engine & presets.** Switch between three ATS-calibrated presets anytime with 100% content preservation:
-  - `standard-ats-v1`: Centered single-column industry standard ATS layout (legacy ID: `classic-ats`).
-  - `standard-ats-v2`: Calibrated NodeFlair reference layout with Liberation Sans / Arimo metrics and hairline dividers (legacy ID: `reference-nodeflair`).
-  - `modern-photo`: Asymmetric header with a 3:4 portrait photo frame and unified left-aligned credentials.
-  - Automatic legacy ID normalization preserves existing user documents across local storage and cloud databases.
-- **High-fidelity vector layout previews.** Sidebar and modal miniatures render calibrated A4 vector previews with authentic micro-typography and proportional density instead of generic skeleton bars.
-- **Pixel-accurate A4 export.** Print styles are isolated from the app chrome, so downloading produces a true 210 × 297 mm vector document with selectable text that ATS software can actually read.
-- **ATS-first self-hosted typography.** Static `@fontsource/inter` and `@fontsource/arimo` packages bundle fonts locally to produce clean Type0/CIDFontType2 vector subsets, eliminating Type3 procedural font bloat and slashing PDF download sizes by ~68% without CDN dependencies.
-- **Client-side photo compression.** Uploading a portrait photo auto-crops to a 3:4 ratio and compresses to ~30 KB via HTML5 Canvas, keeping vector PDFs under 100 KB.
-- **Any section you need.** Start with Summary, Work Experience, Education, Projects, and Skills, then add Certifications, Languages, Publications, Awards, Volunteering, References, or a fully custom section.
-- **Show promotions in one place.** Group several roles under a single company to show career progression without repeating the employer on every line.
-- **Rich text where it matters.** Bold, italic, underline, links, and bulleted or numbered lists for job descriptions.
-- **A date picker that actually fits.** A compact month-year picker replaces the clunky native date input across every section.
-- **Automatic chronological sorting.** Entries are ordered from most recent to oldest across all sections with present-role awareness.
-- **Multiple resumes.** Create, duplicate, rename, and delete as many versions as you have job applications.
-- **Works on your phone.** The whole editor is responsive down to 320 px: the A4 canvas reflows, hover controls become tappable, and the preview fits the screen.
-- **Cloud sync or guest mode.** Sign in to store resumes in Supabase with row-level security, or stay a guest and keep everything on your device.
-- **No tracking.** Your documents are your business. Cevee does not report on their contents.
+### Editing
+
+- **Edit on the page.** Change the name, contact line, bullets, or section titles in place, without a separate form pane.
+- **Rich text where it counts.** Bold, italic, underline, links, and bulleted or numbered lists inside job descriptions.
+- **Month-year date picker.** A compact picker replaces the native date input in every section.
+- **Chronological ordering.** Entries sort from most recent to oldest across all sections, and current roles stay on top.
+- **Grouped promotions.** Keep several roles under one company to show career progression without repeating the employer on every line.
+
+### Templates and export
+
+- **Three switchable templates.** They share a single content model, so switching never moves or drops content.
+- **True A4 export.** Print styles are isolated from the editor, so the PDF contains the resume only: a 210 × 297 mm vector document with selectable text.
+- **Calibrated previews.** Sidebar and modal miniatures render the actual template at A4 scale with its real typography.
+- **Self-hosted fonts.** Inter and Arimo ship with the app through `@fontsource`, so font assets load from the bundle and exported PDFs embed static subsets instead of depending on a CDN.
+
+### Content
+
+- **Sections for every case.** Summary, Work Experience, Education, Projects, and Skills are built in; add Certifications, Languages, Publications, Awards, Volunteering, References, or a custom section.
+- **Multiple resumes.** Create, duplicate, rename, and delete as many versions as you have applications.
+- **Mobile editing.** The editor reflows down to 320 px: the A4 canvas scrolls, controls become tappable, and the preview fits the screen.
+
+### Data and privacy
+
+- **Cloud sync or guest mode.** Sign in to store resumes in Supabase with row-level security, or stay a guest with data in `localStorage`.
+- **No content tracking.** Cevee does not read or report on resume contents.
+
+## Layout Templates
+
+Templates are plugins. Each one lives in its own folder under `src/layouts/` and exports a `LayoutPlugin`: page geometry, line metrics, header renderer, content blocks, and preview thumbnail. The registry in `src/layouts/registry.ts` assembles them for the editor and maps retired layout identifiers to their current equivalents, so resumes saved by earlier releases open unchanged.
+
+Folder and file names are free to choose. The example below shows how a template named `Layout Name` is built:
+
+```text
+src/layouts/
+├── core/                          # Framework shared by every template
+│   ├── types.ts                   # LayoutPlugin, ContentBlock, and LayoutGeometry types
+│   ├── packing.ts                 # Paginates measured blocks across A4 pages
+│   └── content.tsx                # Parses and renders rich text content parts
+├── shared/                        # Building blocks reused across templates
+│   ├── single-column-blocks.tsx   # Section block builder for single-column formats
+│   └── MiniPreview.tsx            # Scaled A4 preview used in cards and modals
+├── layout-name/                   # One template plugin
+│   ├── index.tsx                  # Exports the LayoutPlugin definition
+│   ├── metrics.ts                 # Page height caps and estimated line heights
+│   ├── blocks.tsx                 # Header and section renderers for the template
+│   ├── Thumbnail.tsx              # Preview image shown on the template card
+│   └── layout-name.css            # Template-scoped page and print styles
+└── registry.ts                    # Template registry, default template, legacy ID normalization
+```
+
+Templates keep only the files they need, and anything reusable belongs in `core/` or `shared/`. Register the plugin in `registry.ts` to make it selectable.
+
+Switching templates from the creation dialog or the editor sidebar preserves all content.
 
 ## Tech Stack
 
@@ -41,11 +73,11 @@ It runs entirely in the browser. Use it as a guest and your work stays in local 
 | Framework | React 18 + TypeScript |
 | Build tool | Vite |
 | Styling | Tailwind CSS |
-| Typography | @fontsource/inter, @fontsource/arimo (Self-hosted static fonts) |
+| Typography | Inter and Arimo via `@fontsource` (self-hosted static fonts) |
 | Rich text | Tiptap (StarterKit, Underline, Link) |
 | Sanitization | DOMPurify (XSS prevention) |
 | Icons | Lucide React |
-| Backend & auth | Supabase (PostgreSQL, Auth, Row Level Security) |
+| Backend and auth | Supabase (PostgreSQL, Auth, Row Level Security) |
 | PDF engine | Native print engine (`window.print()` + CSS `@page`) |
 | Code quality | ESLint 10 (Flat config) + Prettier |
 | Deployment | Vercel (SPA rewrites) |
@@ -68,7 +100,7 @@ npm run dev
 
 The dev server starts at `http://localhost:5173`.
 
-Supabase is optional. Without it, the app runs in guest mode and stores everything in `localStorage`, so you can start building immediately.
+Supabase is optional. Without it, the app runs in guest mode and stores documents in `localStorage`, so you can start building immediately.
 
 ### Production build
 
@@ -106,7 +138,7 @@ create table if not exists public.resumes (
   id text primary key,
   user_id uuid references auth.users(id) on delete cascade not null default auth.uid(),
   title text not null default 'Untitled Resume',
-  layout_id text not null default 'classic-ats',
+  layout_id text not null default 'standard-ats-v1',
   content jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default timezone('utc'::text, now()),
   updated_at timestamptz not null default timezone('utc'::text, now())
@@ -130,53 +162,55 @@ create policy "Users can delete their own resumes"
   on public.resumes for delete using (auth.uid() = user_id);
 ```
 
-Each row stores a full resume document as JSONB, so the schema stays stable even as new section types are added.
+Each row stores a full resume document as JSONB, so the schema stays stable as new section types are added.
 
 ## Project Structure
 
 ```text
 src/
 ├── components/
-│   ├── sections/               # Summary, Skills, Experience, Projects, Education, Custom
-│   ├── AddSectionBar.tsx       # Add preset or custom sections
-│   ├── AuthPage.tsx            # Sign-in screen (email & Google)
-│   ├── ConfirmDialog.tsx       # Confirm destructive actions (React Portal)
-│   ├── DatePicker.tsx          # Reusable month-year picker
-│   ├── LayoutSelectModal.tsx   # Pre-creation layout selection modal
-│   ├── LayoutSidebar.tsx       # Docked left container for layout switching
-│   ├── LayoutThumbnail.tsx     # Layout switcher card with active indicator
-│   ├── Navbar.tsx              # Top bar, resume switcher, sync status, export
-│   ├── PaginatedResumeView.tsx # Thin orchestrator for active layout pagination & rendering
-│   ├── PreviewModal.tsx        # 1:1 PDF preview modal
-│   ├── ResumeDashboard.tsx     # Multi-resume dashboard
-│   ├── ResumeHeader.tsx        # Contact & profile header editor (photo support)
-│   ├── ResumeMiniPreview.tsx   # Calibrated A4 vector SVG document preview
-│   ├── RichTextEditor.tsx      # Tiptap wrapper
-│   └── SectionHeader.tsx       # Section title + reorder/delete controls
+│   ├── sections/                # Section editors (Summary, Skills, Experience, Projects, Education, Custom)
+│   ├── AddSectionBar.tsx        # Preset and custom section picker
+│   ├── AuthPage.tsx             # Sign-in screen (email and Google)
+│   ├── ConfirmDialog.tsx        # Confirmation for destructive actions
+│   ├── DatePicker.tsx           # Month-year picker
+│   ├── LayoutSelectModal.tsx    # Template picker shown before a resume is created
+│   ├── LayoutSidebar.tsx        # Docked template switcher in the editor
+│   ├── LayoutThumbnail.tsx      # Template card with active indicator
+│   ├── Navbar.tsx               # Resume switcher, sync status, export
+│   ├── PaginatedResumeView.tsx  # Pagination and print rendering for the active template
+│   ├── PreviewModal.tsx         # Full preview of the printed output
+│   ├── ResumeDashboard.tsx      # Multi-resume dashboard
+│   ├── ResumeHeader.tsx         # Contact and profile header editor
+│   ├── ResumeMiniPreview.tsx    # Scaled A4 preview in the editor
+│   ├── RichTextEditor.tsx       # Tiptap wrapper
+│   └── SectionHeader.tsx        # Section title with reorder and delete controls
 ├── data/
-│   ├── initialData.ts          # Starter resume template (defaults to standard-ats-v1)
-│   └── layouts.ts              # Catalog definitions for layout presets
-├── layouts/
-│   ├── core/                   # Layout contract types, content renderer & packing logic
-│   ├── modern-photo/           # Photo Header single-column plugin & thumbnail
-│   ├── shared/                 # Reusable single-column content blocks & MiniPreview
-│   ├── standard-ats-v1/        # Standard ATS Single-Column v1 plugin & thumbnail
-│   ├── standard-ats-v2/        # NodeFlair reference spec v2 plugin, blocks & isolated CSS
-│   └── registry.ts             # Layout plugin registry & legacy ID normalizer
+│   ├── initialData.ts           # Starter resume
+│   └── layouts.ts               # Template catalog for the UI, built from the registry
+├── layouts/                     # Template plugins and shared layout code
+│   ├── core/                    # Layout contract, page packing, and content renderer
+│   ├── shared/                  # Single-column blocks and mini previews shared by templates
+│   └── registry.ts              # Template registry, default template, legacy ID normalization
 ├── lib/
-│   ├── resumeService.ts        # Supabase read/write helpers
-│   └── supabase.ts             # Supabase client initialization
+│   ├── resumeService.ts         # Supabase read and write helpers
+│   └── supabase.ts              # Supabase client initialization
 ├── types/
-│   └── resume.ts               # Document & layout type definitions
+│   └── resume.ts                # Document and layout types
 ├── utils/
-│   ├── imageCompressor.ts      # Client-side 3:4 profile photo compression
-│   ├── periodSort.ts           # Automatic chronological sorting
-│   ├── sanitize.ts             # DOMPurify HTML sanitization wrapper
-│   └── whatsApp.ts             # Phone number normalization & WhatsApp link builder
-├── App.tsx                     # Root application controller & layout dispatcher
-├── index.css                   # Global styles & A4 media print rules
-└── main.tsx                    # Entry point & font imports
+│   ├── imageCompressor.ts       # 3:4 profile photo compression
+│   ├── periodSort.ts            # Chronological sorting
+│   ├── sanitize.ts              # HTML sanitization with DOMPurify
+│   └── whatsApp.ts              # Phone normalization and WhatsApp links
+├── App.tsx                      # Root controller and template dispatcher
+├── index.css                    # Global styles and A4 print rules
+└── main.tsx                     # Entry point and font imports
 ```
+
+## Documentation
+
+- `SRS.md`: software requirements, layout catalog, and version history.
+- `PDF_FORMATTING_SPEC.md`: page geometry and print output specification.
 
 ## Scripts
 
@@ -199,7 +233,7 @@ src/
 
 ## Contributing
 
-Issues and pull requests are welcome. If you are proposing a larger change, open an issue first so we can agree on the approach before you write code. When submitting a PR, keep the existing code style and make sure `npm run build` passes.
+Issues and pull requests are welcome. For larger changes, open an issue first so the approach can be agreed on before you write code. Keep the existing code style, and make sure `npm run build` and `npm run lint` pass before submitting.
 
 ## License
 
