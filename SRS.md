@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.35.0  
+**Dokumen Versi:** 1.36.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Responsive — Desktop, Tablet & Mobile)  
@@ -105,7 +105,8 @@ Cevee memungkinkan pengguna:
 ### 3.2 FR-2: Manajemen Multi-CV & Resume Dashboard
 - **FR-2.1 (Resume Dashboard & Default Landing View):**
   - **Halaman Awal:** Saat pengguna membuka aplikasi, pengguna pertama kali diarahkan ke halaman **Resume Dashboard** (`ResumeDashboard`) yang menampilkan daftar seluruh CV yang dimiliki sebelum memasuki kanvas kustomisasi.
-  - **Kartu Resume Terstruktur:** Setiap resume ditampilkan dalam kartu informatif memuat judul CV, nama kandidat, tanggal pembaruan terakhir, jumlah section, serta tombol aksi cepat: *Edit resume* (membuka editor kanvas), *Quick Preview* (modal pratinjau instan), *Duplicate*, dan *Delete*.
+  - **Kartu Resume Terstruktur:** Setiap resume ditampilkan dalam kartu informatif memuat judul CV, nama kandidat, tanggal pembaruan terakhir (`relativeTime` — "Updated 2 hours ago"), jumlah section, serta tombol aksi cepat: *Edit resume* (membuka editor kanvas), *Quick Preview* (modal pratinjau instan), dan menu tiga titik berisi *Rename resume* (inline, langsung tersimpan), *Duplicate resume*, *Download PDF*, dan *Delete resume*. Pada tampilan daftar (*list view*), kolom *Actions* menyediakan tombol mata (*Quick preview*) dan menu tiga titik yang sama.
+  - **Thumbnail Konten Nyata (Real-Content Thumbnail):** Kartu dashboard merender halaman 1 dari konten resume sungguhan dengan tipografi dan geometri layout masing-masing (`ResumeContentThumbnail`), menggantikan wireframe SVG statis. Konten mendukung rich text, foto profil, dan skala A4 aslinya.
   - **Kondisi Kosong (Empty State Anti-Slop):** Jika pengguna belum memiliki resume sama sekali (0 resume), dashboard menampilkan antarmuka bersih tanpa ilustrasi generik:
     - Judul: *"No resumes created yet"*
     - Penjelasan: *"You haven't created any resumes yet. Start building your first ATS-friendly resume to edit and download."*
@@ -130,6 +131,10 @@ Cevee memungkinkan pengguna:
   - Mendukung navigasi keyboard: tombol `Escape` untuk membatalkan dialog serta penguncian scroll latar belakang (`overflow: hidden`) saat modal aktif.
 - **FR-2.6 (Switch Active):** Pengguna dapat berpindah dari satu CV ke CV lain tanpa me-refresh halaman.
 - **FR-2.7 (UX Writing & Microcopy Standards):** Seluruh tombol aksi, tooltip, status indikator, dialog modal konfirmasi, pesan kesalahan autentikasi, serta placeholder input pada seluruh section distandarisasi 100% ke bahasa Inggris (English US) profesional yang ringkas, berorientasi tindakan (*verb-oriented*), dan konsisten tanpa residu teks multibahasa. Teks dialog penghapusan disesuaikan agar akurat untuk lingkungan penyimpanan lokal maupun akun cloud.
+- **FR-2.8 (Thumbnail Halaman 1 via Mesin Paginasi Nyata):**
+  - Thumbnail kartu dashboard menampilkan **hanya halaman 1** dari resume, bukan seluruh konten yang dipadatkan/terpotong ke dalam satu lembar.
+  - `ResumeContentThumbnail` meniru persis pipeline `PaginatedResumeView`: kontainer ukur tersembunyi mengukur tinggi `getBoundingClientRect()` setiap blok (dikalibrasi ulang setelah `document.fonts.ready`), kemudian `runPagination()` di `layouts/core/packing.ts` mengambil halaman pertama dengan geometri layout (`maxPageHeightPx`, lebar konten, tipografi) yang sama persis.
+  - Hasilnya identik 1:1 dengan halaman 1 modal preview — resume multi-halaman tampil sebagai kover halaman 1 yang utuh (whitespace bawah fisik dipertahankan), dan teks thumbnail terverifikasi identik dengan pratinjau print.
 
 ### 3.3 FR-3: In-Place Canvas & Editor (WYSIWYG)
 - **FR-3.1 (A4 Container & Margin Padat):** Area kerja menampilkan lembar putih dengan rasio aspek A4 (210mm x 297mm) dengan margin padat standar ATS: `10mm` (atas), `13mm` (samping kiri-kanan), dan `12mm` (bawah) guna memaksimalkan kepadatan informasi dokumen.
@@ -292,7 +297,7 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
   - Sistem menyediakan 3 pilihan preset layout standar:
     1. **`standard-ats-v1` (Standard Single-Column ATS; ID legacy `classic-ats`):** Format resume 1 kolom standar industri ATS, header tengah adaptif tanpa foto, margin padat (10mm/13mm/12mm), tipografi seragam 7.75pt, dan pembatas garis hairline.
     2. **`modern-photo` (Photo Header Single-Column):** Format resume 1 kolom dengan bingkai foto profil portrait rasio 3:4 (~22mm x 28mm pada cetak fisik A4) di sisi kiri header, serta nama kandidat bold dan baris kontak dot separator terpadu rata kiri (*left-aligned*) di sisi kanan foto. Seluruh section lain (Summary rata kiri-kanan, Skills, Experience, Education, Projects, Custom Section) 100% identik dan tetap di posisi aslinya.
-    3. **`standard-ats-v2` (Standard ATS V2; ID legacy `reference-nodeflair`):** Format resume terkalibrasi persis dengan spesifikasi layout referensi (`PDF_MAKER_REFERENCE_LAYOUT_SPEC.md`). Menggunakan font stack Liberation Sans / Arimo, nama `18.01pt`, teks konten seragam `8.41pt`, line advance `12.61pt` (rasio 1.5), margin kiri `26.86pt` (~9.48mm) dan kanan `27.11pt` (~9.57mm), garis pembatas `0.60pt solid #1F2937`, perataan kiri (*left-aligned*) untuk summary dan butir pencapaian, serta titik peluru lingkaran solid diameter `2.40pt`.
+    3. **`standard-ats-v2` (Standard ATS V2; ID legacy `reference-nodeflair`):** Format resume terkalibrasi persis dengan spesifikasi layout referensi (`PDF_MAKER_REFERENCE_LAYOUT_SPEC.md`). Menggunakan font stack Liberation Sans / Arimo, nama `18.01pt`, teks konten seragam `8.41pt`, line advance `12.61pt` (rasio 1.5), margin kiri `26.86pt` (~9.48mm) dan kanan `27.11pt` (~9.57mm), garis pembatas `0.60pt solid #1F2937`, perataan kiri-kanan (*justified*) untuk ringkasan, paragraf deskripsi, dan butir pencapaian, serta titik peluru lingkaran solid diameter `2.40pt`. Kategori keahlian (`Languages:`, `Analysis:`, dsb.), heading section, dan judul dokumen tetap rata kiri (*left-aligned*).
   - Komponen upload foto terintegrasi pada form edit header dengan kompresi kanvas client-side (`compressProfilePhoto`) berukuran max 300x400 px rasio 3:4 (~25-40 KB) dengan preservasi state foto pada mode edit form.
   - Seluruh struktur komponen dialog pemilih, tipe data, dan alur kerja diimplementasikan secara dinamis (*data-driven*) mempermudah ekspansi template di masa mendatang.
 - **FR-12.4 (Preservasi Data & Integritas Konten):**
@@ -603,6 +608,17 @@ export interface ResumeDocument {
 ---
 
 ## 7. RIWAYAT VERSI (CHANGELOG)
+
+### 1.36.0 — Real-Content Page-1 Dashboard Thumbnails & Standard ATS V2 Justification
+- **Thumbnail Konten Nyata di Dashboard:** Kartu resume kini merender halaman 1 dari konten resume sungguhan (`ResumeContentThumbnail`) dengan tipografi, rich text, foto profil, dan geometri layout masing-masing — menggantikan wireframe SVG statis pada kartu; resume multi-halaman tampil sebagai kover halaman 1 yang utuh, bukan konten yang dipadatkan.
+- **Perbaikan Bug Paginasi Thumbnail:** Thumbnail kini meniru persis pipeline `PaginatedResumeView` (kontainer ukur tersembunyi + pengukuran ulang setelah `document.fonts.ready` + `runPagination()`), sehingga hanya halaman 1 yang dirender dalam rasio A4 asli; teks thumbnail terverifikasi identik dengan halaman 1 modal preview (fill ratio identik pada fixture multi-halaman 2 lembar).
+- **Menu Aksi Kartu & Tampilan Daftar:**
+  - Menu tiga titik pada kartu dashboard: `Rename resume` (inline, tersimpan langsung via `handleRenameResume`), `Duplicate resume`, `Download PDF`, dan `Delete resume`.
+  - Tampilan daftar (*list view*) menambah tombol mata *Quick preview* pada kolom *Actions* (lebar kolom `8.5rem`) dan label waktu relatif `Updated 2 hours ago` (`src/utils/relativeTime.ts`).
+- **Perataan Kiri-Kanan (Justify) Standard ATS V2:** Ringkasan (`.resume-summary-text`), paragraf deskripsi (`.ref-para`), dan butir bullet (`.ref-bullet-list li`) kini `text-align: justify` — konsisten dengan `standard-ats-v1`. Berlaku seragam di kanvas editor, modal preview, dan cetak PDF (rule lawan `text-align: left` pada `.text-justify` dihapus dari match). Kategori skills, heading section, dan nama dokumen tetap rata kiri.
+  - Bagian aspek layout `standard-ats-v2` (deskripsi + fitur) diperbarui menjadi "justified".
+- **Polish AuthPage:** Brand mark Cevee dipindahkan dari top bar ke dalam kartu autentikasi di atas heading.
+- **Verifikasi:** `npm run lint` ✓, `npm run build` ✓; suite headless ALL_PASS (22 assertion: identitas teks thumbnail vs halaman 1 modal, V2 justify bullets/para, canvas `.text-justify` aktif, baseline V1 tidak berubah); gate review Better Design (rules, comprehension, inspect-spacing 390/1440/1728) lolos tanpa temuan critical/serius.
 
 ### 1.30.0 — Full Codebase Quality, Security & Cloud Audit Hardening
 - **Sinkronisasi Kolom Layout Cloud:** Penambahan kolom `layout_id TEXT NOT NULL DEFAULT 'classic-ats'` ke database Supabase `resumes` dengan migrasi otomatis dan mekanisme fallback graceful degradation di `resumeService.ts`.

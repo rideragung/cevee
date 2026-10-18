@@ -25,12 +25,14 @@ Cevee is a browser-based resume builder that renders a real A4 page while you ed
 - **Three switchable templates.** They share a single content model, so switching never moves or drops content.
 - **True A4 export.** Print styles are isolated from the editor, so the PDF contains the resume only: a 210 × 297 mm vector document with selectable text.
 - **Calibrated previews.** Sidebar and modal miniatures render the actual template at A4 scale with its real typography.
+- **Real-content dashboard thumbnails.** Dashboard cards render page 1 of the actual resume with each template's real typography and pagination engine, so multi-page resumes are never squashed or clipped into a single preview.
+- **Justified body copy.** Summary and achievement bullets align flush on both edges in every template, on the canvas, in the preview, and in the printed PDF.
 - **Self-hosted fonts.** Inter and Arimo ship with the app through `@fontsource`, so font assets load from the bundle and exported PDFs embed static subsets instead of depending on a CDN.
 
 ### Content
 
 - **Sections for every case.** Summary, Work Experience, Education, Projects, and Skills are built in; add Certifications, Languages, Publications, Awards, Volunteering, References, or a custom section.
-- **Multiple resumes.** Create, duplicate, rename, and delete as many versions as you have applications.
+- **Multiple resumes.** Create, duplicate, rename, and delete as many versions as you have applications, with quick preview available from the card menu or the list view.
 - **Mobile editing.** The editor reflows down to 320 px: the A4 canvas scrolls, controls become tappable, and the preview fits the screen.
 
 ### Data and privacy
@@ -180,6 +182,7 @@ src/
 │   ├── Navbar.tsx               # Resume switcher, sync status, export
 │   ├── PaginatedResumeView.tsx  # Pagination and print rendering for the active template
 │   ├── PreviewModal.tsx         # Full preview of the printed output
+│   ├── ResumeContentThumbnail.tsx # Page-1 real-content thumbnail for dashboard cards
 │   ├── ResumeDashboard.tsx      # Multi-resume dashboard
 │   ├── ResumeHeader.tsx         # Contact and profile header editor
 │   ├── ResumeMiniPreview.tsx    # Scaled A4 preview in the editor
@@ -200,6 +203,7 @@ src/
 ├── utils/
 │   ├── imageCompressor.ts       # 3:4 profile photo compression
 │   ├── periodSort.ts            # Chronological sorting
+│   ├── relativeTime.ts          # Relative time labels ("2 hours ago")
 │   ├── sanitize.ts              # HTML sanitization with DOMPurify
 │   └── whatsApp.ts              # Phone normalization and WhatsApp links
 ├── App.tsx                      # Root controller and template dispatcher
