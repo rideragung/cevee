@@ -3,12 +3,14 @@ import { SectionHeader } from '../SectionHeader';
 import { RichTextEditor } from '../RichTextEditor';
 import { Pencil, ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
 import { sanitizeHtml } from '../../utils/sanitize';
+import { normalizeLayoutId } from '../../layouts/registry';
 
 interface SummarySectionProps {
   title: string;
   showTitle?: boolean;
   isPlaceholder?: boolean;
   data: { html: string };
+  layoutId?: string;
   onRename: (title: string) => void;
   onUpdateData: (data: { html: string }, isPlaceholder?: boolean) => void;
   onMoveUp: () => void;
@@ -23,6 +25,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   showTitle = false,
   isPlaceholder = false,
   data,
+  layoutId,
   onRename,
   onUpdateData,
   onMoveUp,
@@ -33,6 +36,14 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(data.html);
+  const normalizedLayout = normalizeLayoutId(layoutId);
+  const topMarginClass = !showTitle
+    ? normalizedLayout === 'modern-photo'
+      ? 'mt-2.5'
+      : normalizedLayout === 'standard-ats-v1'
+        ? 'mt-2'
+        : ''
+    : '';
 
   const handleSave = () => {
     const hasText = Boolean(content && content.replace(/<[^>]*>/g, '').trim());
@@ -46,7 +57,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   };
 
   return (
-    <section className="group relative mb-1.5">
+    <section className={`group relative mb-1.5 ${topMarginClass}`}>
       {showTitle && !isEditing && (
         <SectionHeader
           title={title}

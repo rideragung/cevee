@@ -409,7 +409,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
 
   if (layoutId === 'modern-photo') {
     return (
-      <div className="resume-header group relative mb-2.5 pb-0.5">
+      <div className="resume-header group relative mb-0 pb-0.5">
         {/* Edit trigger button */}
         <button
           type="button"
@@ -511,7 +511,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
   }
 
   return (
-    <div className="resume-header group relative text-center mb-2 pb-0.5">
+    <div className="resume-header group relative text-center mb-0 pb-0.5">
       {/* Edit trigger button */}
       <button
         type="button"

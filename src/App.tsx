@@ -747,6 +747,7 @@ export function App() {
                       showTitle={section.showTitle}
                       isPlaceholder={section.isPlaceholder}
                       data={section.data}
+                      layoutId={activeResume.layoutId}
                       onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
                       onUpdateData={(newData, isPlaceholder) =>
                         handleUpdateSectionData(section.id, newData, isPlaceholder)

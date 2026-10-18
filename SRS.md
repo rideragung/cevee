@@ -609,6 +609,19 @@ export interface ResumeDocument {
 
 ## 7. RIWAYAT VERSI (CHANGELOG)
 
+### 1.37.0 — Layout Spacing & Anti-Orphan Alignment Across Presets
+- **Standard ATS V2 — Eliminasi Spacer & Paritas Margin Item:**
+  - Menghapus 4 blok spacer `ref-spacer` (`16.8135px`) di `standard-ats-v2/blocks.tsx` (positions, single experience, projects, education) yang sebelumnya memicu jarak bawah berlebih di pratinjau dan cetak PDF dibanding kanvas editor (editor V2 menol-kan margin antar-item via stylesheet `standard-ats-v2.css`).
+  - Menghapus tail margin `mb-2`/`mb-1.5` pada 4 placeholder item V2 serta menyesuaikan estimasi tingginya (`experience` 50.44→42.44, `projects` 37.83→29.83, `education` 50.44→44.44, `custom` 25.22→17.22).
+- **Core Packing — Rantai Anti-Orphan Header Section:**
+  - `src/layouts/core/packing.ts`: Meningkatkan algoritma anti-orphan dari pemeriksaan blok tunggal menjadi rantai header (`section-title` + `item-head` + `item-subhead`). Judul section dipastikan muat bersama seluruh header dan blok konten pertama di halaman yang sama, mencegah judul tertinggal sendirian di akhir halaman (mis. heading EDUCATION).
+- **Standard ATS V1 & Modern Photo — Kalibrasi Jarak Kontak ke Summary:**
+  - Memperbaiki jarak bawah antara baris kontak dan summary pada `standard-ats-v1` dan `modern-photo` yang sebelumnya terlalu mepet (hanya 2px saat summary tanpa judul / `showTitle: false`).
+  - `src/layouts/shared/single-column-blocks.tsx`: Saat `!shouldShowTitle`, blok summary diberi `mt-2` (8px) untuk ATS V1 atau `mt-2.5` (10px) untuk Modern Photo, dan `estimateSummaryHeight` diperbarui (+8px / +10px).
+  - `src/components/sections/SummarySection.tsx`: Menambahkan prop `layoutId` dan class margin atas identik di editor (`mt-2` untuk V1, `mt-2.5` untuk Photo), dengan total jarak visual 10px (ATS V1) dan 12px (Modern Photo) yang identik 1:1 antara editor dan pratinjau.
+  - `src/App.tsx`: Meneruskan `layoutId={activeResume.layoutId}` ke `SummarySection`.
+- **Verifikasi:** `npm run lint` ✓ (0 error), `npm run build` ✓ (TypeScript + Vite bundle sukses).
+
 ### 1.36.0 — Real-Content Page-1 Dashboard Thumbnails & Standard ATS V2 Justification
 - **Thumbnail Konten Nyata di Dashboard:** Kartu resume kini merender halaman 1 dari konten resume sungguhan (`ResumeContentThumbnail`) dengan tipografi, rich text, foto profil, dan geometri layout masing-masing — menggantikan wireframe SVG statis pada kartu; resume multi-halaman tampil sebagai kover halaman 1 yang utuh, bukan konten yang dipadatkan.
 - **Perbaikan Bug Paginasi Thumbnail:** Thumbnail kini meniru persis pipeline `PaginatedResumeView` (kontainer ukur tersembunyi + pengukuran ulang setelah `document.fonts.ready` + `runPagination()`), sehingga hanya halaman 1 yang dirender dalam rasio A4 asli; teks thumbnail terverifikasi identik dengan halaman 1 modal preview (fill ratio identik pada fixture multi-halaman 2 lembar).

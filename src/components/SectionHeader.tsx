@@ -50,7 +50,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   };
 
   return (
-    <div className="group relative resume-section-divider border-b-[0.5px] border-slate-900 pb-0.5 mb-1.5 mt-2.5 first:mt-0.5">
+    <div className="group relative resume-section-divider border-b-[0.5px] border-slate-900 pb-0.5 mb-[4.5917pt] mt-[5.2058pt]">
       <div className="flex items-center justify-between">
         {/* Title area */}
         {isEditingTitle ? (

@@ -112,7 +112,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
   };
 
   return (
-    <section className="mb-2">
+    <section className="mb-1.5">
       {!isEditing && (
         <SectionHeader
           title={title}

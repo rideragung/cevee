@@ -117,7 +117,7 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
       list.push({
         id: `title-${section.id}`,
         type: 'section-title',
-        height: 35.23,
+        height: 32.56,
         render: () => (
           <div className="ref-heading-wrap">
             <h2 className="ref-heading">{section.title}</h2>
@@ -180,9 +180,9 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
         list.push({
           id: `item-${section.id}-placeholder`,
           type: 'item',
-          height: 50.44,
+          height: 42.44,
           render: () => (
-            <div className="mb-2 text-slate-400">
+            <div className="text-slate-400">
               <div className="flex justify-between items-baseline font-bold leading-snug">
                 <span className="text-slate-400">Position</span>
                 <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
@@ -217,7 +217,6 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
 
             sortedPositions.forEach((pos: ExperiencePosition, posIdx: number) => {
               const positionBullets = parseContentParts(pos.bullets || '');
-              const isLastPosition = posIdx === sortedPositions.length - 1;
 
               list.push({
                 id: `item-${section.id}-${item.id}-pos-${pos.id || posIdx}-head`,
@@ -241,15 +240,6 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
                   ),
                 });
               });
-
-              if (positionBullets.length === 0 && isLastPosition) {
-                list.push({
-                  id: `item-${section.id}-${item.id}-pos-${pos.id || posIdx}-spacer`,
-                  type: 'item-bullet',
-                  height: 16.8135,
-                  render: () => <div className="ref-spacer" />,
-                });
-              }
             });
             return;
           }
@@ -284,15 +274,6 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
               ),
             });
           });
-
-          if (itemBullets.length === 0) {
-            list.push({
-              id: `item-${section.id}-${item.id}-spacer`,
-              type: 'item-bullet',
-              height: 16.8135,
-              render: () => <div className="ref-spacer" />,
-            });
-          }
         });
       }
     } else if (section.type === 'projects') {
@@ -300,9 +281,9 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
         list.push({
           id: `item-${section.id}-placeholder`,
           type: 'item',
-          height: 37.83,
+          height: 29.83,
           render: () => (
-            <div className="mb-2 text-slate-400">
+            <div className="text-slate-400">
               <div className="flex justify-between items-baseline leading-snug">
                 <span className="font-bold text-slate-400 inline-flex items-center gap-1">
                   <span>Project Name</span>
@@ -356,15 +337,6 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
               ),
             });
           });
-
-          if (itemBullets.length === 0) {
-            list.push({
-              id: `item-${section.id}-${item.id}-spacer`,
-              type: 'item-bullet',
-              height: 16.8135,
-              render: () => <div className="ref-spacer" />,
-            });
-          }
         });
       }
     } else if (section.type === 'education') {
@@ -372,9 +344,9 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
         list.push({
           id: `item-${section.id}-placeholder`,
           type: 'item',
-          height: 50.44,
+          height: 44.44,
           render: () => (
-            <div className="mb-1.5 text-slate-400 space-y-0.5">
+            <div className="text-slate-400 space-y-0.5">
               <div className="flex justify-between items-baseline leading-snug">
                 <span className="font-bold text-slate-400">Bachelor of Computer Science</span>
                 <span className="font-semibold text-slate-400 text-[8.41pt]">May 2022 - Present</span>
@@ -426,15 +398,6 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
               ),
             });
           });
-
-          if (descBlocks.length === 0) {
-            list.push({
-              id: `item-${section.id}-${item.id}-spacer`,
-              type: 'item-bullet',
-              height: 16.8135,
-              render: () => <div className="ref-spacer" />,
-            });
-          }
         });
       }
     } else {
@@ -449,9 +412,9 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
         list.push({
           id: `item-${section.id}-placeholder`,
           type: 'item',
-          height: 25.22,
+          height: 17.22,
           render: () => (
-            <div className="mb-2 text-slate-400 space-y-1">
+            <div className="text-slate-400 space-y-1">
               {isCert && (
                 <div className="flex justify-between items-baseline leading-snug">
                   <div>

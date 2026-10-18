@@ -13,7 +13,7 @@ export const estimateStandardAtsV1HeaderHeight = (header: HeaderData): number =>
     (header.location?.length || 0) + (header.email?.length || 0) + (header.phone?.length || 0) + linksCount * 22;
   const contactLines = Math.max(1, Math.ceil(contactTextLen / 95));
   height += contactLines * 16;
-  height += 10; // mb-2 + pb-0.5
+  height += 2; // pb-0.5
   return Math.max(55, height);
 };
 
@@ -30,7 +30,7 @@ export const renderStandardAtsV1Header = (header: HeaderData): ReactNode => {
     header.willingToRelocate ?? (header.relocationStatus && header.relocationStatus.includes('Willing'));
 
   return (
-    <div className="resume-header text-center mb-2 pb-0.5">
+    <div className="resume-header text-center mb-0 pb-0.5">
       <h1
         className={`text-[17pt] font-bold tracking-tight mb-0.5 leading-tight ${
           header.isPlaceholder ? 'text-slate-400' : 'text-slate-900'

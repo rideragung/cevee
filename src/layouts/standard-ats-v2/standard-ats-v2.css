@@ -112,7 +112,7 @@
 }
 
 .ref-heading-wrap {
-  margin: 7.2058pt 0 4.5917pt !important;
+  margin: 5.2058pt 0 4.5917pt !important;
   padding-bottom: 1.4131pt !important;
   border-bottom: 0.60048pt solid #1F2937 !important;
 }
@@ -235,7 +235,7 @@
 }
 
 .resume-a4-page[data-layout="standard-ats-v2"] .resume-section-divider {
-  margin: 7.2058pt 0 4.5917pt !important;
+  margin: 5.2058pt 0 4.5917pt !important;
   padding-bottom: 1.4131pt !important;
   border-bottom: 0.60048pt solid #1F2937 !important;
 }
@@ -265,6 +265,24 @@
 
 .resume-a4-page[data-layout="standard-ats-v2"] :is(.text-slate-800, .text-slate-900, .text-slate-400) {
   font-size: 8.40675pt !important;
+}
+
+/* Tight section rhythm: the reference sheet adds no section margin and no
+   item margins; the heading top margin alone provides every gap. */
+.resume-a4-page[data-layout="standard-ats-v2"] section {
+  margin-bottom: 0 !important;
+}
+
+.resume-a4-page[data-layout="standard-ats-v2"] [class*="cursor-pointer"] :is(div, p, ul, li) {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Header gap: reference stacks header margin (3.6033pt) plus heading top
+   margin (5.2058pt); the editor collapses them, so bake in the sum. */
+.resume-a4-page[data-layout="standard-ats-v2"] .resume-header {
+  margin-bottom: calc(3.6033pt + 5.2058pt) !important;
+  padding-bottom: 0 !important;
 }
 
 /* Desktop canvas keeps the exact print geometry; mobile keeps its px padding */

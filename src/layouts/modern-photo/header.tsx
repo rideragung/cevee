@@ -14,7 +14,7 @@ export const estimateModernPhotoHeaderHeight = (header: HeaderData): number => {
     (header.location?.length || 0) + (header.email?.length || 0) + (header.phone?.length || 0) + linksCount * 22;
   const contactLines = Math.max(1, Math.ceil(contactTextLen / 76));
   height += contactLines * 16;
-  height += 10; // mb-2 + pb-0.5
+  height += 2; // pb-0.5
   return Math.max(104, height);
 };
 
@@ -31,7 +31,7 @@ export const renderModernPhotoHeader = (header: HeaderData): ReactNode => {
     header.willingToRelocate ?? (header.relocationStatus && header.relocationStatus.includes('Willing'));
 
   return (
-    <div className="resume-header mb-2.5 pb-0.5">
+    <div className="resume-header mb-0 pb-0.5">
       <div className="flex items-center gap-4 text-left">
         {/* 3:4 Profile Photo */}
         <div className="w-[66px] h-[88px] sm:w-[72px] sm:h-[96px] aspect-[3/4] rounded-sm overflow-hidden border border-slate-300 bg-slate-100 flex-shrink-0">

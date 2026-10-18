@@ -100,7 +100,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
   };
 
   return (
-    <section className="mb-2">
+    <section className="mb-1">
       {!isEditing && (
         <SectionHeader
           title={title}
@@ -272,7 +272,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
             setItems(data.items.length > 0 && !isPlaceholder ? sortByPeriodDesc((data.items || []).map(normalizeEduItem)) : [{ id: `edu-${Date.now()}`, degree: '', institution: '', period: '', gpa: '', startDate: '', endDate: '' }]);
             setIsEditing(true);
           }}
-          className="cursor-pointer space-y-1 hover:bg-slate-50/70 p-1 -m-1 rounded transition"
+          className="cursor-pointer space-y-1.5 hover:bg-slate-50/70 p-1 -m-1 rounded transition"
           title={`Click to edit ${title}`}
         >
           {isPlaceholder ? (

@@ -15,6 +15,7 @@ import { sortByPeriodDesc } from '../../utils/periodSort';
 import { sanitizeHtml } from '../../utils/sanitize';
 import { parseContentParts, renderContentPart, stripHtml } from '../core/content';
 import type { ContentBlock, ContentPart } from '../core/types';
+import { normalizeLayoutId } from '../registry';
 
 export interface HeaderBlockSpec {
   estimateHeight: (header: HeaderData) => number;
@@ -113,9 +114,9 @@ export const buildSingleColumnBlocks = (
       list.push({
         id: `title-${section.id}`,
         type: 'section-title',
-        height: 25,
+        height: 30,
         render: () => (
-          <div className="resume-section-divider pb-0.5 mb-1.5 mt-2.5 first:mt-0.5 border-b-[0.5px] border-slate-900">
+          <div className="resume-section-divider pb-0.5 mb-[4.5917pt] mt-[5.2058pt] border-b-[0.5px] border-slate-900">
             <h2 className="font-bold uppercase text-[8.5pt] tracking-wider text-slate-900">{section.title}</h2>
           </div>
         ),
@@ -124,12 +125,17 @@ export const buildSingleColumnBlocks = (
 
     if (section.type === 'summary') {
       const summaryData = section.data;
+      const normalizedLayout = normalizeLayoutId(resume.layoutId);
+      const isModernPhoto = normalizedLayout === 'modern-photo';
+      const topMarginClass = !shouldShowTitle ? (isModernPhoto ? 'mt-2.5' : 'mt-2') : '';
+      const topMarginPx = !shouldShowTitle ? (isModernPhoto ? 10 : 8) : 0;
+
       list.push({
         id: `content-${section.id}`,
         type: 'summary',
-        height: estimateSummaryHeight(summaryData.html, section.isPlaceholder),
+        height: estimateSummaryHeight(summaryData.html, section.isPlaceholder) + topMarginPx,
         render: () => (
-          <div className="mb-1">
+          <div className={topMarginClass}>
             {section.isPlaceholder ? (
               <p className="text-slate-400 text-justify text-[7.75pt] leading-[1.48]">
                 Results-driven professional with proven experience delivering impactful solutions and collaborating across multidisciplinary teams. Skilled in problem-solving, project execution, and standardizing workflows that drive measurable business outcomes. Passionate about continuous learning and contributing to high-performing product environments.
@@ -167,7 +173,7 @@ export const buildSingleColumnBlocks = (
             type: 'skills',
             height: catHeight,
             render: () => (
-              <div className={`text-slate-800 leading-snug ${isLastCat ? 'mb-2' : 'mb-0.5'}`}>
+              <div className={`text-slate-800 leading-snug ${isLastCat ? '' : 'mb-0.5'}`}>
                 <span className="font-bold text-slate-900">{cat.category}:{' '}</span>
                 <span>{cat.items}</span>
               </div>
@@ -198,7 +204,8 @@ export const buildSingleColumnBlocks = (
           ),
         });
       } else {
-        sortByPeriodDesc((section.data as { items?: ExperienceItem[] }).items || []).forEach((item: ExperienceItem) => {
+        sortByPeriodDesc((section.data as { items?: ExperienceItem[] }).items || []).forEach((item: ExperienceItem, itemIdx: number, itemArr: ExperienceItem[]) => {
+          const isLastItem = itemIdx === itemArr.length - 1;
           const hasMultiPositions = item.positions && item.positions.length > 1;
 
           if (hasMultiPositions) {
@@ -244,7 +251,7 @@ export const buildSingleColumnBlocks = (
                   type: 'item-bullet',
                   height: estimateContentPartHeight(part),
                   render: () => (
-                    <div className={`${bIdx === 0 ? 'mt-0.5' : ''} ${isLastBulletOfItem ? 'mb-2' : ''}`}>
+                    <div className={`${bIdx === 0 ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLastBulletOfItem && !isLastItem ? 'mb-2' : ''}`}>
                       {renderContentPart(part, CONTENT_PART_CLASSES)}
                     </div>
                   ),
@@ -256,7 +263,7 @@ export const buildSingleColumnBlocks = (
                   id: `item-${section.id}-${item.id}-pos-${pos.id || posIdx}-spacer`,
                   type: 'item-bullet',
                   height: 8,
-                  render: () => <div className="mb-2" />,
+                  render: () => <div className={isLastItem ? '' : 'mb-2'} />,
                 });
               }
             });
@@ -291,7 +298,7 @@ export const buildSingleColumnBlocks = (
               type: 'item-bullet',
               height: estimateContentPartHeight(part),
               render: () => (
-                <div className={`${bIdx === 0 ? 'mt-0.5' : ''} ${isLastBulletOfItem ? 'mb-2' : ''}`}>
+                <div className={`${bIdx === 0 ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLastBulletOfItem && !isLastItem ? 'mb-2' : ''}`}>
                   {renderContentPart(part, CONTENT_PART_CLASSES)}
                 </div>
               ),
@@ -303,7 +310,7 @@ export const buildSingleColumnBlocks = (
               id: `item-${section.id}-${item.id}-spacer`,
               type: 'item-bullet',
               height: 8,
-              render: () => <div className="mb-2" />,
+              render: () => <div className={isLastItem ? '' : 'mb-2'} />,
             });
           }
         });
@@ -331,7 +338,8 @@ export const buildSingleColumnBlocks = (
           ),
         });
       } else {
-        sortByPeriodDesc((section.data as { items?: ProjectItem[] }).items || []).forEach((item: ProjectItem) => {
+        sortByPeriodDesc((section.data as { items?: ProjectItem[] }).items || []).forEach((item: ProjectItem, itemIdx: number, itemArr: ProjectItem[]) => {
+          const isLastItem = itemIdx === itemArr.length - 1;
           const itemBullets = parseContentParts(item.bullets || '');
 
           // Blok header proyek: nama + periode (sticky dengan bullet pertama)
@@ -370,7 +378,7 @@ export const buildSingleColumnBlocks = (
               type: 'item-bullet',
               height: estimateContentPartHeight(part),
               render: () => (
-                <div className={`${bIdx === 0 ? 'mt-0.5' : ''} ${isLastBulletOfItem ? 'mb-2' : ''}`}>
+                <div className={`${bIdx === 0 ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLastBulletOfItem && !isLastItem ? 'mb-2' : ''}`}>
                   {renderContentPart(part, CONTENT_PART_CLASSES)}
                 </div>
               ),
@@ -382,7 +390,7 @@ export const buildSingleColumnBlocks = (
               id: `item-${section.id}-${item.id}-spacer`,
               type: 'item-bullet',
               height: 8,
-              render: () => <div className="mb-2" />,
+              render: () => <div className={isLastItem ? '' : 'mb-2'} />,
             });
           }
         });
@@ -410,7 +418,8 @@ export const buildSingleColumnBlocks = (
           ),
         });
       } else {
-        sortByPeriodDesc((section.data as { items?: EducationItem[] }).items || []).forEach((item: EducationItem) => {
+        sortByPeriodDesc((section.data as { items?: EducationItem[] }).items || []).forEach((item: EducationItem, itemIdx: number, itemArr: EducationItem[]) => {
+          const isLastItem = itemIdx === itemArr.length - 1;
           const descBlocks = parseContentParts(item.description || '');
 
           // Blok header pendidikan: degree + institution (sticky dengan deskripsi pertama)
@@ -439,7 +448,7 @@ export const buildSingleColumnBlocks = (
               type: 'item-bullet',
               height: estimateContentPartHeight(part),
               render: () => (
-                <div className={`${bIdx === 0 ? 'mt-0.5' : ''} ${isLast ? 'mb-1.5' : ''}`}>
+                <div className={`${bIdx === 0 ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLast && !isLastItem ? 'mb-1.5' : ''}`}>
                   {renderContentPart(part, CONTENT_PART_CLASSES)}
                 </div>
               ),
@@ -451,7 +460,7 @@ export const buildSingleColumnBlocks = (
               id: `item-${section.id}-${item.id}-spacer`,
               type: 'item-bullet',
               height: 6,
-              render: () => <div className="mb-1.5" />,
+              render: () => <div className={isLastItem ? '' : 'mb-1.5'} />,
             });
           }
         });
@@ -519,7 +528,8 @@ export const buildSingleColumnBlocks = (
           ),
         });
       } else {
-        sortByPeriodDesc((section.data as { items?: CustomSectionItem[] }).items || []).forEach((item: CustomSectionItem) => {
+        sortByPeriodDesc((section.data as { items?: CustomSectionItem[] }).items || []).forEach((item: CustomSectionItem, itemIdx: number, itemArr: CustomSectionItem[]) => {
+          const isLastItem = itemIdx === itemArr.length - 1;
           list.push({
             id: `item-${section.id}-${item.id}`,
             type: 'item',
@@ -552,7 +562,7 @@ export const buildSingleColumnBlocks = (
                 );
 
                 return (
-                  <div className="mb-1.5 flex justify-between items-baseline leading-snug text-[7.75pt]">
+                  <div className={`${isLastItem ? '' : 'mb-1.5'} flex justify-between items-baseline leading-snug text-[7.75pt]`}>
                     {credUrl ? (
                       <a
                         href={credUrl}
@@ -577,7 +587,7 @@ export const buildSingleColumnBlocks = (
 
               if (isLang) {
                 return (
-                  <div className="mb-1.5 leading-snug text-slate-800 text-[7.75pt]">
+                  <div className={`${isLastItem ? '' : 'mb-1.5'} leading-snug text-slate-800 text-[7.75pt]`}>
                     <span className="font-bold">{item.title}</span>
                     {item.subtitle && ` (${item.subtitle})`}
                   </div>
@@ -586,7 +596,7 @@ export const buildSingleColumnBlocks = (
 
               if (isRef) {
                 return (
-                  <div className="mb-1.5 leading-snug text-slate-800 text-[7.75pt]">
+                  <div className={`${isLastItem ? '' : 'mb-1.5'} leading-snug text-slate-800 text-[7.75pt]`}>
                     <span className="font-bold">{item.title}</span>
                     {item.subtitle && ` (${item.subtitle})`}
                     {item.period && ` • ${item.period}`}
@@ -595,7 +605,7 @@ export const buildSingleColumnBlocks = (
               }
 
               return (
-                <div className="mb-2">
+                <div className={isLastItem ? '' : 'mb-1.5'}>
                   <div className="flex justify-between items-baseline font-bold leading-snug">
                     <span>
                       {item.title}

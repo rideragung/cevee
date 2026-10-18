@@ -62,7 +62,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
   };
 
   return (
-    <section className="mb-2">
+    <section className="mb-1.5">
       {/* View Mode Section Header */}
       {!isEditing && (
         <SectionHeader
