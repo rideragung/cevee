@@ -197,17 +197,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between font-sans selection:bg-emerald-500 selection:text-white overflow-x-hidden">
       {/* Top Bar */}
-      <header className="relative z-10 px-4 sm:px-8 py-5 flex items-center justify-between">
-        {/* Brand */}
-        <div className="flex items-center gap-2.5">
-          <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
-            <FileText size={17} strokeWidth={2} />
-          </span>
-          <span className="font-bold text-base tracking-tight text-slate-900">
-            Cevee
-          </span>
-        </div>
-
+      <header className="relative z-10 px-4 sm:px-8 py-5 flex items-center justify-end">
         {/* Database setup helper if Supabase credentials are missing */}
         {!isSupabaseConfigured() && (
           <button
@@ -228,6 +218,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl shadow-lg p-6 sm:p-8">
             {/* Heading */}
             <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center gap-2.5 mb-3.5">
+                <span className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                  <FileText size={18} strokeWidth={2} />
+                </span>
+                <span className="font-bold text-lg tracking-tight text-slate-900">
+                  Cevee
+                </span>
+              </div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
                 {mode === 'signup' ? 'Create your account' : 'Welcome back'}
               </h1>

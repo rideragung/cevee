@@ -678,6 +678,7 @@ export function App() {
             onCreateResume={handleCreateResume}
             onDuplicateResume={handleDuplicateResume}
             onDeleteResume={handleDeleteResume}
+            onRenameResume={handleRenameResume}
             onPreviewResume={handlePreviewResume}
             onDownloadResume={handleDownloadResumeById}
             userEmail={user?.email}
