@@ -9,12 +9,12 @@ export const standardAtsV2Plugin: LayoutPlugin = {
   name: 'Standard ATS V2',
   badge: 'Liberation Sans • 8.41pt',
   description:
-    'Calibrated reference ATS format: Liberation Sans font, 8.41pt body text, 12.61pt line advance, 0.60pt dividers, and left-aligned text.',
+    'Calibrated reference ATS format: Liberation Sans font, 8.41pt body text, 12.61pt line advance, 0.60pt dividers, and justified body text.',
   features: [
     'Liberation Sans / Arimo font stack',
     '8.41pt unified content font size',
     '12.61pt exact line advance rhythm',
-    'Left-aligned summary & bullet descriptions',
+    'Justified summary & bullet descriptions',
     '0.60pt slate dividers & 2.40pt bullet glyphs',
   ],
   geometry: {
