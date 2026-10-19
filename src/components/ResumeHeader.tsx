@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { HeaderData, ContactLink, ResumeLayoutId } from '../types/resume';
 import { Pencil, Plus, Trash2, Upload, User as UserIcon } from 'lucide-react';
 import { compressProfilePhoto } from '../utils/imageCompressor';
@@ -156,11 +156,11 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
 
   if (isEditing) {
     return (
-      <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm my-2.5 no-print font-sans">
+      <div className="my-2.5 rounded-xl border border-border bg-muted/50 p-4 font-sans shadow-sm no-print sm:p-5">
         {/* Title */}
-        <div className="border-b border-slate-900 pb-1 mb-5">
-          <h3 className="text-[10pt] font-bold text-slate-900 uppercase tracking-wider">
-            HEADER & CONTACT
+        <div className="mb-5 border-b border-border pb-2">
+          <h3 className="text-sm font-semibold text-foreground">
+            Header & contact
           </h3>
         </div>
 
@@ -168,54 +168,58 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Full Name <span className="text-red-500">*</span>
+              <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                Full name <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 placeholder="e.g. Your Name"
-                className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                aria-label="Full name"
+                className="w-full px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Location <span className="text-red-500">*</span>
+              <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                Location <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 placeholder="e.g. City, State/Country"
-                className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                aria-label="Location"
+                className="w-full px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Email <span className="text-red-500">*</span>
+              <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                Email <span className="text-destructive">*</span>
               </label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="e.g. email@address.com"
-                className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                aria-label="Email"
+                className="w-full px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Phone Number <span className="text-red-500">*</span>
+              <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                Phone number <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="e.g. +65 1234 5678"
-                className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                aria-label="Phone number"
+                className="w-full px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
               />
             </div>
           </div>
@@ -227,23 +231,23 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
               id="relocateCheck"
               checked={formData.willingToRelocate ?? false}
               onChange={(e) => setFormData({ ...formData, willingToRelocate: e.target.checked })}
-              className="h-3.5 w-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+              className="h-3.5 w-3.5 cursor-pointer rounded border-input text-primary focus:ring-primary/30"
             />
-            <label htmlFor="relocateCheck" className="text-xs text-slate-700 cursor-pointer select-none font-medium">
+            <label htmlFor="relocateCheck" className="cursor-pointer select-none text-xs font-medium text-foreground">
               Willing to relocate
             </label>
           </div>
 
           {/* Profile Photo (3:4 ratio for modern-photo layout) */}
           {layoutId === 'modern-photo' && (
-            <div className="pt-2 border-t border-slate-200">
-              <label className="block text-[11px] font-semibold text-slate-700 mb-2">
-                Profile Photo <span className="text-slate-500 font-normal">(Formal portrait, 3:4 aspect ratio)</span>
+            <div className="border-t border-border pt-2">
+              <label className="mb-2 block text-[11px] font-semibold text-foreground">
+                Profile photo <span className="font-normal text-muted-foreground">(formal portrait, 3:4 aspect ratio)</span>
               </label>
 
               <div className="flex items-center gap-4">
                 {/* 3:4 Preview Container */}
-                <div className="w-[66px] h-[88px] aspect-[3/4] rounded-lg border border-slate-300 bg-white overflow-hidden flex items-center justify-center flex-shrink-0">
+                <div className="flex h-[88px] w-[66px] flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
                   {formData.photoUrl ? (
                     <img
                       src={formData.photoUrl}
@@ -251,7 +255,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                       className="w-full h-full object-cover block"
                     />
                   ) : (
-                    <UserIcon size={28} className="text-slate-300" />
+                    <UserIcon size={28} className="text-muted-foreground/50" />
                   )}
                 </div>
 
@@ -261,22 +265,23 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                     ref={fileInputRef}
                     accept="image/*"
                     onChange={handlePhotoUpload}
+                    aria-label="Upload profile photo"
                     className="hidden"
                   />
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 hover:border-slate-400 text-xs font-semibold text-slate-700 rounded-lg transition shadow-sm cursor-pointer"
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-input bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition hover:border-foreground/30"
                     >
                       <Upload size={13} />
-                      <span>{formData.photoUrl ? 'Change Photo' : 'Upload Photo'}</span>
+                      <span>{formData.photoUrl ? 'Change photo' : 'Upload photo'}</span>
                     </button>
                     {formData.photoUrl && (
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, photoUrl: '' })}
-                        className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg border border-slate-200 transition cursor-pointer"
+                        className="cursor-pointer rounded-lg border border-border p-1.5 text-destructive transition hover:bg-destructive/10"
                         title="Remove photo"
                         aria-label="Remove photo"
                       >
@@ -284,7 +289,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                       </button>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-normal">
+                  <p className="text-[11px] leading-normal text-muted-foreground">
                     Auto-compressed to ~30 KB for clean vector PDF export.
                   </p>
                 </div>
@@ -293,18 +298,18 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
           )}
 
           {/* Roles (Max 4, automatically joined with |) */}
-          <div className="pt-2 border-t border-slate-200">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-[11px] font-semibold text-slate-700">
-                Target Roles / Positions <span className="text-slate-500 font-normal">(Max 4 roles, automatically separated by "|")</span>
+          <div className="border-t border-border pt-2">
+            <div className="mb-2 flex items-center justify-between">
+              <label className="block text-[11px] font-semibold text-foreground">
+                Target roles <span className="font-normal text-muted-foreground">(up to 4, separated by "|")</span>
               </label>
               {(formData.roles || []).length < 4 && (
                 <button
                   type="button"
                   onClick={handleAddRole}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80"
                 >
-                  <Plus size={12} /> Add Role ({(formData.roles || []).length}/4)
+                  <Plus size={12} /> Add role ({(formData.roles || []).length}/4)
                 </button>
               )}
             </div>
@@ -316,15 +321,16 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                     type="text"
                     value={role}
                     onChange={(e) => handleUpdateRole(idx, e.target.value)}
+                    aria-label={`Target role ${idx + 1}`}
                     placeholder={`Role ${idx + 1} (e.g. ${idx === 0 ? 'UI/UX Designer' : idx === 1 ? 'Product Designer' : idx === 2 ? 'UX Researcher' : 'Product Manager'})`}
-                    className="flex-1 px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                    className="flex-1 px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
                   />
                   {(formData.roles || []).length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveRole(idx)}
-                      className="p-1.5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition"
-                      title="Delete Role"
+                      className="rounded-lg border border-border p-1.5 text-destructive transition hover:bg-destructive/10"
+                      title="Delete role"
                       aria-label="Delete role"
                     >
                       <Trash2 size={13} />
@@ -336,9 +342,9 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
           </div>
 
           {/* Social / Portfolio Links */}
-          <div className="pt-2 border-t border-slate-200">
-            <label className="block text-[11px] font-semibold text-slate-700 mb-2">
-              Portfolio & Profile Links
+          <div className="border-t border-border pt-2">
+            <label className="mb-2 block text-[11px] font-semibold text-foreground">
+              Portfolio and profile links
             </label>
 
             <div className="space-y-2.5">
@@ -348,22 +354,24 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                     type="text"
                     value={link.label}
                     onChange={(e) => handleUpdateLink(link.id, 'label', e.target.value)}
-                    placeholder="Display Name (e.g. linkedin.com/in/your_linkedin)"
-                    className="w-full sm:w-1/3 px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                    aria-label="Link label"
+                    placeholder="Display name (e.g. linkedin.com/in/your_linkedin)"
+                    className="w-full sm:w-1/3 px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
                   />
                   <div className="flex items-center gap-2 sm:flex-1">
                     <input
                       type="text"
                       value={link.url}
                       onChange={(e) => handleUpdateLink(link.id, 'url', e.target.value)}
+                      aria-label="Link URL"
                       placeholder="URL (https://...)"
-                      className="flex-1 min-w-0 px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                      className="flex-1 min-w-0 px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
                     />
                     <button
                       type="button"
                       onClick={() => handleRemoveLink(link.id)}
-                      className="p-1.5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition flex-shrink-0"
-                      title="Delete Link"
+                      className="flex-shrink-0 rounded-lg border border-border p-1.5 text-destructive transition hover:bg-destructive/10"
+                      title="Delete link"
                       aria-label="Delete link"
                     >
                       <Trash2 size={15} />
@@ -376,28 +384,28 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
         </div>
 
         {/* Action Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-y-3 gap-x-3 pt-6 mt-4 border-t border-slate-200/80">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-3 border-t border-border pt-6">
           <button
             type="button"
             onClick={handleAddLink}
-            className="inline-flex items-center gap-1 px-4 py-1.5 border border-emerald-500 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold rounded-lg transition"
+            className="inline-flex items-center gap-1 rounded-lg border border-primary px-4 py-1.5 text-xs font-semibold text-primary transition hover:bg-accent"
           >
             <Plus size={13} />
-            <span>Add Link</span>
+            <span>Add link</span>
           </button>
 
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={handleCancel}
-              className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 px-3 py-1.5 transition"
+              className="px-3 py-1.5 text-xs font-semibold text-primary transition hover:text-primary/80"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-6 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition"
+              className="rounded-lg bg-primary px-6 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
             >
               Save
             </button>
@@ -418,8 +426,8 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
             setFormData(getCleanFormData());
             setIsEditing(true);
           }}
-          className="absolute top-0 right-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md px-1.5 py-1 text-slate-600 hover:text-slate-900 transition no-print"
-          title="Edit Contact Information"
+          className="absolute right-0 top-0 flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-1 text-muted-foreground opacity-100 shadow-sm transition [@media(hover:hover)]:hover:text-foreground no-print lg:opacity-0 lg:group-hover:opacity-100"
+          title="Edit contact information"
           aria-label="Edit contact information"
         >
           <Pencil size={13} />
@@ -520,8 +528,8 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
           setFormData(getCleanFormData());
           setIsEditing(true);
         }}
-        className="absolute top-0 right-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md px-1.5 py-1 text-slate-600 hover:text-slate-900 transition no-print"
-        title="Edit Contact Information"
+        className="absolute right-0 top-0 flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-1 text-muted-foreground opacity-100 shadow-sm transition [@media(hover:hover)]:hover:text-foreground no-print lg:opacity-0 lg:group-hover:opacity-100"
+        title="Edit contact information"
           aria-label="Edit contact information"
       >
         <Pencil size={13} />
@@ -591,3 +599,4 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
     </div>
   );
 };
+

@@ -14,6 +14,17 @@ import {
   saveSupabaseCredentials,
   getSupabaseUrl,
 } from '../lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
@@ -54,16 +65,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
-
-  // The Supabase setup dialog is only dismissable once credentials exist; allow Escape then
-  React.useEffect(() => {
-    if (!showConfigModal || !isSupabaseConfigured()) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShowConfigModal(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [showConfigModal]);
 
   const handleOAuthGoogle = async () => {
     setErrorMsg(null);
@@ -195,86 +196,77 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between font-sans selection:bg-emerald-500 selection:text-white overflow-x-hidden">
+    <div className="flex min-h-screen flex-col justify-between overflow-x-hidden bg-muted text-foreground">
       {/* Top Bar */}
       <header className="relative z-10 px-4 sm:px-8 py-5 flex items-center justify-end">
-        {/* Database setup helper if Supabase credentials are missing */}
         {!isSupabaseConfigured() && (
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => setShowConfigModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 text-xs font-medium motion-safe:transition-[background-color,border-color] duration-150 enabled:active:scale-[0.96]"
+            className="gap-1.5 border-amber-300 bg-amber-50 text-amber-800 [@media(hover:hover)]:hover:bg-amber-100 text-xs"
           >
-            <Key size={13} strokeWidth={2} />
+            <Key className="size-3.5" />
             <span>Connect Supabase</span>
-          </button>
+          </Button>
         )}
       </header>
 
-      {/* Centered card (the one focal point on this screen) */}
+      {/* Centered card (focal point on this screen, layout preserved) */}
       <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
         <div className="w-full max-w-[420px]">
-          {/* Card lifts off the calm page: single elevation marker */}
-          <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl shadow-lg p-6 sm:p-8">
-            {/* Heading */}
+          <Card className="rounded-2xl border border-border/70 bg-card p-6 shadow-xl sm:p-8">
+            {/* Heading — Centered brand & title preserved from original layout */}
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center gap-2.5 mb-3.5">
-                <span className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
-                  <FileText size={18} strokeWidth={2} />
+                <span className="size-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-pillow-primary">
+                  <FileText className="size-4" />
                 </span>
-                <span className="font-bold text-lg tracking-tight text-slate-900">
+                <span className="font-bold text-lg tracking-tight text-foreground">
                   Cevee
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                 {mode === 'signup' ? 'Create your account' : 'Welcome back'}
               </h1>
-              <p className="mt-1.5 text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+              <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
                 {mode === 'signup'
-                  ? 'Build ATS-optimized resumes in minutes with instant PDF exports.'
-                  : 'Sign in to access and edit your tailored resume documents.'}
+                  ? 'Build an ATS-friendly resume, then export it as a PDF.'
+                  : 'Sign in to access and edit your resumes.'}
               </p>
             </div>
 
             {/* Error Message */}
             {errorMsg && (
-              <div
-                role="alert"
-                className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200/80 text-red-700 text-xs flex items-start gap-2.5"
-              >
-                <AlertCircle
-                  size={15}
-                  strokeWidth={2}
-                  className="mt-0.5 flex-shrink-0 text-red-600"
-                />
-                <span className="leading-relaxed">{errorMsg}</span>
-              </div>
+              <Alert variant="destructive" className="mb-5 flex items-start gap-2.5 p-3 rounded-2xl">
+                  <AlertCircle className="size-4 text-destructive shrink-0 mt-0.5" />
+                <AlertDescription className="text-xs leading-relaxed">
+                  {errorMsg}
+                </AlertDescription>
+              </Alert>
             )}
 
             {/* Success Message */}
             {successMsg && (
-              <div
-                role="status"
-                className="mb-5 p-3 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs flex items-start gap-2.5"
-              >
-                <CheckCircle
-                  size={15}
-                  strokeWidth={2}
-                  className="mt-0.5 flex-shrink-0 text-emerald-600"
-                />
-                <span className="leading-relaxed">{successMsg}</span>
-              </div>
+              <Alert className="mb-5 flex items-start gap-2.5 border-emerald-200 bg-emerald-50 p-3 text-emerald-800 rounded-2xl">
+                <CheckCircle className="size-4 text-emerald-600 shrink-0 mt-0.5" />
+                <AlertDescription className="text-xs leading-relaxed">
+                  {successMsg}
+                </AlertDescription>
+              </Alert>
             )}
 
-            {/* Social Authentication & Guest Option */}
-            <div className="space-y-2.5">
-              <button
+            {/* Social Authentication & Guest Option — Stacked original layout */}
+            <div className="space-y-3">
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={handleOAuthGoogle}
                 disabled={loading}
-                className="w-full bg-white hover:bg-slate-50/80 border border-slate-300/90 hover:border-slate-400 text-slate-800 text-xs sm:text-sm font-medium py-2.5 px-4 rounded-xl flex items-center justify-center gap-3 enabled:active:scale-[0.96] motion-safe:transition-[transform,background-color,border-color] duration-150 ease-out disabled:opacity-50 cursor-pointer"
+                className="w-full gap-3"
               >
-                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
+                <svg className="size-4 shrink-0" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
                     d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
@@ -293,41 +285,42 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   />
                 </svg>
                 <span>Continue with Google</span>
-              </button>
+              </Button>
 
               {onContinueAsGuest && (
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={onContinueAsGuest}
-                  className="w-full bg-slate-50/80 hover:bg-slate-100/90 border border-slate-200 text-slate-600 hover:text-slate-900 text-xs sm:text-sm font-medium py-2.5 px-4 rounded-xl flex items-center justify-center enabled:active:scale-[0.96] motion-safe:transition-[transform,background-color,border-color,color] duration-150 ease-out cursor-pointer"
+                  className="w-full"
                 >
-                  <span>Continue as guest</span>
-                </button>
+                  Continue as guest
+                </Button>
               )}
             </div>
 
-            {/* Divider */}
-            <div className="relative my-5">
+            {/* Divider with background shield preventing line intersection */}
+            <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200/80" />
+                <div className="w-full border-t border-border/80" />
               </div>
-              <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
-                <span className="bg-white px-2.5 text-slate-500 font-medium">
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-card px-3 text-muted-foreground font-medium">
                   or continue with email
                 </span>
               </div>
             </div>
 
             {/* Email + Password Form */}
-            <form onSubmit={handleSubmit} className="space-y-3.5">
-              <div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
                 <label
                   htmlFor="auth-email"
-                  className="block text-xs font-semibold text-slate-700 mb-1"
+                  className="block text-xs font-semibold text-foreground"
                 >
                   Email address
                 </label>
-                <input
+                <Input
                   id="auth-email"
                   type="email"
                   autoComplete="email"
@@ -335,15 +328,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="w-full bg-slate-50/60 hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 text-slate-900 text-xs sm:text-sm px-3.5 py-2.5 rounded-xl placeholder-slate-400 outline-none motion-safe:transition-[background-color,border-color,box-shadow] duration-150"
                 />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
                   <label
                     htmlFor="auth-password"
-                    className="block text-xs font-semibold text-slate-700"
+                    className="block text-xs font-semibold text-foreground"
                   >
                     Password
                   </label>
@@ -351,14 +343,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     <button
                       type="button"
                       onClick={handleForgotPassword}
-                      className="text-[11px] font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2 rounded transition-colors cursor-pointer"
+                      className="[@media(hover:hover)]:hover:underline text-xs font-medium text-primary"
                     >
                       Forgot password?
                     </button>
                   )}
                 </div>
                 <div className="relative">
-                  <input
+                  <Input
                     id="auth-password"
                     type={showPassword ? 'text' : 'password'}
                     autoComplete={
@@ -368,41 +360,42 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="w-full bg-slate-50/60 hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 text-slate-900 text-xs sm:text-sm px-3.5 py-2.5 pr-10 rounded-xl placeholder-slate-400 outline-none motion-safe:transition-[background-color,border-color,box-shadow] duration-150"
+                    className="pr-11"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 transition-colors p-1.5 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                    className="[@media(hover:hover)]:hover:text-foreground absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors p-1"
                     title={showPassword ? 'Hide password' : 'Show password'}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? (
-                      <EyeOff size={15} strokeWidth={2} />
+                      <EyeOff className="size-4" />
                     ) : (
-                      <Eye size={15} strokeWidth={2} />
+                      <Eye className="size-4" />
                     )}
                   </button>
                 </div>
               </div>
 
               {/* Primary Action Button */}
-              <button
+              <Button
                 type="submit"
+                variant="default"
                 disabled={loading}
-                className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold py-2.5 px-4 rounded-xl shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 enabled:active:scale-[0.96] motion-safe:transition-[transform,background-color] duration-150 ease-out flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                className="mt-6 w-full gap-2"
               >
                 {loading && (
-                  <Loader2 size={15} className="animate-spin text-white" />
+                  <Loader2 className="size-4 animate-spin text-primary-foreground" />
                 )}
                 <span>
-                  {mode === 'signup' ? 'Create Account' : 'Sign In to Cevee'}
+                  {mode === 'signup' ? 'Create account' : 'Sign in'}
                 </span>
-              </button>
+              </Button>
             </form>
 
             {/* Toggle Mode Footer */}
-            <div className="mt-5 pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+            <div className="mt-6 pt-5 border-t border-border/80 text-center text-xs text-muted-foreground">
               {mode === 'signup' ? (
                 <span>
                   Already have an account?{' '}
@@ -413,7 +406,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       setErrorMsg(null);
                       setSuccessMsg(null);
                     }}
-                    className="text-emerald-700 hover:text-emerald-800 font-semibold underline underline-offset-2 transition-colors ml-0.5 cursor-pointer"
+                    className="[@media(hover:hover)]:hover:underline font-semibold text-foreground ml-1"
                   >
                     Sign in
                   </button>
@@ -428,18 +421,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       setErrorMsg(null);
                       setSuccessMsg(null);
                     }}
-                    className="text-emerald-700 hover:text-emerald-800 font-semibold underline underline-offset-2 transition-colors ml-0.5 cursor-pointer"
+                    className="[@media(hover:hover)]:hover:underline font-semibold text-foreground ml-1"
                   >
                     Sign up
                   </button>
                 </span>
               )}
             </div>
-          </div>
+          </Card>
 
-          {/* What the tool does, stated plainly */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11px] text-slate-500">
-            <span>ATS-optimized formatting</span>
+          {/* Plain facts */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+            <span>ATS-friendly formatting</span>
             <span aria-hidden="true">•</span>
             <span>Cloud and local storage</span>
           </div>
@@ -448,80 +441,83 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
       {/* Footer */}
       <footer className="relative z-10 px-6 py-4 text-center">
-        <p className="text-[11px] text-slate-500">
+        <p className="text-xs text-muted-foreground">
           Cevee ATS Resume Builder • Clean standard A4 PDF format
         </p>
       </footer>
 
       {/* Supabase Connection Setup Modal */}
-      {showConfigModal && (
-        <div
-          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 [overscroll-behavior:contain]"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="supabase-dialog-title"
-        >
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-xl">
-            <div className="flex items-center gap-2 mb-2 text-emerald-700">
-              <Key size={18} strokeWidth={2} />
-              <h2 id="supabase-dialog-title" className="text-base font-bold text-slate-900">
-                Connect Supabase
-              </h2>
+      <Dialog open={showConfigModal} onOpenChange={setShowConfigModal}>
+        <DialogContent className="max-w-md p-6">
+          <DialogHeader className="flex flex-row items-center gap-2 space-y-0 text-left">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <Key className="size-4" />
             </div>
-            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-              Enter <strong>Project URL</strong> and <strong>Anon Public Key</strong> from your Supabase dashboard (Settings → API), or add them to your <code className="text-emerald-700 bg-slate-100 px-1 py-0.5 rounded text-[11px]">.env</code> file.
-            </p>
+            <div>
+              <DialogTitle className="text-base font-bold">Connect Supabase</DialogTitle>
+            </div>
+          </DialogHeader>
+          <DialogDescription className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            Enter <strong>Project URL</strong> and <strong>Anon public key</strong> from your Supabase dashboard (Settings → API), or add them to your <code className="rounded bg-muted px-1 py-0.5 text-[11px] text-foreground">.env</code> file.
+          </DialogDescription>
 
-            <form onSubmit={handleSaveConfig} className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  VITE_SUPABASE_URL
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://xyzcompany.supabase.co"
-                  value={configUrl}
-                  onChange={(e) => setConfigUrl(e.target.value)}
-                  required
-                  className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs px-3 py-2 rounded-xl outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 focus:bg-white transition-colors"
-                />
-              </div>
+          <form onSubmit={handleSaveConfig} className="mt-2 space-y-3">
+            <div className="space-y-1">
+              <label htmlFor="supabase-url" className="block text-[11px] font-semibold text-foreground">
+                Project URL
+              </label>
+              <Input
+                id="supabase-url"
+                type="url"
+                autoComplete="url"
+                placeholder="https://xyzcompany.supabase.co"
+                value={configUrl}
+                onChange={(e) => setConfigUrl(e.target.value)}
+                required
+                className="h-9 text-xs"
+              />
+            </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  VITE_SUPABASE_ANON_KEY
-                </label>
-                <input
-                  type="password"
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                  value={configKey}
-                  onChange={(e) => setConfigKey(e.target.value)}
-                  required
-                  className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs px-3 py-2 rounded-xl outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 focus:bg-white transition-colors"
-                />
-              </div>
+            <div className="space-y-1">
+              <label htmlFor="supabase-anon-key" className="block text-[11px] font-semibold text-foreground">
+                Anon public key
+              </label>
+              <Input
+                id="supabase-anon-key"
+                type="password"
+                autoComplete="off"
+                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                value={configKey}
+                onChange={(e) => setConfigKey(e.target.value)}
+                required
+                className="h-9 text-xs"
+              />
+            </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 mt-4">
-                {isSupabaseConfigured() && (
-                  <button
-                    type="button"
-                    onClick={() => setShowConfigModal(false)}
-                    className="px-3.5 py-1.5 text-xs text-slate-500 hover:text-slate-800 rounded-lg transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 enabled:active:scale-[0.96] motion-safe:transition-[transform,background-color] duration-150 cursor-pointer"
+            <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-3">
+              {isSupabaseConfigured() && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowConfigModal(false)}
+                  className="text-xs"
                 >
-                  Save & Connect
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                  Cancel
+                </Button>
+              )}
+              <Button
+                type="submit"
+                variant="default"
+                size="sm"
+                className="text-xs font-semibold"
+              >
+                Save and connect
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

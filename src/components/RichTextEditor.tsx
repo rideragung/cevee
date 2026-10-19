@@ -12,6 +12,7 @@ interface RichTextEditorProps {
   onChange?: (html: string) => void;
   hideActions?: boolean;
   editorClassName?: string;
+  ariaLabel?: string;
 }
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -21,6 +22,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   onChange,
   hideActions = false,
   editorClassName,
+  ariaLabel = 'Rich text editor',
 }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
@@ -45,9 +47,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     },
     editorProps: {
       attributes: {
+        'aria-label': ariaLabel,
         class:
           editorClassName ||
-          'min-h-[90px] p-2.5 text-[7.75pt] leading-relaxed text-slate-800 focus:outline-none border border-slate-300 rounded-lg bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors',
+          'min-h-[90px] rounded-lg border border-input bg-card p-2.5 text-[7.75pt] leading-relaxed text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30',
       },
     },
   });
@@ -84,12 +87,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   return (
     <div className="space-y-2 no-print font-sans">
       {/* Formatting Toolbar in standalone white container */}
-      <div className="inline-flex flex-wrap items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+      <div className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-card p-1 shadow-sm">
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
-            editor.isActive('bold') ? 'bg-slate-100 text-slate-900 font-bold' : ''
+          className={`rounded p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground sm:p-1.5 ${
+            editor.isActive('bold') ? 'bg-accent font-bold text-primary' : ''
           }`}
           title="Bold (Ctrl+B)"
           aria-label="Bold"
@@ -100,8 +103,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
-            editor.isActive('underline') ? 'bg-slate-100 text-slate-900' : ''
+          className={`rounded p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground sm:p-1.5 ${
+            editor.isActive('underline') ? 'bg-accent text-primary' : ''
           }`}
           title="Underline (Ctrl+U)"
           aria-label="Underline"
@@ -112,8 +115,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
-            editor.isActive('italic') ? 'bg-slate-100 text-slate-900' : ''
+          className={`rounded p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground sm:p-1.5 ${
+            editor.isActive('italic') ? 'bg-accent text-primary' : ''
           }`}
           title="Italic (Ctrl+I)"
           aria-label="Italic"
@@ -121,15 +124,15 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <Italic size={14} />
         </button>
 
-        <div className="h-4 w-px bg-slate-200 mx-0.5" />
+        <div className="mx-0.5 h-4 w-px bg-border" />
 
         <button
           type="button"
           onClick={openLinkEditor}
-          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
-            editor.isActive('link') ? 'bg-slate-100 text-blue-700' : ''
+          className={`rounded p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground sm:p-1.5 ${
+            editor.isActive('link') ? 'bg-accent text-primary' : ''
           }`}
-          title="Insert Link"
+          title="Insert link"
           aria-label="Insert link"
         >
           <LinkIcon size={14} />
@@ -138,10 +141,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
-            editor.isActive('bulletList') ? 'bg-slate-100 text-slate-900' : ''
+          className={`rounded p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground sm:p-1.5 ${
+            editor.isActive('bulletList') ? 'bg-accent text-primary' : ''
           }`}
-          title="Bullet List"
+          title="Bullet list"
           aria-label="Bullet list"
         >
           <List size={14} />
@@ -150,10 +153,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-2 sm:p-1.5 rounded hover:bg-slate-100 text-slate-700 transition ${
-            editor.isActive('orderedList') ? 'bg-slate-100 text-slate-900' : ''
+          className={`rounded p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground sm:p-1.5 ${
+            editor.isActive('orderedList') ? 'bg-accent text-primary' : ''
           }`}
-          title="Numbered List"
+          title="Numbered list"
           aria-label="Numbered list"
         >
           <ListOrdered size={14} />
@@ -162,7 +165,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
       {/* Inline link editor */}
       {isLinkOpen && (
-        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-1.5 shadow-sm">
+        <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card p-1.5 shadow-sm">
           <input
             type="url"
             inputMode="url"
@@ -180,12 +183,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             }}
             placeholder="https://example.com"
             aria-label="Link URL"
-            className="flex-1 min-w-0 text-xs px-2 py-1.5 border border-slate-300 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+            className="min-w-0 flex-1 rounded-md border border-input px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
           />
           <button
             type="button"
             onClick={applyLink}
-            className="p-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white transition"
+            className="rounded bg-primary p-1.5 text-primary-foreground transition hover:bg-primary/90"
             title="Apply link"
             aria-label="Apply link"
           >
@@ -194,7 +197,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             onClick={cancelLink}
-            className="p-1.5 rounded text-slate-600 hover:bg-slate-100 transition"
+            className="rounded p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
             title="Cancel link"
             aria-label="Cancel link"
           >
@@ -213,7 +216,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <button
               type="button"
               onClick={onCancel}
-              className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 px-3 py-1.5 transition"
+              className="px-3 py-1.5 text-xs font-semibold text-primary transition hover:text-primary/80"
             >
               Cancel
             </button>
@@ -222,7 +225,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <button
               type="button"
               onClick={() => onSave(editor.getHTML())}
-              className="text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-1.5 rounded-lg shadow-sm transition"
+              className="rounded-lg bg-primary px-5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
             >
               Save
             </button>

@@ -118,10 +118,10 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
       )}
 
       {isEditing ? (
-        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm my-2.5 no-print font-sans">
+        <div className="my-2.5 rounded-xl border border-border bg-muted/50 p-4 font-sans shadow-sm no-print sm:p-5">
           {/* Header Title */}
-          <div className="border-b border-slate-900 pb-1 mb-5">
-            <h3 className="text-[10pt] font-bold text-slate-900 uppercase tracking-wider">
+          <div className="mb-5 border-b border-border pb-2">
+            <h3 className="text-sm font-semibold text-foreground">
               {title}
             </h3>
           </div>
@@ -134,28 +134,30 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-2">
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                        Degree / Major <span className="text-red-500">*</span>
+                      <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                        Degree or major <span className="text-destructive">*</span>
                       </label>
                       <input
                         type="text"
                         value={item.degree}
                         onChange={(e) => handleUpdateField(item.id, 'degree', e.target.value)}
+                        aria-label="Degree or major"
                         placeholder="e.g. Bachelor of Information Systems"
-                        className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                        className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                        GPA / Grade <span className="text-slate-500 font-normal">(Optional)</span>
+                      <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                        GPA or grade <span className="font-normal text-muted-foreground">(optional)</span>
                       </label>
                       <input
                         type="text"
                         value={item.gpa || ''}
                         onChange={(e) => handleUpdateField(item.id, 'gpa', e.target.value)}
+                        aria-label="GPA or grade"
                         placeholder="e.g. GPA: 4.0 of 4.0"
-                        className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                        className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                       />
                     </div>
                   </div>
@@ -163,7 +165,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => handleRemoveItem(item.id)}
-                    className="p-1.5 mt-5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition flex-shrink-0"
+                    className="mt-5 flex-shrink-0 rounded-lg border border-border p-1.5 text-destructive transition hover:bg-destructive/10"
                     title="Delete education"
                     aria-label="Delete education"
                   >
@@ -174,21 +176,22 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                 {/* Row 2: Institution & Dates */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Institution / School <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                      Institution or school <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="text"
                       value={item.institution}
                       onChange={(e) => handleUpdateField(item.id, 'institution', e.target.value)}
+                      aria-label="Institution or school"
                       placeholder="e.g., State University / Institute of Technology"
-                      className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                      className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Start Date
+                    <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                      Start date
                     </label>
                     <DatePicker
                       value={item.startDate || ''}
@@ -197,13 +200,14 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                         const period = val && end ? `${val} - ${end}` : (val || end || '');
                         setItems(items.map((it) => it.id === item.id ? { ...it, startDate: val, period } : it));
                       }}
+                      ariaLabel="Education start date"
                       placeholder="Select start date"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      End Date / Graduation <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                      End date or graduation <span className="text-destructive">*</span>
                     </label>
                     <DatePicker
                       value={item.endDate || ''}
@@ -212,6 +216,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                         const period = start && val ? `${start} - ${val}` : (val || start || '');
                         setItems(items.map((it) => it.id === item.id ? { ...it, endDate: val, period } : it));
                       }}
+                      ariaLabel="Education end date or graduation"
                       placeholder="Select graduation date"
                     />
                   </div>
@@ -219,30 +224,31 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
 
                 {/* Row 3: Description (full width, rich text) */}
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Description <span className="text-slate-500 font-normal">(Optional)</span>
+                  <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                    Description <span className="font-normal text-muted-foreground">(optional)</span>
                   </label>
                   <RichTextEditor
                     initialContent={item.description || ''}
                     onChange={(newHtml) => handleUpdateField(item.id, 'description', newHtml)}
                     hideActions={true}
+                    ariaLabel="Education description"
                   />
                 </div>
 
                 {/* Separator between items */}
                 {idx < items.length - 1 && (
-                  <div className="border-b border-slate-200 pt-3" />
+                  <div className="border-b border-border pt-3" />
                 )}
               </div>
             ))}
           </div>
 
           {/* Action Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-y-3 gap-x-3 pt-6 mt-4 border-t border-slate-100">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-3 border-t border-border pt-6">
             <button
               type="button"
               onClick={handleAddItem}
-              className="inline-flex items-center gap-1 px-4 py-1.5 border border-emerald-500 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold rounded-lg transition"
+              className="inline-flex items-center gap-1 rounded-lg border border-primary px-4 py-1.5 text-xs font-semibold text-primary transition hover:bg-accent"
             >
               <Plus size={13} />
               <span>Add education</span>
@@ -252,14 +258,14 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
               <button
                 type="button"
                 onClick={handleCancel}
-                className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 px-3 py-1.5 transition"
+                className="px-3 py-1.5 text-xs font-semibold text-primary transition hover:text-primary/80"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-6 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition"
+                className="rounded-lg bg-primary px-6 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
               >
                 Save
               </button>
@@ -268,12 +274,22 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
         </div>
       ) : (
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setItems(data.items.length > 0 && !isPlaceholder ? sortByPeriodDesc((data.items || []).map(normalizeEduItem)) : [{ id: `edu-${Date.now()}`, degree: '', institution: '', period: '', gpa: '', startDate: '', endDate: '' }]);
             setIsEditing(true);
           }}
-          className="cursor-pointer space-y-1.5 hover:bg-slate-50/70 p-1 -m-1 rounded transition"
+          onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              event.currentTarget.click();
+            }
+          }}
+          className="cursor-pointer space-y-1.5 hover:bg-accent/50 p-1 -m-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           title={`Click to edit ${title}`}
+          aria-label={`Edit ${title}`}
         >
           {isPlaceholder ? (
             <div className="avoid-break text-slate-400 select-none space-y-0.5">

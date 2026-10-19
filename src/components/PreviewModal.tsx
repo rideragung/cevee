@@ -1,7 +1,15 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ResumeDocument } from '../types/resume';
 import { X, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
 import { PaginatedResumeView } from './PaginatedResumeView';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface PreviewModalProps {
   resume: ResumeDocument;
@@ -25,100 +33,101 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
 
   const [zoom, setZoom] = useState(getInitialZoom);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Resume preview"
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-between overflow-hidden no-print"
-    >
-      {/* Top Toolbar */}
-      <div className="bg-slate-900 text-white px-3 sm:px-4 py-3 flex items-center justify-between gap-3 shadow-md z-30">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="font-semibold text-sm truncate">
-            1:1 PDF Preview • {resume.title}
-          </span>
-          <span className="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 hidden sm:inline flex-shrink-0">
-            Standard A4 Print (210 × 297 mm)
-          </span>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="no-print grid h-[100dvh] w-screen max-w-none grid-rows-[auto_1fr] gap-0 overflow-hidden border-0 bg-foreground p-0 text-background shadow-none sm:rounded-none [&>button]:hidden">
+        <DialogTitle className="sr-only">Resume preview</DialogTitle>
+        <DialogDescription className="sr-only">
+          Full-screen A4 preview of {resume.title}
+        </DialogDescription>
 
-        {/* Zoom & Action Controls */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="hidden sm:flex items-center bg-slate-800 rounded-md border border-slate-700 px-1">
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.max(0.25, Number((z - 0.1).toFixed(2))))}
-              className="p-1.5 text-slate-300 hover:text-white"
-              title="Zoom Out"
-              aria-label="Zoom out"
-            >
-              <ZoomOut size={15} />
-            </button>
-            <span className="text-xs text-slate-200 px-2 font-mono">
-              {Math.round(zoom * 100)}%
+        {/* Top Toolbar */}
+        <div className="z-30 flex flex-shrink-0 items-center justify-between gap-3 border-b border-background/10 bg-foreground/95 px-3 py-2.5 shadow-md sm:px-5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="truncate text-sm font-semibold">PDF preview</span>
+            <span className="hidden truncate text-xs text-background/60 sm:inline">
+              {resume.title}
             </span>
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.min(1.5, Number((z + 0.1).toFixed(2))))}
-              className="p-1.5 text-slate-300 hover:text-white"
-              title="Zoom In"
-              aria-label="Zoom in"
+            <Badge
+              variant="outline"
+              className="hidden border-background/15 text-[11px] text-background/70 sm:inline-flex"
             >
-              <ZoomIn size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setZoom(getInitialZoom())}
-              className="p-1.5 text-slate-300 hover:text-white"
-              title="Reset Zoom"
-              aria-label="Reset zoom"
-            >
-              <RotateCcw size={13} />
-            </button>
+              A4, 210 × 297 mm
+            </Badge>
           </div>
 
-          <button
-            type="button"
-            onClick={onDownload}
-            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md transition shadow-sm"
-          >
-            <Download size={14} />
-            <span>Download PDF</span>
-          </button>
+          {/* Zoom & Action Controls */}
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <div className="hidden items-center rounded-lg border border-background/10 bg-background/5 px-1 sm:flex">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setZoom((z) => Math.max(0.25, Number((z - 0.1).toFixed(2))))}
+                className="size-8 text-background/70 [@media(hover:hover)]:hover:bg-background/10 [@media(hover:hover)]:hover:text-background"
+                title="Zoom out"
+                aria-label="Zoom out"
+              >
+                <ZoomOut className="size-4" />
+              </Button>
+              <span className="px-2 text-xs tabular-nums text-background/80">
+                {Math.round(zoom * 100)}%
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setZoom((z) => Math.min(1.5, Number((z + 0.1).toFixed(2))))}
+                className="size-8 text-background/70 [@media(hover:hover)]:hover:bg-background/10 [@media(hover:hover)]:hover:text-background"
+                title="Zoom in"
+                aria-label="Zoom in"
+              >
+                <ZoomIn className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setZoom(getInitialZoom())}
+                className="size-8 text-background/70 [@media(hover:hover)]:hover:bg-background/10 [@media(hover:hover)]:hover:text-background"
+                title="Reset zoom"
+                aria-label="Reset zoom"
+              >
+                <RotateCcw className="size-3.5" />
+              </Button>
+            </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 text-slate-300 hover:text-white rounded-md hover:bg-slate-800 transition"
-            title="Close (Esc)"
-            aria-label="Close preview"
-          >
-            <X size={18} />
-          </button>
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={onDownload}
+              className="h-8 gap-1.5 text-xs font-semibold"
+            >
+              <Download className="size-3.5" />
+              <span>Download PDF</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="size-8 text-background/70 [@media(hover:hover)]:hover:bg-background/10 [@media(hover:hover)]:hover:text-background"
+              title="Close preview"
+              aria-label="Close preview"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Main Preview Area */}
-      <div className="flex-1 overflow-auto p-3 sm:p-10 flex justify-center items-start bg-slate-800/95">
-        <PaginatedResumeView resume={resume} scale={zoom} showPageNumbers={true} />
-      </div>
-    </div>
+        {/* Main Preview Area */}
+        <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto bg-foreground/95 p-3 sm:p-10">
+          <PaginatedResumeView resume={resume} scale={zoom} showPageNumbers={true} />
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
+

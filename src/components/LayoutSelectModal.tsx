@@ -1,10 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { X, Check, CheckCircle2, LayoutTemplate } from 'lucide-react';
+﻿import React, { useState, useEffect } from 'react';
+import { Check, CheckCircle2, LayoutTemplate } from 'lucide-react';
 import { ResumeLayoutId } from '../types/resume';
 import { RESUME_LAYOUTS, LayoutDefinition } from '../data/layouts';
 import { DEFAULT_LAYOUT_ID, normalizeLayoutId } from '../layouts/registry';
 import { ResumeMiniPreview } from './ResumeMiniPreview';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 
 interface LayoutSelectModalProps {
   isOpen: boolean;
@@ -29,114 +39,76 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
     }
   }, [isOpen, currentLayoutId]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onConfirm(selectedId);
   };
 
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="layout-modal-title"
-      aria-describedby="layout-modal-desc"
-      onClick={onClose}
-      className="fixed inset-0 z-[9999] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 no-print"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl border border-slate-200/90 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col relative font-sans"
-      >
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[92vh] flex flex-col p-0 overflow-hidden no-print">
         {/* Modal Header */}
-        <div className="flex items-start justify-between gap-4 p-5 sm:p-6 border-b border-slate-100 flex-shrink-0">
-          <div className="flex items-start gap-3">
-            <div className="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100/60 flex-shrink-0 mt-0.5">
-              <LayoutTemplate size={20} />
-            </div>
-            <div>
-              <h2
-                id="layout-modal-title"
-                className="text-base sm:text-lg font-bold text-slate-900 tracking-tight"
-              >
-                {mode === 'create' ? 'Choose resume layout' : 'Change resume layout'}
-              </h2>
-              <p
-                id="layout-modal-desc"
-                className="text-xs sm:text-sm text-slate-500 mt-0.5 leading-relaxed"
-              >
-                {mode === 'create'
-                  ? 'Select a layout format to start your resume. You can switch anytime inside the editor.'
-                  : 'Select a layout format for this resume. All content and sections remain 100% intact.'}
-              </p>
-            </div>
+        <DialogHeader className="flex flex-row items-start gap-3 p-5 sm:p-6 border-b border-border space-y-0 text-left">
+          <div className="p-2.5 bg-accent text-accent-foreground rounded-xl border border-border flex-shrink-0 mt-0.5">
+            <LayoutTemplate className="size-5" />
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition flex-shrink-0"
-            title="Close dialog"
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-        </div>
+          <div>
+            <DialogTitle className="text-base sm:text-lg font-bold tracking-tight">
+              {mode === 'create' ? 'Choose a resume layout' : 'Change resume layout'}
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
+              {mode === 'create'
+                ? 'Select a layout to start. You can switch layouts later.'
+                : 'Select a layout for this resume. Your content stays the same.'}
+            </DialogDescription>
+          </div>
+        </DialogHeader>
 
         {/* Modal Body: Layout Options */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
-          <div className="grid grid-cols-1 gap-4">
+          <RadioGroup
+            value={selectedId}
+            onValueChange={(value) => setSelectedId(normalizeLayoutId(value))}
+            aria-label="Resume layout"
+            className="grid grid-cols-1 gap-3.5"
+          >
             {RESUME_LAYOUTS.map((layout: LayoutDefinition) => {
               const isSelected = selectedId === layout.id;
 
               return (
                 <div
                   key={layout.id}
-                  onClick={() => setSelectedId(layout.id)}
-                  className={`cursor-pointer rounded-xl p-4 sm:p-5 border transition-all flex flex-col sm:flex-row gap-4 sm:gap-5 items-start text-left relative ${
+                  className={cn(
+                    'relative flex cursor-pointer flex-col items-start gap-4 rounded-xl border p-4 text-left transition-[border-color,background-color,box-shadow] duration-150 focus-within:ring-2 focus-within:ring-primary/30 sm:flex-row sm:gap-5 sm:p-5',
                     isSelected
-                      ? 'border-emerald-600 bg-emerald-50/20 ring-2 ring-emerald-600/20 shadow-sm'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
-                  }`}
+                      ? 'border-primary bg-accent/40 shadow-xs'
+                      : 'border-border [@media(hover:hover)]:hover:border-foreground/20 [@media(hover:hover)]:hover:bg-muted/40'
+                  )}
                 >
+                  <RadioGroupItem
+                    value={layout.id}
+                    aria-label={layout.name}
+                    className="absolute inset-0 z-10 size-full cursor-pointer rounded-xl opacity-0"
+                  />
+
                   {/* High-Fidelity Vector Document Preview */}
                   <ResumeMiniPreview
                     layoutId={layout.id}
-                    className="w-full sm:w-36 flex-shrink-0"
+                    className="pointer-events-none w-full flex-shrink-0 sm:w-36"
                   />
 
                   {/* Layout Metadata & Content */}
-                  <div className="flex-1 min-w-0 pr-8 sm:pr-6">
-                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                      <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+                  <div className="pointer-events-none min-w-0 flex-1 pr-8 sm:pr-6">
+                    <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-bold tracking-tight text-foreground sm:text-base">
                         {layout.name}
                       </h3>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <Badge variant="secondary" className="px-2 py-0 text-[10px] font-medium">
                         {layout.badge}
-                      </span>
+                      </Badge>
                     </div>
 
-                    <p className="text-xs text-slate-600 leading-relaxed mb-3">
+                    <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
                       {layout.description}
                     </p>
 
@@ -145,57 +117,62 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
                       {layout.features.map((feat, idx) => (
                         <li
                           key={idx}
-                          className="flex items-center gap-2 text-[11px] text-slate-700 font-medium"
+                          className="flex items-center gap-2 text-[11px] font-medium text-foreground"
                         >
-                          <CheckCircle2 size={13} className="text-emerald-600 flex-shrink-0" />
+                          <CheckCircle2 className="size-3.5 flex-shrink-0 text-muted-foreground" />
                           <span>{feat}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  {/* Radio / Selection Circle */}
-                  <div className="absolute top-4 right-4 sm:top-5 sm:right-5">
+                  {/* Selection indicator */}
+                  <div className="pointer-events-none absolute right-4 top-4 sm:right-5 sm:top-5">
                     <div
-                      className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                      className={cn(
+                        'flex size-5 items-center justify-center rounded-full border transition-colors duration-150',
                         isSelected
-                          ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
-                          : 'border-slate-300 bg-white'
-                      }`}
+                          ? 'border-primary bg-primary text-primary-foreground shadow-xs'
+                          : 'border-border bg-card'
+                      )}
                     >
-                      {isSelected && <Check size={12} strokeWidth={3} />}
+                      {isSelected && <Check className="size-3" strokeWidth={3} />}
                     </div>
                   </div>
                 </div>
               );
             })}
-          </div>
+          </RadioGroup>
 
           {/* Modal Footer */}
-          <div className="pt-4 mt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
-            <span className="text-[11px] text-slate-500 font-medium">
-              ATS-optimized vector output • Zero data loss
+          <div className="pt-4 mt-4 border-t border-border flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
+            <span className="text-[11px] font-medium text-muted-foreground">
+              Exports as an ATS-friendly PDF.
             </span>
 
-            <div className="flex items-center gap-2.5 w-full sm:w-auto">
-              <button
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={onClose}
-                className="flex-1 sm:flex-initial px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition"
+                className="flex-1 sm:flex-initial"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                className="flex-1 sm:flex-initial px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition inline-flex items-center justify-center gap-1.5"
+                variant="default"
+                size="sm"
+                className="flex-1 sm:flex-initial"
               >
-                <span>{mode === 'create' ? 'Create resume' : 'Apply layout'}</span>
-              </button>
+                {mode === 'create' ? 'Create resume' : 'Apply layout'}
+              </Button>
             </div>
           </div>
         </form>
-      </div>
-    </div>,
-    document.body
+      </DialogContent>
+    </Dialog>
   );
 };
+

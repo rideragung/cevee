@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowUpDown,
   Check,
   Clock,
@@ -11,13 +12,13 @@ import {
   LayoutGrid,
   LayoutTemplate,
   List,
+  Loader2,
   LogOut,
   MoreVertical,
   Pencil,
   Plus,
   Search,
   Trash2,
-  User as UserIcon,
   X,
 } from 'lucide-react';
 import { ResumeDocument } from '../types/resume';
@@ -25,6 +26,20 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { ResumeContentThumbnail } from './ResumeContentThumbnail';
 import { getLayoutById } from '../data/layouts';
 import { formatRelativeTime } from '../utils/relativeTime';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 interface ResumeDashboardProps {
   resumes: ResumeDocument[];
@@ -39,6 +54,8 @@ interface ResumeDashboardProps {
   userName?: string | null;
   userAvatarUrl?: string | null;
   onSignOut?: () => void;
+  isLoading?: boolean;
+  syncStatus?: 'saved' | 'saving' | 'error';
 }
 
 type ViewMode = 'grid' | 'list';
@@ -55,17 +72,6 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'created', label: 'Date created' },
   { key: 'name', label: 'Name (A–Z)' },
 ];
-
-const focusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/50';
-
-const iconButtonClass = `inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 sm:h-9 sm:w-9 ${focusRing}`;
-
-const quietButtonClass = `inline-flex h-11 items-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 sm:h-8 sm:px-2.5 ${focusRing}`;
-
-const menuItemClass = `flex w-full items-center gap-2 px-3 py-3.5 text-left text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:bg-slate-100 sm:py-2`;
-
-const menuItemDangerClass = `flex w-full items-center gap-2 px-3 py-3.5 text-left text-xs font-medium text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:bg-red-50 sm:py-2`;
 
 const readStoredValue = <T extends string>(key: string, allowed: readonly T[], fallback: T): T => {
   try {
@@ -97,10 +103,10 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
   userName,
   userAvatarUrl,
   onSignOut,
+  isLoading = false,
+  syncStatus = 'saved',
 }) => {
   const [deletingResume, setDeletingResume] = useState<ResumeDocument | null>(null);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isConfirmingSignOut, setIsConfirmingSignOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>(() =>
@@ -109,7 +115,6 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
     readStoredValue(VIEW_STORAGE_KEY, VIEW_MODES, 'grid'),
   );
-  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [renamingResumeId, setRenamingResumeId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
   const isRenameSubmittingRef = useRef(false);
@@ -178,52 +183,45 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
         year: 'numeric',
       }).format(date);
     } catch {
-      return 'Recently';
+      return isoString;
     }
   };
 
-  const closeMenusOnEscape = (event: React.KeyboardEvent) => {
-    if (event.key !== 'Escape') return;
-    setIsUserMenuOpen(false);
-    setIsSortMenuOpen(false);
-    setOpenMenuId(null);
-  };
-
   const startRename = (resume: ResumeDocument) => {
-    setOpenMenuId(null);
     setRenameDraft(resume.title);
     setRenamingResumeId(resume.id);
   };
 
   const cancelRename = () => {
-    isRenameSubmittingRef.current = true;
     setRenamingResumeId(null);
-    window.setTimeout(() => {
-      isRenameSubmittingRef.current = false;
-    }, 100);
+    setRenameDraft('');
   };
 
-  const submitRename = (resume: ResumeDocument, event?: React.FormEvent) => {
-    if (event) event.preventDefault();
+  const submitRename = (resume: ResumeDocument) => {
     if (isRenameSubmittingRef.current) return;
     isRenameSubmittingRef.current = true;
 
-    const trimmed = renameDraft.trim();
-    if (trimmed && trimmed !== resume.title) {
-      onRenameResume(resume.id, trimmed);
+    const nextTitle = renameDraft.trim();
+    if (nextTitle && nextTitle !== resume.title) {
+      onRenameResume(resume.id, nextTitle);
     }
     setRenamingResumeId(null);
-    window.setTimeout(() => {
+    setRenameDraft('');
+
+    setTimeout(() => {
       isRenameSubmittingRef.current = false;
     }, 100);
   };
 
   const renderRenameField = (resume: ResumeDocument) => (
     <form
-      onSubmit={(event) => submitRename(resume, event)}
-      className="flex items-center gap-1.5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        submitRename(resume);
+      }}
+      className="relative z-20 flex items-center gap-1.5"
     >
-      <input
+      <Input
         type="text"
         value={renameDraft}
         onChange={(event) => setRenameDraft(event.target.value)}
@@ -236,109 +234,77 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
         }}
         autoFocus
         aria-label={`Rename ${resume.title}`}
-        className="h-11 w-full min-w-0 rounded-md border border-emerald-500 bg-white px-2 text-sm font-bold tracking-tight text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-600/15 sm:h-8"
+        className="h-8 text-sm font-semibold"
       />
-      <button
+      <Button
         type="submit"
-        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 sm:h-8 sm:w-8 ${focusRing}`}
+        variant="ghost"
+        size="icon"
+        className="size-8 text-primary shrink-0"
         title="Save title"
         aria-label="Save resume title"
       >
-        <Check size={15} />
-      </button>
+        <Check className="size-4" />
+      </Button>
     </form>
   );
 
-  const renderMoreMenu = (resume: ResumeDocument) => {
-    const isOpen = openMenuId === resume.id;
-
-    return (
-      <div className="relative" onKeyDown={closeMenusOnEscape}>
-        <button
-          type="button"
-          onClick={() => setOpenMenuId(isOpen ? null : resume.id)}
-          className={iconButtonClass}
+  const renderMoreMenu = (resume: ResumeDocument) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="secondary"
+          size="icon"
+          className="relative size-9 sm:size-8 shrink-0 text-muted-foreground after:absolute after:-inset-1.5 after:content-[''] hover:text-foreground"
           title="More actions"
           aria-label={`More actions for ${resume.title}`}
-          aria-haspopup="menu"
-          aria-expanded={isOpen}
         >
-          <MoreVertical size={15} />
-        </button>
-
-        {isOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-40 cursor-default"
-              onClick={() => setOpenMenuId(null)}
-            />
-            <div
-              role="menu"
-              aria-label={`Actions for ${resume.title}`}
-              className="absolute bottom-full right-0 z-50 mb-1.5 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
-            >
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => startRename(resume)}
-                className={menuItemClass}
-              >
-                <Edit2 size={14} className="text-slate-400" />
-                <span>Rename</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpenMenuId(null);
-                  onDuplicateResume(resume.id);
-                }}
-                className={menuItemClass}
-              >
-                <Copy size={14} className="text-slate-400" />
-                <span>Duplicate</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpenMenuId(null);
-                  onDownloadResume(resume.id);
-                }}
-                className={menuItemClass}
-              >
-                <Download size={14} className="text-slate-400" />
-                <span>Download PDF</span>
-              </button>
-              <div className="my-1 border-t border-slate-100" />
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpenMenuId(null);
-                  setDeletingResume(resume);
-                }}
-                className={menuItemDangerClass}
-              >
-                <Trash2 size={14} />
-                <span>Delete</span>
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+          <MoreVertical className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem
+          onClick={() => startRename(resume)}
+          className="gap-2 text-xs cursor-pointer"
+        >
+          <Edit2 className="size-3.5 text-muted-foreground" />
+          <span>Rename</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => onDuplicateResume(resume.id)}
+          className="gap-2 text-xs cursor-pointer"
+        >
+          <Copy className="size-3.5 text-muted-foreground" />
+          <span>Duplicate</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => onDownloadResume(resume.id)}
+          className="gap-2 text-xs cursor-pointer"
+        >
+          <Download className="size-3.5 text-muted-foreground" />
+          <span>Download PDF</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => setDeletingResume(resume)}
+          className="gap-2 text-xs text-destructive focus:text-destructive cursor-pointer"
+        >
+          <Trash2 className="size-3.5" />
+          <span>Delete</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <div className="min-h-screen bg-muted/20 flex flex-col font-sans">
       {/* Top Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+      <header className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="font-extrabold text-lg tracking-tight text-slate-900 flex items-center gap-2">
-              <span className="bg-emerald-600 text-white p-1.5 rounded-lg">
-                <FileText size={18} />
+            <span className="font-extrabold text-lg tracking-tight text-foreground flex items-center gap-2">
+              <span className="bg-primary text-primary-foreground p-1.5 rounded-lg shadow-pillow-primary">
+                <FileText className="size-4" />
               </span>
               Cevee
             </span>
@@ -346,69 +312,47 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
 
           <div className="flex items-center gap-2.5">
             {onSignOut && (
-              <div className="relative" onKeyDown={closeMenusOnEscape}>
-                <button
-                  type="button"
-                  onClick={() => setIsUserMenuOpen((open) => !open)}
-                  className={`h-11 w-11 sm:h-9 sm:w-9 rounded-full overflow-hidden border border-slate-200 hover:border-slate-300 transition-colors flex items-center justify-center bg-emerald-600 text-white ${focusRing}`}
-                  title="Account"
-                  aria-label="Account menu"
-                  aria-haspopup="menu"
-                  aria-expanded={isUserMenuOpen}
-                >
-                  {userAvatarUrl ? (
-                    <img
-                      src={userAvatarUrl}
-                      alt=""
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : initials ? (
-                    <span className="text-xs font-bold leading-none">{initials}</span>
-                  ) : (
-                    <UserIcon size={16} />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-11 rounded-full overflow-hidden p-1"
+                    title="Account"
+                    aria-label="Account menu"
+                  >
+                    <Avatar className="size-9">
+                      {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt="" />}
+                      <AvatarFallback className="bg-secondary text-xs font-semibold text-secondary-foreground">
+                        {initials || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {userEmail && (
+                    <>
+                      <DropdownMenuLabel className="font-normal text-xs text-muted-foreground truncate" title={userEmail}>
+                        {userEmail}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                    </>
                   )}
-                </button>
-
-                {isUserMenuOpen && (
-                  <>
-                    {/* Backdrop to dismiss on outside click */}
-                    <div
-                      className="fixed inset-0 z-40 cursor-default"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    />
-
-                    <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50">
-                      {userEmail && (
-                        <>
-                          <div
-                            className="px-3 py-2 text-[11px] text-slate-500 truncate"
-                            title={userEmail}
-                          >
-                            {userEmail}
-                          </div>
-                          <div className="border-t border-slate-100" />
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          if (isGuest) {
-                            setIsConfirmingSignOut(true);
-                          } else {
-                            onSignOut();
-                          }
-                        }}
-                        className={`w-full text-left px-3 py-3.5 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors sm:py-2 ${focusRing}`}
-                      >
-                        <LogOut size={14} />
-                        <span>{isGuest ? 'Exit guest mode' : 'Log out'}</span>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (isGuest) {
+                        setIsConfirmingSignOut(true);
+                      } else {
+                        onSignOut();
+                      }
+                    }}
+                    className="gap-2 text-xs text-destructive focus:text-destructive cursor-pointer"
+                  >
+                    <LogOut className="size-4" />
+                    <span>{isGuest ? 'Exit guest mode' : 'Log out'}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>
@@ -417,65 +361,80 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-24 sm:py-10 flex-1 w-full">
         {/* Title Section */}
-        <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              Your resumes{' '}
-              <span className="font-medium text-slate-400" aria-live="polite">
-                (
-                {normalizedQuery
-                  ? `${visibleResumes.length} of ${resumes.length}`
-                  : resumes.length}
-                )
-              </span>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Your resumes
+              {!isLoading && (
+                <span className="ml-2 text-lg font-normal text-muted-foreground" aria-live="polite">
+                  {normalizedQuery
+                    ? `(${visibleResumes.length} of ${resumes.length})`
+                    : `(${resumes.length})`}
+                </span>
+              )}
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Manage, edit, and export your ATS-compliant resumes.
+            <p className="mt-1 text-sm text-muted-foreground">
+              Open one to edit, or export a PDF.
             </p>
           </div>
 
-          {resumes.length > 0 && (
-            <button
-              type="button"
+          {!isLoading && resumes.length > 0 && (
+            <Button
+              variant="default"
+              size="sm"
               onClick={onCreateResume}
-              className={`hidden sm:inline-flex h-9 items-center gap-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors flex-shrink-0 whitespace-nowrap motion-safe:enabled:active:scale-[0.96] ${focusRing}`}
+              className="hidden sm:inline-flex gap-2 h-9 px-4 font-semibold shrink-0"
             >
-              <Plus size={15} />
+              <Plus className="size-4" />
               <span>Create resume</span>
-            </button>
+            </Button>
           )}
         </div>
 
-        {/* Empty State */}
-        {resumes.length === 0 ? (
-          <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center max-w-lg mx-auto my-8">
-            <div className="w-12 h-12 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <FileText size={24} />
-            </div>
-            <h2 className="text-base font-bold text-slate-900">No resumes created yet</h2>
-            <p className="text-xs text-slate-500 mt-1.5 mb-6 max-w-sm mx-auto leading-relaxed">
-              You haven't created any resumes yet. Start building your first ATS-friendly resume to
-              edit and download.
-            </p>
-            <button
-              type="button"
-              onClick={onCreateResume}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors motion-safe:enabled:active:scale-[0.96] ${focusRing}`}
-            >
-              <Plus size={15} />
-              <span>Start building resume</span>
-            </button>
+        {syncStatus === 'error' && !isLoading && (
+          <div
+            role="status"
+            className="mb-5 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+          >
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+            <span>Cloud save failed. Changes are saved on this device.</span>
           </div>
+        )}
+
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="flex min-h-[40vh] items-center justify-center">
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex items-center gap-2.5 text-sm text-muted-foreground"
+            >
+              <Loader2 className="size-4 animate-spin text-primary" />
+              <span>Loading resumes</span>
+            </div>
+          </div>
+        ) : resumes.length === 0 ? (
+          <Card className="mx-auto my-8 max-w-lg border-dashed bg-card/60 p-12 text-center">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+              <FileText className="size-6" />
+            </div>
+            <h2 className="mb-6 text-base font-bold text-foreground">No resumes yet</h2>
+            <Button
+              variant="default"
+              onClick={onCreateResume}
+              className="gap-2 px-5 py-2.5 text-xs font-semibold"
+            >
+              <Plus className="size-4" />
+              <span>Create resume</span>
+            </Button>
+          </Card>
         ) : (
           <>
             {/* Toolbar */}
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative w-full sm:w-72">
-                <Search
-                  size={15}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <input
+                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
+                <Input
                   type="text"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
@@ -483,232 +442,223 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                   aria-label="Search resumes by title or candidate name"
                   autoComplete="off"
                   spellCheck={false}
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-500 transition-colors focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/15 sm:h-9"
+                  className="pl-9 pr-9 h-9 text-sm"
                 />
                 {searchQuery && (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setSearchQuery('')}
                     aria-label="Clear search"
                     title="Clear search"
-                    className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-500 transition-colors hover:text-slate-700 sm:p-1 ${focusRing}`}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 size-7 text-muted-foreground hover:text-foreground"
                   >
-                    <X size={14} />
-                  </button>
+                    <X className="size-3.5" />
+                  </Button>
                 )}
               </div>
 
               <div className="flex items-center gap-2 sm:ml-auto">
                 {/* Sort menu */}
-                <div className="relative" onKeyDown={closeMenusOnEscape}>
-                  <button
-                    type="button"
-                    onClick={() => setIsSortMenuOpen((open) => !open)}
-                    className={`inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 sm:h-9 ${focusRing}`}
-                    aria-haspopup="menu"
-                    aria-expanded={isSortMenuOpen}
-                    aria-label={`Sort resumes, currently ${currentSortLabel.toLowerCase()}`}
-                    title="Sort resumes"
-                  >
-                    <ArrowUpDown size={14} className="text-slate-400" />
-                    <span>{currentSortLabel}</span>
-                  </button>
-
-                  {isSortMenuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40 cursor-default"
-                        onClick={() => setIsSortMenuOpen(false)}
-                      />
-                      <div
-                        role="menu"
-                        aria-label="Sort resumes"
-                        className="absolute right-0 z-50 mt-1.5 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="h-9 gap-2 text-xs font-medium text-foreground"
+                      title="Sort resumes"
+                      aria-label={`Sort resumes, currently ${currentSortLabel.toLowerCase()}`}
+                    >
+                      <ArrowUpDown className="size-3.5 text-muted-foreground" />
+                      <span>{currentSortLabel}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    {SORT_OPTIONS.map((option) => (
+                      <DropdownMenuItem
+                        key={option.key}
+                        onClick={() => setSortBy(option.key)}
+                        className="flex items-center justify-between text-xs cursor-pointer"
                       >
-                        {SORT_OPTIONS.map((option) => (
-                          <button
-                            key={option.key}
-                            type="button"
-                            role="menuitemradio"
-                            aria-checked={sortBy === option.key}
-                            onClick={() => {
-                              setSortBy(option.key);
-                              setIsSortMenuOpen(false);
-                            }}
-                            className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:bg-slate-100"
-                          >
-                            <span>{option.label}</span>
-                            {sortBy === option.key && (
-                              <Check size={13} className="text-emerald-600" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
+                        <span>{option.label}</span>
+                        {sortBy === option.key && <Check className="size-3.5 text-primary" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
                 {/* View toggle */}
                 <div
                   role="group"
                   aria-label="View mode"
-                  className="inline-flex h-12 items-center rounded-lg border border-slate-200 bg-white p-0.5 sm:h-9"
+                  className="inline-flex h-9 items-center rounded-lg border border-border bg-card p-0.5 shadow-2xs"
                 >
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setViewMode('grid')}
                     aria-pressed={viewMode === 'grid'}
                     aria-label="Grid view"
                     title="Grid view"
-                    className={`inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors sm:h-8 sm:w-8 ${focusRing} ${
+                    className={cn(
+                      'size-8 rounded-[12px] transition-colors',
                       viewMode === 'grid'
-                        ? 'bg-slate-100 text-slate-900'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
+                        ? 'bg-secondary text-foreground shadow-2xs font-semibold'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
                   >
-                    <LayoutGrid size={15} />
-                  </button>
-                  <button
+                    <LayoutGrid className="size-4" />
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setViewMode('list')}
                     aria-pressed={viewMode === 'list'}
                     aria-label="List view"
                     title="List view"
-                    className={`inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors sm:h-8 sm:w-8 ${focusRing} ${
+                    className={cn(
+                      'size-8 rounded-[12px] transition-colors',
                       viewMode === 'list'
-                        ? 'bg-slate-100 text-slate-900'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
+                        ? 'bg-secondary text-foreground shadow-2xs font-semibold'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
                   >
-                    <List size={15} />
-                  </button>
+                    <List className="size-4" />
+                  </Button>
                 </div>
               </div>
             </div>
 
             {visibleResumes.length === 0 ? (
               /* Search empty state */
-              <div className="rounded-xl border border-slate-200 bg-white px-6 py-16 text-center">
-                <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-                  <Search size={18} />
+              <Card className="px-6 py-16 text-center">
+                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                  <Search className="size-4" />
                 </div>
-                <p className="text-sm font-semibold text-slate-900 break-words">
+                <p className="text-sm font-semibold text-foreground break-words">
                   No resumes match “{searchQuery.trim()}”
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Search checks resume titles and candidate names.
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Search checks titles and candidate names.
                 </p>
-                <button
+                <Button
                   type="button"
+                  variant="link"
+                  size="sm"
                   onClick={() => setSearchQuery('')}
-                  className={`mt-4 rounded-md text-xs font-semibold text-emerald-700 transition-colors hover:text-emerald-800 ${focusRing}`}
+                  className="mt-3 text-xs"
                 >
                   Clear search
-                </button>
-              </div>
+                </Button>
+              </Card>
             ) : viewMode === 'grid' ? (
               /* Resumes Grid */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Create resume ghost card */}
                 <button
                   type="button"
                   onClick={onCreateResume}
-                  className={`group flex min-h-[16rem] flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-slate-300 bg-white/60 px-6 py-10 text-center transition-colors hover:border-emerald-600/50 hover:bg-white ${focusRing}`}
+                  className="group flex min-h-[16rem] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card/60 px-6 py-10 text-center shadow-2xs transition-[border-color,background-color,box-shadow] duration-150 [@media(hover:hover)]:hover:border-primary/50 [@media(hover:hover)]:hover:bg-card [@media(hover:hover)]:hover:shadow-sm"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
-                    <Plus size={18} />
+                  <span className="flex size-11 items-center justify-center rounded-full bg-accent text-accent-foreground transition-[background-color,color,box-shadow] duration-150 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-pillow-primary">
+                    <Plus className="size-5" />
                   </span>
-                  <span className="text-sm font-semibold text-slate-900">Create resume</span>
+                  <span className="text-sm font-semibold text-foreground">Create resume</span>
                 </button>
 
                 {visibleResumes.map((resume) => {
                   const fullName = resume.content.header.fullName || 'Untitled Candidate';
 
                   return (
-                    <article
+                    <Card
                       key={resume.id}
-                      className="group relative flex flex-col rounded-xl border border-slate-200 bg-white transition-[border-color,box-shadow] duration-150 ease-out hover:border-slate-300 hover:shadow-sm"
+                      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-[border-color,box-shadow] duration-150 ease-out [@media(hover:hover)]:hover:border-foreground/20 [@media(hover:hover)]:hover:shadow-md"
                     >
                       {/* Thumbnail */}
-                      <div className="rounded-t-[11px] border-b border-slate-100 bg-slate-50/80 p-4">
+                      <div className="border-b border-border bg-muted/30 p-5">
                         <ResumeContentThumbnail resume={resume} />
                       </div>
 
-                      <div className="flex flex-1 flex-col gap-3 p-4">
+                      <div className="flex flex-1 flex-col gap-3 p-5">
                         <div className="min-w-0">
                           {renamingResumeId === resume.id ? (
                             renderRenameField(resume)
                           ) : (
-                            <h2 className="text-sm font-bold tracking-tight text-slate-900">
+                            <h2 className="text-sm font-bold tracking-tight text-foreground">
                               <button
                                 type="button"
                                 onClick={() => onSelectResume(resume.id)}
                                 title={`Open ${resume.title}`}
-                                className={`-my-3 block max-w-full truncate rounded-sm py-3 text-left transition-colors group-hover:text-emerald-700 after:absolute after:inset-0 ${focusRing}`}
+                                className="relative block max-w-full truncate text-left transition-colors after:absolute after:-inset-x-2 after:-inset-y-3 after:content-[''] hover:underline hover:underline-offset-4"
                               >
                                 {resume.title}
                               </button>
                             </h2>
                           )}
-                          <p className="mt-0.5 truncate text-xs text-slate-500">{fullName}</p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">{fullName}</p>
                         </div>
 
                         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
-                            <LayoutTemplate size={11} className="text-slate-400" />
+                          <Badge variant="secondary" className="gap-1.5 text-[11px] font-medium py-0.5 px-2">
+                            <LayoutTemplate className="size-3 text-muted-foreground" />
                             {getLayoutById(resume.layoutId).name}
-                          </span>
+                          </Badge>
                           <span
-                            className="inline-flex items-center gap-1.5 text-[11px] text-slate-500"
+                            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
                             title={`Updated ${formatDate(resume.updatedAt)}`}
                           >
-                            <Clock size={11} className="text-slate-400" />
+                            <Clock className="size-3 text-muted-foreground" />
                             Updated {formatRelativeTime(resume.updatedAt)}
                           </span>
                         </div>
 
                         <div className="relative z-10 flex items-center gap-2 pt-1">
-                          <button
-                            type="button"
+                          <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => onSelectResume(resume.id)}
-                            className={`inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-semibold text-white transition-colors hover:bg-slate-800 motion-safe:enabled:active:scale-[0.96] sm:h-9 ${focusRing}`}
+                            className="h-9 flex-1 gap-1.5 text-xs font-semibold"
                           >
-                            <Pencil size={13} />
+                            <Pencil className="size-3.5" />
                             <span>Edit resume</span>
-                          </button>
-                          <button
-                            type="button"
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="icon"
                             onClick={() => onPreviewResume(resume.id)}
-                            className={iconButtonClass}
+                            className="relative size-9 shrink-0 text-muted-foreground after:absolute after:-inset-1 after:content-[''] hover:text-foreground"
                             title="Preview resume"
                             aria-label={`Preview ${resume.title}`}
                           >
-                            <Eye size={15} />
-                          </button>
+                            <Eye className="size-4" />
+                          </Button>
                           {renderMoreMenu(resume)}
                         </div>
                       </div>
-                    </article>
+                    </Card>
                   );
                 })}
               </div>
             ) : (
               /* Resumes List */
-              <div className="rounded-xl border border-slate-200 bg-white">
-                <div className="hidden border-b border-slate-100 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 sm:grid sm:grid-cols-[minmax(0,1fr)_8.5rem_9rem_8.5rem] sm:items-center sm:gap-4">
+              <Card className="rounded-2xl overflow-hidden border border-border">
+                <div className="hidden border-b border-border bg-muted/30 px-4 py-2.5 text-[11px] font-medium text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1fr)_8.5rem_9rem_8.5rem] sm:items-center sm:gap-4">
                   <span>Resume</span>
                   <span>Layout</span>
                   <span>Updated</span>
                   <span className="text-right">Actions</span>
                 </div>
-                <ul className="divide-y divide-slate-100 [&>li:last-child]:rounded-b-[11px]">
+                <ul className="divide-y divide-border">
                   {visibleResumes.map((resume) => {
                     const fullName = resume.content.header.fullName || 'Untitled Candidate';
 
                     return (
                       <li
                         key={resume.id}
-                        className="group relative transition-colors hover:bg-slate-50/70"
+                        className="group relative transition-colors [@media(hover:hover)]:hover:bg-muted/40"
                       >
                         <div className="flex items-center gap-3 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_8.5rem_9rem_8.5rem] sm:gap-4">
                           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -719,52 +669,54 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                               {renamingResumeId === resume.id ? (
                                 renderRenameField(resume)
                               ) : (
-                                <h2 className="text-sm font-semibold tracking-tight text-slate-900">
+                                <h2 className="text-sm font-semibold tracking-tight text-foreground">
                                   <button
                                     type="button"
                                     onClick={() => onSelectResume(resume.id)}
                                     title={`Open ${resume.title}`}
-                                    className={`-my-3 block max-w-full truncate rounded-sm py-3 text-left transition-colors group-hover:text-emerald-700 after:absolute after:inset-0 ${focusRing}`}
+                                    className="relative block max-w-full truncate text-left transition-colors after:absolute after:-inset-x-2 after:-inset-y-3 after:content-[''] hover:underline hover:underline-offset-4"
                                   >
                                     {resume.title}
                                   </button>
                                 </h2>
                               )}
-                              <p className="mt-0.5 truncate text-xs text-slate-500">{fullName}</p>
-                              <p className="mt-0.5 text-[11px] text-slate-500 sm:hidden">
-                                {getLayoutById(resume.layoutId).name} · Updated{' '}
-                                {formatRelativeTime(resume.updatedAt)}
+                              <p className="mt-0.5 truncate text-xs text-muted-foreground">{fullName}</p>
+                              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground sm:hidden">
+                                <span>{getLayoutById(resume.layoutId).name}</span>
+                                <span>Updated {formatRelativeTime(resume.updatedAt)}</span>
                               </p>
                             </div>
                           </div>
 
-                          <span className="hidden truncate text-xs text-slate-500 sm:block">
+                          <span className="hidden truncate text-xs text-muted-foreground sm:block">
                             {getLayoutById(resume.layoutId).name}
                           </span>
                           <span
-                            className="hidden text-xs text-slate-500 sm:block"
+                            className="hidden text-xs text-muted-foreground sm:block"
                             title={`Updated ${formatDate(resume.updatedAt)}`}
                           >
                             Updated {formatRelativeTime(resume.updatedAt)}
                           </span>
 
                           <div className="relative z-10 flex shrink-0 items-center justify-end gap-1.5">
-                            <button
-                              type="button"
+                            <Button
+                              variant="secondary"
+                              size="sm"
                               onClick={() => onSelectResume(resume.id)}
-                              className={quietButtonClass}
+                              className="h-8 px-2.5 text-xs"
                             >
                               Edit
-                            </button>
-                            <button
-                              type="button"
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="icon"
                               onClick={() => onPreviewResume(resume.id)}
-                              className={iconButtonClass}
+                              className="relative size-8 text-muted-foreground after:absolute after:-inset-1 after:content-[''] hover:text-foreground"
                               title="Preview resume"
                               aria-label={`Preview ${resume.title}`}
                             >
-                              <Eye size={15} />
-                            </button>
+                              <Eye className="size-3.5" />
+                            </Button>
                             {renderMoreMenu(resume)}
                           </div>
                         </div>
@@ -772,7 +724,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                     );
                   })}
                 </ul>
-              </div>
+              </Card>
             )}
           </>
         )}
@@ -783,8 +735,8 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
         isOpen={Boolean(deletingResume)}
         title={`Delete "${deletingResume?.title}"?`}
         description="This action cannot be undone. All customized sections, contact details, and formatted content in this resume will be permanently deleted."
-        confirmLabel="Delete Resume"
-        cancelLabel="Keep Resume"
+        confirmLabel="Delete resume"
+        cancelLabel="Keep resume"
         isDestructive={true}
         onConfirm={() => {
           if (deletingResume) {
@@ -795,7 +747,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
         onCancel={() => setDeletingResume(null)}
       />
 
-      {/* Confirmation Modal for Exiting Guest Mode (deletes local-only resumes) */}
+      {/* Confirmation Modal for Exiting Guest Mode */}
       <ConfirmDialog
         isOpen={isConfirmingSignOut}
         title="Exit guest mode?"
@@ -810,19 +762,22 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
         onCancel={() => setIsConfirmingSignOut(false)}
       />
 
-      {/* Mobile Bottom Action Bar: Create Resume (fixed white overlay) */}
-      {resumes.length > 0 && (
-        <div className="sm:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-6px_16px_-6px_rgba(15,23,42,0.15)] px-3 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]">
-          <button
-            type="button"
+      {/* Mobile Bottom Action Bar */}
+      {!isLoading && resumes.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-3 pb-[calc(0.625rem+env(safe-area-inset-bottom))] pt-2.5 shadow-lg backdrop-blur-md sm:hidden">
+          <Button
+            variant="default"
             onClick={onCreateResume}
-            className={`w-full inline-flex items-center justify-center gap-2 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-colors motion-safe:enabled:active:scale-[0.96] ${focusRing}`}
+            className="w-full h-11 gap-2 text-sm font-semibold"
           >
-            <Plus size={16} />
+            <Plus className="size-4" />
             <span>Create resume</span>
-          </button>
+          </Button>
         </div>
       )}
     </div>
   );
 };
+
+
+

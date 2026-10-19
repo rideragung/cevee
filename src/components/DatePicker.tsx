@@ -7,6 +7,7 @@ interface DatePickerProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  ariaLabel?: string;
 }
 
 const MONTHS_SHORT = [
@@ -35,6 +36,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   placeholder = 'Select date',
   disabled = false,
   className = '',
+  ariaLabel,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [align, setAlign] = useState<'left' | 'right'>('left');
@@ -128,14 +130,15 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          aria-label={ariaLabel || placeholder}
           onClick={() => {
             if (!disabled) {
               if (isOpen) setIsOpen(false);
               else openPopover();
             }
           }}
-          className={`w-full px-2.5 py-1.5 pr-14 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition ${
-            disabled ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white cursor-pointer'
+          className={`w-full rounded-lg border border-input px-2.5 py-1.5 pr-14 text-xs text-foreground transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 ${
+            disabled ? 'cursor-not-allowed bg-muted text-muted-foreground' : 'cursor-pointer bg-card'
           } ${className}`}
         />
 
@@ -147,7 +150,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 e.stopPropagation();
                 handleClear();
               }}
-              className="text-slate-500 hover:text-slate-700 p-0.5 rounded transition"
+              className="rounded p-0.5 text-muted-foreground transition hover:text-foreground"
               title="Clear date"
               aria-label="Clear date"
             >
@@ -164,10 +167,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 else openPopover();
               }
             }}
-            className={`p-0.5 rounded transition ${
-              disabled ? 'text-slate-400 cursor-not-allowed' : 'text-slate-500 hover:text-emerald-600'
+            className={`rounded p-0.5 transition ${
+              disabled ? 'cursor-not-allowed text-muted-foreground/60' : 'text-muted-foreground hover:text-primary'
             }`}
-            title="Open Date Picker"
+            title="Open date picker"
             aria-label="Open date picker"
           >
             <Calendar size={14} />
@@ -176,28 +179,28 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       </div>
 
       {isOpen && !disabled && (
-        <div className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full mt-1 z-50 w-full sm:w-64 max-w-[calc(100vw-1.5rem)] bg-white rounded-xl border border-slate-200/90 shadow-lg p-3 font-sans`}>
+        <div className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full z-50 mt-1 w-full max-w-[calc(100vw-1.5rem)] rounded-xl border border-border bg-popover p-3 font-sans shadow-lg sm:w-64`}>
           {/* Header: Year Navigation */}
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+          <div className="mb-2 flex items-center justify-between border-b border-border pb-2">
             <button
               type="button"
               onClick={() => setViewYear((y) => y - 1)}
-              className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition"
-              title="Previous Year"
+              className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              title="Previous year"
               aria-label="Previous year"
             >
               <ChevronLeft size={16} />
             </button>
 
-            <span className="font-bold text-xs text-slate-900 tracking-wider">
+            <span className="text-xs font-semibold text-foreground">
               {viewYear}
             </span>
 
             <button
               type="button"
               onClick={() => setViewYear((y) => y + 1)}
-              className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition"
-              title="Next Year"
+              className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              title="Next year"
               aria-label="Next year"
             >
               <ChevronRight size={16} />
@@ -214,10 +217,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                   key={month}
                   type="button"
                   onClick={() => handleSelectMonth(idx)}
-                  className={`py-1.5 text-xs rounded-lg transition font-medium ${
+                  className={`rounded-lg py-1.5 text-xs font-medium transition ${
                     isSelected
-                      ? 'bg-emerald-600 text-white font-semibold shadow-sm'
-                      : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700'
+                      ? 'bg-primary font-semibold text-primary-foreground shadow-sm'
+                      : 'text-foreground hover:bg-accent hover:text-primary'
                   }`}
                 >
                   {month}
@@ -227,11 +230,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between pt-2 mt-2 border-t border-slate-100 text-[11px]">
+          <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-[11px]">
             <button
               type="button"
               onClick={handleCurrentMonth}
-              className="text-emerald-600 hover:text-emerald-700 font-semibold hover:underline"
+              className="font-semibold text-primary hover:underline"
             >
               This month
             </button>
@@ -239,7 +242,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             <button
               type="button"
               onClick={handleClear}
-              className="text-slate-500 hover:text-red-600 transition"
+              className="text-muted-foreground transition hover:text-destructive"
             >
               Clear
             </button>

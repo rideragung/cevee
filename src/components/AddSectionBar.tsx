@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Plus, Check, X } from 'lucide-react';
 import { SectionType } from '../types/resume';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface AddSectionBarProps {
   onAddSection: (title: string, type: SectionType) => void;
@@ -33,23 +35,21 @@ export const AddSectionBar: React.FC<AddSectionBarProps> = ({
   };
 
   return (
-    <div className="mt-4 pt-2.5 border-t border-slate-200 no-print" data-editor-control="true">
+    <div className="mt-4 pt-2.5 border-t border-border no-print" data-editor-control="true">
       <div className="flex flex-wrap items-center justify-center gap-2">
         {presetOptions.map((opt) => {
-          const isAdded = existingTitles.includes(opt.title);
+          if (existingTitles.includes(opt.title)) return null;
+
           return (
-            <button
+            <Button
               key={opt.title}
               type="button"
-              disabled={isAdded}
+              variant="outline"
+              size="sm"
               onClick={() => onAddSection(opt.title, opt.type)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border transition ${
-                isAdded
-                  ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
-                  : 'border-slate-300 bg-white text-slate-700 hover:border-slate-900 hover:text-slate-900 shadow-sm'
-              }`}
+              className="h-7 gap-1.5 rounded-lg px-3 text-xs font-medium shadow-2xs"
             >
-              <Plus size={13} className={isAdded ? 'opacity-40' : 'text-slate-600'} />
+              <Plus className="size-3 text-muted-foreground" />
               <span>
                 Add{' '}
                 {opt.title
@@ -58,50 +58,57 @@ export const AddSectionBar: React.FC<AddSectionBarProps> = ({
                   .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
                   .join(' ')}
               </span>
-            </button>
+            </Button>
           );
         })}
 
         {/* Custom Section Button */}
         {!isCustomOpen ? (
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={() => setIsCustomOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border border-emerald-500 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-sm transition"
+            className="h-7 gap-1.5 rounded-lg px-3 text-xs font-semibold shadow-2xs"
           >
-            <Plus size={13} />
+            <Plus className="size-3" />
             <span>Add custom section</span>
-          </button>
+          </Button>
         ) : (
           <form
             onSubmit={handleCustomSubmit}
-            className="inline-flex items-center gap-1.5 p-1 bg-white border border-emerald-500 rounded-full shadow-sm"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-card p-0.5 shadow-2xs"
           >
-            <input
+            <Input
               type="text"
               value={customTitle}
               onChange={(e) => setCustomTitle(e.target.value)}
-              placeholder="Type section title..."
+              placeholder="Section title"
               autoFocus
-              className="text-xs px-2.5 py-1 outline-none text-slate-900 w-44 rounded-full"
+              aria-label="Custom section title"
+              className="h-7 w-44 rounded-md border-0 px-3 text-xs focus-visible:ring-0"
             />
-            <button
+            <Button
               type="submit"
-              className="p-1 text-emerald-600 hover:text-emerald-700 rounded-full"
-              title="Add"
+              variant="ghost"
+              size="icon"
+              className="size-6 rounded-md text-primary"
+              title="Add section"
               aria-label="Add section"
             >
-              <Check size={14} />
-            </button>
-            <button
+              <Check className="size-3.5" />
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => setIsCustomOpen(false)}
-              className="p-1 text-slate-500 hover:text-slate-800 rounded-full"
+              className="size-6 rounded-md text-muted-foreground hover:text-foreground"
               title="Cancel"
               aria-label="Cancel"
             >
-              <X size={14} />
-            </button>
+              <X className="size-3.5" />
+            </Button>
           </form>
         )}
       </div>

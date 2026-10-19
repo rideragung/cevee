@@ -97,7 +97,7 @@ const ResumeContentThumbnailInner: React.FC<ResumeContentThumbnailProps> = ({
     <div
       ref={wrapRef}
       aria-hidden="true"
-      className={`relative aspect-[210/297] overflow-hidden rounded-lg border border-slate-200/90 bg-white select-none pointer-events-none ${className}`}
+      className={`relative aspect-[210/297] overflow-hidden rounded-lg border border-border bg-white select-none pointer-events-none ${className}`}
     >
       <div
         ref={(node) => {

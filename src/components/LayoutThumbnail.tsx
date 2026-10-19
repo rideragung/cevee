@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Check } from 'lucide-react';
 import { ResumeLayoutId } from '../types/resume';
 import { ResumeMiniPreview } from './ResumeMiniPreview';
@@ -24,22 +24,22 @@ export const LayoutThumbnail: React.FC<LayoutThumbnailProps> = ({
       onClick={onClick}
       title={title}
       aria-label={title}
-      className={`group relative aspect-[210/297] w-40 sm:w-44 xl:w-48 rounded-xl p-2 sm:p-2.5 bg-white transition-all select-none cursor-pointer flex flex-col justify-between text-left ${
+      className={`group relative flex aspect-[210/297] w-40 cursor-pointer select-none flex-col justify-between rounded-xl bg-card p-2 text-left transition-[transform,box-shadow,border-color] duration-150 sm:w-44 sm:p-2.5 xl:w-48 ${
         isActive
-          ? 'border-2 border-emerald-600 ring-4 ring-emerald-500/15 shadow-md shadow-emerald-950/5'
-          : 'border border-slate-200 hover:border-slate-400 hover:shadow-sm hover:scale-[1.01]'
+          ? 'border-2 border-primary shadow-md shadow-primary/5 ring-4 ring-primary/15'
+          : 'border border-border [@media(hover:hover)]:hover:border-foreground/20 [@media(hover:hover)]:hover:shadow-sm motion-safe:[@media(hover:hover)]:hover:scale-[1.01]'
       } ${className}`}
     >
       {/* High-Fidelity Vector Document Preview */}
       <ResumeMiniPreview
         layoutId={layoutId}
-        className="w-full h-full border border-slate-200/80 rounded-md"
+        className="h-full w-full rounded-md border border-border/80"
       />
 
       {/* Active Indicator Badge (Top Right Corner) */}
       {isActive && (
         <span
-          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-sm ring-2 ring-white z-10"
+          className="absolute -right-1.5 -top-1.5 z-10 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-2 ring-background"
           aria-hidden="true"
         >
           <Check size={11} strokeWidth={3} />
@@ -48,3 +48,4 @@ export const LayoutThumbnail: React.FC<LayoutThumbnailProps> = ({
     </button>
   );
 };
+

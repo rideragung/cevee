@@ -29,6 +29,7 @@ import { getSupabase } from './lib/supabase';
 import { fetchUserResumes, saveUserResume, deleteUserResume } from './lib/resumeService';
 import { DEFAULT_LAYOUT_ID, normalizeLayoutId } from './layouts/registry';
 import { User } from '@supabase/supabase-js';
+import { Loader2 } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'cevee_resumes_v3';
 const ACTIVE_RESUME_KEY = 'cevee_active_resume_id_v3';
@@ -70,6 +71,7 @@ export function App() {
   });
   const [deletingSectionId, setDeletingSectionId] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const [resumesLoadedForUser, setResumesLoadedForUser] = useState<string | null>(null);
 
   // Supabase Auth listener
   useEffect(() => {
@@ -118,6 +120,7 @@ export function App() {
       await supabase.auth.signOut();
     }
     fetchedUserIdRef.current = null;
+    setResumesLoadedForUser(null);
     setUser(null);
     setIsGuest(false);
     setResumes([]);
@@ -132,6 +135,7 @@ export function App() {
     const userId = user?.id;
     if (!userId) {
       fetchedUserIdRef.current = null;
+      setResumesLoadedForUser(null);
       return;
     }
 
@@ -141,28 +145,37 @@ export function App() {
     fetchedUserIdRef.current = userId;
 
     let isMounted = true;
+    setResumesLoadedForUser(null);
     setSyncStatus('saving');
-    fetchUserResumes().then(async (dbResumes) => {
-      if (!isMounted) return;
+    fetchUserResumes()
+      .then(async (dbResumes) => {
+        if (!isMounted) return;
 
-      if (dbResumes && dbResumes.length > 0) {
-        setResumes(dbResumes);
-        setActiveResumeId((prevActiveId) => {
-          return prevActiveId && dbResumes.some((r) => r.id === prevActiveId)
-            ? prevActiveId
-            : dbResumes[0].id;
-        });
-        setSyncStatus('saved');
-      } else if (dbResumes && dbResumes.length === 0) {
-        // First-time login: show clean empty dashboard
-        setResumes([]);
-        setActiveResumeId('');
-        setCurrentView('dashboard');
-        setSyncStatus('saved');
-      } else {
-        setSyncStatus('error');
-      }
-    });
+        if (dbResumes && dbResumes.length > 0) {
+          setResumes(dbResumes);
+          setActiveResumeId((prevActiveId) => {
+            return prevActiveId && dbResumes.some((r) => r.id === prevActiveId)
+              ? prevActiveId
+              : dbResumes[0].id;
+          });
+          setSyncStatus('saved');
+        } else if (dbResumes && dbResumes.length === 0) {
+          // First-time login: show clean empty dashboard
+          setResumes([]);
+          setActiveResumeId('');
+          setCurrentView('dashboard');
+          setSyncStatus('saved');
+        } else {
+          if (!localStorage.getItem(LOCAL_STORAGE_KEY)) {
+            setResumes([]);
+            setActiveResumeId('');
+          }
+          setSyncStatus('error');
+        }
+      })
+      .finally(() => {
+        if (isMounted) setResumesLoadedForUser(userId);
+      });
 
     return () => {
       isMounted = false;
@@ -174,6 +187,7 @@ export function App() {
   // Auto-sync active resume to Supabase if logged in (debounced)
   useEffect(() => {
     if (!user || !activeResume || !activeResumeId || resumes.length === 0) return;
+    if (resumesLoadedForUser !== user.id) return;
 
     setSyncStatus('saving');
     const timeout = setTimeout(async () => {
@@ -182,7 +196,7 @@ export function App() {
     }, 800);
 
     return () => clearTimeout(timeout);
-  }, [activeResume, activeResumeId, user, resumes.length]);
+  }, [activeResume, activeResumeId, user, resumes.length, resumesLoadedForUser]);
 
   // Auto-save to localStorage
   useEffect(() => {
@@ -653,8 +667,15 @@ export function App() {
 
   if (isAuthChecking) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex min-h-screen items-center justify-center bg-muted">
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center gap-2.5 text-sm text-muted-foreground"
+        >
+          <Loader2 className="size-4 animate-spin text-primary" />
+          <span>Checking your session</span>
+        </div>
       </div>
     );
   }
@@ -693,10 +714,12 @@ export function App() {
               (user?.user_metadata?.picture as string)
             }
             onSignOut={handleSignOut}
+            isLoading={Boolean(user) && resumesLoadedForUser !== user?.id}
+            syncStatus={syncStatus}
           />
         </div>
       ) : (
-        <div className="min-h-screen flex flex-row bg-slate-100 no-print">
+        <div className="flex min-h-screen flex-row bg-muted no-print">
           {/* Left Sidebar Container with Layout Selector inside */}
           <LayoutSidebar
             activeLayoutId={normalizeLayoutId(activeResume.layoutId)}
@@ -724,7 +747,7 @@ export function App() {
             <main className="no-print-area flex-1 pt-4 pb-24 px-2.5 sm:py-8 sm:px-6 flex justify-center items-start overflow-x-hidden min-w-0">
               {/* A4 Canvas Page */}
               <div
-                className="resume-a4-page w-full rounded-[20px] transition-all"
+                className="resume-a4-page w-full rounded-[20px]"
                 data-layout={normalizeLayoutId(activeResume.layoutId)}
               >
               {/* Header */}
@@ -896,8 +919,8 @@ export function App() {
         isOpen={Boolean(deletingSectionId)}
         title={`Delete "${activeResume?.content.sections.find((s) => s.id === deletingSectionId)?.title || 'Section'}"?`}
         description="This action cannot be undone. All entries, roles, and formatted descriptions in this section will be permanently deleted from this resume."
-        confirmLabel="Delete Section"
-        cancelLabel="Keep Section"
+        confirmLabel="Delete section"
+        cancelLabel="Keep section"
         isDestructive={true}
         onConfirm={() => {
           if (deletingSectionId) {

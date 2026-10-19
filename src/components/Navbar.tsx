@@ -15,6 +15,17 @@ import {
   Loader2,
 } from 'lucide-react';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface NavbarProps {
   resumes: ResumeDocument[];
@@ -45,7 +56,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   syncStatus = 'saved',
   isCloudUser = false,
 }) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const currentResume = resumes.find((r) => r.id === currentResumeId) || resumes[0];
@@ -62,244 +72,230 @@ export const Navbar: React.FC<NavbarProps> = ({
   const syncTitle =
     syncStatus === 'saving'
       ? isCloudUser
-        ? 'Saving to cloud...'
-        : 'Saving...'
+        ? 'Saving to cloud'
+        : 'Saving'
       : syncStatus === 'error'
-      ? 'Saved locally'
+      ? 'Cloud save failed. Changes are saved on this device.'
       : isCloudUser
-      ? 'Synced to cloud'
+      ? 'Saved to cloud'
       : 'Saved locally';
 
   return (
     <>
-      <header className="app-navbar sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm no-print">
-      <div className="w-full max-w-[210mm] mx-auto px-2.5 sm:px-6 min-[901px]:px-0 flex items-center justify-between gap-2 sm:gap-3 py-2 lg:h-14 lg:py-0">
-        {/* Left: Back button (aligned to canvas left edge) */}
-        <div className="flex items-center min-w-0 flex-1">
-          {onBackToDashboard && (
-            <button
-              type="button"
-              onClick={onBackToDashboard}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-1.5 rounded-md hover:bg-slate-100 transition flex-shrink-0"
-              title="Back to dashboard"
-              aria-label="Back to dashboard"
+      <header className="app-navbar sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border shadow-xs no-print">
+        <div className="w-full max-w-[210mm] mx-auto px-2.5 sm:px-6 min-[901px]:px-0 flex items-center justify-between gap-2 sm:gap-3 py-2 lg:h-14 lg:py-0">
+          {/* Left: Back button (aligned to canvas left edge) */}
+          <div className="flex items-center min-w-0 flex-1">
+            {onBackToDashboard && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onBackToDashboard}
+                className="gap-1.5 px-2.5 h-8 text-muted-foreground hover:text-foreground flex-shrink-0"
+                title="Back to dashboard"
+                aria-label="Back to dashboard"
+              >
+                <ArrowLeft className="size-4" />
+                <span className="hidden md:inline font-medium text-xs">Dashboard</span>
+              </Button>
+            )}
+          </div>
+
+          {/* Center: sync indicator + file selector */}
+          <div className="flex items-center gap-2 justify-center min-w-0">
+            {/* Sync status indicator */}
+            <div
+              className="flex flex-shrink-0 items-center justify-center"
+              title={syncTitle}
+              role="status"
+              aria-live="polite"
             >
-              <ArrowLeft size={15} />
-              <span className="hidden md:inline">Back</span>
-            </button>
-          )}
-        </div>
+              {syncStatus === 'saving' ? (
+                <Loader2 className="size-4 animate-spin text-primary" />
+              ) : syncStatus === 'error' ? (
+                <span className="size-2 rounded-full bg-amber-500" />
+              ) : isCloudUser ? (
+                <Cloud className="size-4 text-primary" />
+              ) : (
+                <CheckCircle2 className="size-4 text-primary" />
+              )}
+              <span className="sr-only">{syncTitle}</span>
+            </div>
 
-        {/* Center: sync indicator + file selector */}
-        <div className="flex items-center gap-1.5 justify-center min-w-0">
-          {/* Sync status icon only, placed left of the file selector */}
-          <div className="flex items-center justify-center flex-shrink-0" title={syncTitle}>
-            {syncStatus === 'saving' ? (
-              <Loader2 size={14} className="animate-spin text-emerald-600" />
-            ) : syncStatus === 'error' ? (
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-            ) : isCloudUser ? (
-              <Cloud size={14} className="text-emerald-600" />
-            ) : (
-              <CheckCircle2 size={14} className="text-emerald-600" />
-            )}
-          </div>
-
-          {/* Multi-CV Switcher Dropdown */}
-          <div className="relative min-w-0">
-            {isRenaming ? (
-              <form onSubmit={handleRenameSubmit} className="flex items-center gap-1">
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onBlur={handleRenameSubmit}
-                  autoFocus
-                  className="text-xs font-semibold px-2 py-1 border border-emerald-500 rounded outline-none w-36 sm:w-48"
-                />
-                <button
-                  type="submit"
-                  className="p-1 text-emerald-600 hover:text-emerald-700"
-                  title="Save"
-                  aria-label="Save title"
-                >
-                  <Check size={14} />
-                </button>
-              </form>
-            ) : (
-              <div className="flex items-center gap-1 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 hover:text-slate-950 bg-slate-100/80 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-md transition min-w-0"
-                >
-                  <span className="truncate max-w-[110px] sm:max-w-[220px]">
-                    {currentResume?.title}
-                  </span>
-                  <ChevronDown size={14} className="text-slate-500 flex-shrink-0" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditTitle(currentResume.title);
-                    setIsRenaming(true);
-                  }}
-                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition flex-shrink-0"
-                  title="Rename resume"
-                  aria-label="Rename resume"
-                >
-                  <Edit2 size={13} />
-                </button>
-              </div>
-            )}
-
-            {/* Dropdown Menu */}
-            {isDropdownOpen && (
-              <>
-                {/* Transparent backdrop to cleanly dismiss dropdown on outside click */}
-                <div
-                  className="fixed inset-0 z-40 cursor-default"
-                  onClick={() => setIsDropdownOpen(false)}
-                />
-
-                <div className="absolute left-1/2 -translate-x-1/2 mt-1.5 w-64 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-200 rounded-lg shadow-lg py-1.5 z-50">
-                  <div className="px-3 py-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Your resumes ({resumes.length})
-                  </div>
-
-                  <div className="max-h-56 overflow-y-auto">
-                    {resumes.map((r) => (
-                      <div
-                        key={r.id}
-                        onClick={() => {
-                          onSelectResume(r.id);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`px-3 py-2 text-xs flex items-center justify-between cursor-pointer transition ${
-                          r.id === currentResumeId
-                            ? 'bg-emerald-50 font-semibold text-emerald-900 border-l-2 border-emerald-600'
-                            : 'hover:bg-slate-50 text-slate-700'
-                        }`}
+            {/* Multi-CV Switcher */}
+            <div className="relative min-w-0">
+              {isRenaming ? (
+                <form onSubmit={handleRenameSubmit} className="flex items-center gap-1.5">
+                  <Input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onBlur={handleRenameSubmit}
+                    autoFocus
+                    aria-label="Resume title"
+                    className="h-8 w-36 text-xs font-medium sm:w-48"
+                  />
+                  <Button
+                    type="submit"
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-primary"
+                    title="Save"
+                    aria-label="Save title"
+                  >
+                    <Check className="size-4" />
+                  </Button>
+                </form>
+              ) : (
+                <div className="flex items-center gap-1 min-w-0">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="h-8 gap-1.5 px-2.5 text-xs font-medium min-w-0"
                       >
-                        <span className="truncate">{r.title}</span>
-                        {r.id === currentResumeId && (
-                          <span className="text-[10px] text-emerald-600 font-bold">Active</span>
-                        )}
+                        <span className="truncate max-w-[110px] sm:max-w-[220px]">
+                          {currentResume?.title}
+                        </span>
+                        <ChevronDown className="size-3.5 text-muted-foreground flex-shrink-0" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center" className="w-64 max-w-[calc(100vw-1.5rem)]">
+                      <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                        Your resumes ({resumes.length})
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <div className="max-h-56 overflow-y-auto space-y-0.5">
+                        {resumes.map((r) => (
+                          <DropdownMenuItem
+                            key={r.id}
+                            onClick={() => onSelectResume(r.id)}
+                            className="flex items-center justify-between text-xs cursor-pointer"
+                          >
+                            <span className="truncate">{r.title}</span>
+                            {r.id === currentResumeId && (
+                              <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-primary/30 text-primary">
+                                Active
+                              </Badge>
+                            )}
+                          </DropdownMenuItem>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={onCreateResume}
+                        className="gap-2 text-xs cursor-pointer"
+                      >
+                        <Plus className="size-4 text-muted-foreground" />
+                        <span>Create new resume</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => onDuplicateResume(currentResume.id)}
+                        className="gap-2 text-xs cursor-pointer"
+                      >
+                        <Copy className="size-4 text-muted-foreground" />
+                        <span>Duplicate resume</span>
+                      </DropdownMenuItem>
+                      {resumes.length > 1 && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setIsConfirmingDelete(true)}
+                            className="gap-2 text-xs text-destructive focus:text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="size-4" />
+                            <span>Delete resume</span>
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
-                  <div className="border-t border-slate-100 my-1" />
-
-                  {/* Actions inside dropdown */}
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => {
-                      onCreateResume();
-                      setIsDropdownOpen(false);
+                      setEditTitle(currentResume.title);
+                      setIsRenaming(true);
                     }}
-                    className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition"
+                    className="size-8 text-muted-foreground hover:text-foreground flex-shrink-0"
+                    title="Rename resume"
+                    aria-label="Rename resume"
                   >
-                    <Plus size={14} className="text-emerald-600" />
-                    <span>Create new resume</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onDuplicateResume(currentResume.id);
-                      setIsDropdownOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition"
-                  >
-                    <Copy size={14} className="text-blue-600" />
-                    <span>Duplicate resume</span>
-                  </button>
-
-                  {resumes.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsDropdownOpen(false);
-                        setIsConfirmingDelete(true);
-                      }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition cursor-pointer"
-                    >
-                      <Trash2 size={14} />
-                      <span>Delete resume</span>
-                    </button>
-                  )}
+                    <Edit2 className="size-3.5" />
+                  </Button>
                 </div>
-              </>
-            )}
+              )}
+            </div>
+          </div>
+
+          {/* Right: Preview + Download (desktop) */}
+          <div className="hidden sm:flex items-center justify-end gap-2 min-w-0 flex-1">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onOpenPreview}
+              className="gap-1.5 h-8 text-xs font-medium flex-shrink-0"
+              title="Preview resume"
+              aria-label="Preview resume"
+            >
+              <Eye className="size-3.5" />
+              <span>Preview</span>
+            </Button>
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={onDownloadPdf}
+              className="gap-1.5 h-8 text-xs font-medium flex-shrink-0"
+              title="Download PDF"
+              aria-label="Download PDF"
+            >
+              <Download className="size-3.5" />
+              <span>Download PDF</span>
+            </Button>
           </div>
         </div>
 
-        {/* Right: Preview + Download (aligned to canvas right edge, desktop only) */}
-        <div className="hidden sm:flex items-center justify-end gap-2 min-w-0 flex-1">
-          <button
-            type="button"
-            onClick={onOpenPreview}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition shadow-sm flex-shrink-0"
-            title="Preview ATS layout (A4 format)"
-            aria-label="Preview resume"
-          >
-            <Eye size={14} />
-            <span className="hidden sm:inline">Preview</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onDownloadPdf}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm transition flex-shrink-0"
-            title="Download PDF document"
-            aria-label="Download PDF"
-          >
-            <Download size={14} />
-            <span className="hidden sm:inline">Download</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Confirmation Modal for Resume Deletion from Navbar */}
-      <ConfirmDialog
-        isOpen={isConfirmingDelete}
-        title={`Delete "${currentResume.title}"?`}
-        description="This action cannot be undone. All customized sections, contact details, and formatted content in this resume will be permanently deleted."
-        confirmLabel="Delete Resume"
-        cancelLabel="Keep Resume"
-        isDestructive={true}
-        onConfirm={() => {
-          onDeleteResume(currentResume.id);
-          setIsConfirmingDelete(false);
-        }}
-        onCancel={() => setIsConfirmingDelete(false)}
-      />
+        {/* Confirmation Modal */}
+        <ConfirmDialog
+          isOpen={isConfirmingDelete}
+          title={`Delete "${currentResume.title}"?`}
+          description="This action cannot be undone. All customized sections, contact details, and formatted content in this resume will be permanently deleted."
+          confirmLabel="Delete Resume"
+          cancelLabel="Keep Resume"
+          isDestructive={true}
+          onConfirm={() => {
+            onDeleteResume(currentResume.id);
+            setIsConfirmingDelete(false);
+          }}
+          onCancel={() => setIsConfirmingDelete(false)}
+        />
       </header>
 
-      {/* Mobile Bottom Action Bar (fixed white overlay, mobile only) */}
-      <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 no-print bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-6px_16px_-6px_rgba(15,23,42,0.15)] px-3 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] flex items-center gap-2">
-        <button
-          type="button"
+      {/* Mobile Bottom Action Bar */}
+      <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 no-print bg-background/95 backdrop-blur-md border-t border-border shadow-lg px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex items-center gap-2">
+        <Button
+          variant="secondary"
+          size="icon"
           onClick={onOpenPreview}
-          className="p-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex-shrink-0"
-          title="Preview ATS layout (A4 format)"
+          className="size-10 flex-shrink-0"
+          title="Preview resume"
           aria-label="Preview resume"
         >
-          <Eye size={18} />
-        </button>
+          <Eye className="size-4" />
+        </Button>
 
-        <button
-          type="button"
+        <Button
+          variant="default"
           onClick={onDownloadPdf}
-          className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition"
-          title="Download PDF document"
+          className="h-10 flex-1 gap-2 text-sm font-semibold"
+          title="Download PDF"
         >
-          <Download size={16} />
+          <Download className="size-4" />
           <span>Download PDF</span>
-        </button>
+        </Button>
       </div>
     </>
   );

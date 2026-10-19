@@ -81,10 +81,10 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
       )}
 
       {isEditing ? (
-        <div className="bg-[#f8fafc] rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm my-2.5 no-print font-sans">
+        <div className="my-2.5 rounded-xl border border-border bg-muted/50 p-4 font-sans shadow-sm no-print sm:p-5">
           {/* Header Section Title */}
-          <div className="border-b border-slate-900 pb-1 mb-5">
-            <h3 className="text-[10pt] font-bold text-slate-900 uppercase tracking-wider">
+          <div className="mb-5 border-b border-border pb-2">
+            <h3 className="text-sm font-semibold text-foreground">
               {title}
             </h3>
           </div>
@@ -96,15 +96,16 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
                 {/* Skill Category row */}
                 <div className="flex items-start justify-between gap-4">
                   <div className="w-full sm:w-1/2">
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Skill Category <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                      Skill category <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="text"
                       value={cat.category}
                       onChange={(e) => handleChange(cat.id, 'category', e.target.value)}
+                      aria-label="Skill category"
                       placeholder="e.g. Design & Research"
-                      className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                      className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                     />
                   </div>
 
@@ -112,7 +113,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => handleRemoveCategory(cat.id)}
-                    className="p-1.5 mt-5 border border-slate-200 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 transition"
+                    className="mt-5 rounded-lg border border-border p-1.5 text-destructive transition hover:bg-destructive/10"
                     title="Delete category"
                     aria-label="Delete category"
                   >
@@ -122,35 +123,36 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
 
                 {/* List of skills textarea */}
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Skills <span className="text-red-500">*</span>
+                  <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                    Skills <span className="text-destructive">*</span>
                   </label>
                   <textarea
                     value={cat.items}
                     onChange={(e) => handleChange(cat.id, 'items', e.target.value)}
+                    aria-label="Skills"
                     placeholder="UI/UX Design, Visual Design, Wireframing..."
                     rows={2}
-                    className="w-full px-3 py-1.5 text-xs text-slate-800 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 resize-y bg-white"
+                    className="w-full resize-y rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                   />
-                  <p className="text-[10.5px] text-slate-500 mt-0.5">
+                  <p className="mt-0.5 text-[10.5px] text-muted-foreground">
                     Separate skills with commas
                   </p>
                 </div>
 
                 {/* Separator between items */}
                 {idx < categories.length - 1 && (
-                  <div className="border-b border-slate-200 pt-3" />
+                  <div className="border-b border-border pt-3" />
                 )}
               </div>
             ))}
           </div>
 
           {/* Action Bar (Add category on left, Cancel & Save on right) */}
-          <div className="flex flex-wrap items-center justify-between gap-y-3 gap-x-3 pt-6 mt-4 border-t border-slate-100">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-3 border-t border-border pt-6">
             <button
               type="button"
               onClick={handleAddCategory}
-              className="inline-flex items-center gap-1 px-4 py-1.5 border border-emerald-500 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold rounded-lg transition"
+              className="inline-flex items-center gap-1 rounded-lg border border-primary px-4 py-1.5 text-xs font-semibold text-primary transition hover:bg-accent"
             >
               <Plus size={13} />
               <span>Add category</span>
@@ -160,14 +162,14 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
               <button
                 type="button"
                 onClick={handleCancel}
-                className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 px-3 py-1.5 transition"
+                className="px-3 py-1.5 text-xs font-semibold text-primary transition hover:text-primary/80"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-6 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition"
+                className="rounded-lg bg-primary px-6 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
               >
                 Save
               </button>
@@ -176,12 +178,22 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
         </div>
       ) : (
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setCategories(data.categories.length > 0 && !isPlaceholder ? data.categories : [{ id: `sk-${Date.now()}`, category: '', items: '' }]);
             setIsEditing(true);
           }}
-          className="cursor-pointer hover:bg-slate-50/70 p-1 -m-1 rounded transition space-y-0.5 leading-[1.48] text-[7.75pt]"
+          onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              event.currentTarget.click();
+            }
+          }}
+          className="cursor-pointer hover:bg-accent/50 p-1 -m-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 space-y-0.5 leading-[1.48] text-[7.75pt]"
           title="Click to edit skills"
+          aria-label="Edit skills"
         >
           {isPlaceholder ? (
             <div className="leading-[1.48] text-slate-400 select-none">

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Pencil, ArrowUp, ArrowDown, Trash2, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface SectionHeaderProps {
   title: string;
@@ -61,79 +62,94 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
               onChange={(e) => setEditedTitle(e.target.value)}
               onBlur={() => handleTitleSubmit()}
               autoFocus
-              className="text-[8.5pt] font-bold tracking-wider text-slate-900 uppercase border-b-2 border-emerald-500 bg-emerald-50/50 px-1 outline-none"
+              className="text-[8.5pt] font-bold tracking-wider text-slate-900 uppercase border-b-2 border-primary bg-accent/40 px-1 outline-none rounded-t"
             />
-            <button
+            <Button
               type="submit"
-              className="p-1 text-emerald-600 hover:text-emerald-700 rounded no-print"
-              title="Save Section Title"
+              variant="ghost"
+              size="icon"
+              className="size-6 text-primary no-print"
+              title="Save section title"
               aria-label="Save section title"
             >
-              <Check size={13} />
-            </button>
+              <Check className="size-3.5" />
+            </Button>
           </form>
         ) : (
-          <h2
-            onClick={() => setIsEditingTitle(true)}
-            className="text-[8.5pt] font-bold tracking-wider text-slate-900 uppercase cursor-pointer hover:text-emerald-700 transition"
-            title="Click to rename section"
-          >
-            {title}
+          <h2 className="inline-flex items-center gap-1.5 text-[8.5pt] font-bold uppercase tracking-wider text-slate-900">
+            <span>{title}</span>
+            <button
+              type="button"
+              onClick={() => setIsEditingTitle(true)}
+              className="no-print inline-flex size-6 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity duration-150 [@media(hover:hover)]:hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 group-hover:opacity-100 group-focus-within:opacity-100"
+              aria-label={`Rename ${title}`}
+            >
+              <Pencil className="size-3" />
+            </button>
           </h2>
         )}
 
-        {/* Section action controls (pen, up, down, trash) in hover pill */}
+        {/* Section action controls in hover pill */}
         <div
           data-editor-control="true"
-          className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex items-center gap-1 bg-white border border-slate-200 shadow-sm rounded-md px-1.5 py-0.5 text-slate-500 no-print transition flex-shrink-0"
+          className="no-print flex flex-shrink-0 items-center gap-0.5 rounded-lg border border-border bg-card px-1 py-0.5 text-muted-foreground opacity-100 shadow-2xs transition-opacity duration-150 lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100"
         >
           {onToggleEdit && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onToggleEdit}
-              className="p-1 text-slate-600 hover:text-slate-900 rounded transition"
-              title="Edit Section"
+              className="size-6 text-muted-foreground [@media(hover:hover)]:hover:text-foreground"
+              title="Edit section"
               aria-label="Edit section"
             >
-              <Pencil size={13} />
-            </button>
+              <Pencil className="size-3" />
+            </Button>
           )}
 
           {!isFirst && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onMoveUp}
-              className="p-1 text-slate-600 hover:text-slate-900 rounded transition"
-              title="Move Up"
+              className="size-6 text-muted-foreground [@media(hover:hover)]:hover:text-foreground"
+              title="Move section up"
               aria-label="Move section up"
             >
-              <ArrowUp size={13} />
-            </button>
+              <ArrowUp className="size-3" />
+            </Button>
           )}
 
           {!isLast && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onMoveDown}
-              className="p-1 text-slate-600 hover:text-slate-900 rounded transition"
-              title="Move Down"
+              className="size-6 text-muted-foreground [@media(hover:hover)]:hover:text-foreground"
+              title="Move section down"
               aria-label="Move section down"
             >
-              <ArrowDown size={13} />
-            </button>
+              <ArrowDown className="size-3" />
+            </Button>
           )}
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onDelete}
-            className="p-1 text-red-500 hover:text-red-700 rounded transition"
-            title="Delete Section"
+            className="size-6 text-destructive/80 hover:text-destructive hover:bg-destructive/10"
+            title="Delete section"
             aria-label="Delete section"
           >
-            <Trash2 size={13} />
-          </button>
+            <Trash2 className="size-3" />
+          </Button>
         </div>
       </div>
     </div>
   );
 };
+
