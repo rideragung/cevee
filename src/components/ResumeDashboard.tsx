@@ -299,8 +299,8 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
   return (
     <div className="min-h-screen bg-muted/20 flex flex-col font-sans">
       {/* Top Header */}
-      <header className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-30 pointer-events-none">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between pointer-events-auto">
           <div className="flex items-center gap-3">
             <span className="font-extrabold text-lg tracking-tight text-foreground flex items-center gap-2">
               <span className="bg-primary text-primary-foreground p-1.5 rounded-lg shadow-pillow-primary">
@@ -311,6 +311,16 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5">
+            {!isLoading && onCreateResume && (
+              <Button
+                variant="default"
+                onClick={onCreateResume}
+                className="hidden sm:inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
+              >
+                <Plus className="size-4" />
+                <span>Create resume</span>
+              </Button>
+            )}
             {onSignOut && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -359,9 +369,9 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
       </header>
 
       {/* Main Content Area */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-24 sm:py-10 flex-1 w-full">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-24 sm:py-12 flex-1 w-full">
         {/* Title Section */}
-        <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="mb-8">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Your resumes
@@ -377,17 +387,6 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
               Open one to edit, or export a PDF.
             </p>
           </div>
-
-          {!isLoading && resumes.length > 0 && (
-            <Button
-              variant="default"
-              onClick={onCreateResume}
-              className="hidden sm:inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
-            >
-              <Plus className="size-4" />
-              <span>Create resume</span>
-            </Button>
-          )}
         </div>
 
         {syncStatus === 'error' && !isLoading && (
@@ -441,7 +440,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                   aria-label="Search resumes by title or candidate name"
                   autoComplete="off"
                   spellCheck={false}
-                  className="pl-9 pr-9 h-9 text-sm"
+                  className="pl-9 pr-9 h-11 text-sm"
                 />
                 {searchQuery && (
                   <Button
@@ -465,7 +464,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="h-9 gap-2 text-xs font-medium text-foreground"
+                      className="h-9 gap-2 text-xs font-medium text-foreground after:absolute after:-inset-2 after:content-['']"
                       title="Sort resumes"
                       aria-label={`Sort resumes, currently ${currentSortLabel.toLowerCase()}`}
                     >
@@ -502,7 +501,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                     aria-label="Grid view"
                     title="Grid view"
                     className={cn(
-                      'size-8 rounded-[12px] transition-colors',
+                      'relative size-8 rounded-[12px] transition-colors after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-[""]',
                       viewMode === 'grid'
                         ? 'bg-secondary text-foreground shadow-2xs font-semibold'
                         : 'text-muted-foreground hover:text-foreground'
@@ -519,7 +518,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                     aria-label="List view"
                     title="List view"
                     className={cn(
-                      'size-8 rounded-[12px] transition-colors',
+                      'relative size-8 rounded-[12px] transition-colors after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-[""]',
                       viewMode === 'list'
                         ? 'bg-secondary text-foreground shadow-2xs font-semibold'
                         : 'text-muted-foreground hover:text-foreground'
