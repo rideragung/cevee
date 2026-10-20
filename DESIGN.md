@@ -115,6 +115,11 @@ feedback only.
   preview, more-actions, account menu `size-11`).
 - Hover styles on feedback-aggressive states are gated `[@media(hover:hover)]:hover:...`
   so touch devices don't stick-and-hold them.
+- Pillow shadows always use the arbitrary-property form `[box-shadow:var(--shadow-pillow-*)]`,
+  never `shadow-[var(...)]`: Tailwind v3 parses the latter as a `--tw-shadow-color` override,
+  which yields `box-shadow: none` (found in the Phase 5 rendered audit, 2026-10-20). The
+  config-based `shadow-pillow-*` utilities in `tailwind.config.js` are the safe alternative
+  for feature code.
 - `src/components/ui/dropdown-menu.tsx` carries three upstream fixes verified in QA:
   context-menu-sized open state, a pointer guard against erroneous outside-click close on
   right-click, and a `closed-portal` CSS rule so a closed dropdown cannot paint a stray
