@@ -383,7 +383,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
               variant="default"
               size="sm"
               onClick={onCreateResume}
-              className="hidden sm:inline-flex gap-2 h-9 px-4 font-semibold shrink-0"
+              className="hidden sm:inline-flex gap-2 h-9 px-4 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
             >
               <Plus className="size-4" />
               <span>Create resume</span>
