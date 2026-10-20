@@ -112,9 +112,21 @@ feedback only.
   imported live in `src/components/ui/`; the rest are not vendored.
 - Touch/hit areas never rely on measure-blind pseudo sizing: any icon-only control under
   44px gets an `after:absolute after:-inset-{n} after:content-['']` overlay (title button,
-  preview, more-actions, account menu `size-11`).
+  preview, more-actions, account menu `size-11`). Guard depth is 8px (`-inset-2`); click
+  probes outside that band only verify via a real dispatched click, not by guard math.
+- Text inputs are never given pseudo guards: an `after:` overlay on an input breaks
+  caret interaction, so inputs get real height instead — the toolbar search is `h-11`.
+- Adjacent control pairs (e.g. grid/list view toggle) use a vertical-only guard
+  `after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-['']` so one
+  control's hit area does not overlap the neighbor's, horizontal gaps stay usable, and
+  the vertical seam is forgiving.
 - Hover styles on feedback-aggressive states are gated `[@media(hover:hover)]:hover:...`
   so touch devices don't stick-and-hold them.
+- The page's primary action (dashboard "Create resume") lives in the **sticky top bar's
+  right cluster**, before the account menu — not in the title row. The top bar needs
+  `pointer-events-none` with `pointer-events-auto` on its inner flex row so the CTA's
+  guard overlay (which can exceed the h-16 bar) clicks through everywhere except the row.
+  The title row does not duplicate the CTA (one primary action per screen).
 - Pillow shadows always use the arbitrary-property form `[box-shadow:var(--shadow-pillow-*)]`,
   never `shadow-[var(...)]`: Tailwind v3 parses the latter as a `--tw-shadow-color` override,
   which yields `box-shadow: none` (found in the Phase 5 rendered audit, 2026-10-20). The
@@ -125,15 +137,20 @@ feedback only.
   right-click, and a `closed-portal` CSS rule so a closed dropdown cannot paint a stray
   layer over an open dialog.
 
-## Review status (2026-10-19)
+## Review status (2026-10-20)
 
-`npm run build` and `lint` pass. Better Design review gates pass:
-`check-comprehension` on the dashboard home, and `inspect-spacing` at 1440, 1728 and 390
-with all layout roles matching the Pillow comfortable density. The only remaining spacing
-finding is the intentionally kept dashboard title tap target (label is 145x20; the visible
-pseudo overlay is not measured by the engine). Known accepted sizes: `h-9` text buttons
-(36px, DS default, WCAG AA min 24px met), the 32px grid/list view toggle pair (adjacent
-controls), and the A4 preview's mm-based print padding.
+`npm run build` and lint pass. Better Design review gates pass:
+`check-comprehension` on the dashboard home (segmented view toggle treated as one
+grouped action), and `inspect-spacing` at 1440, 1728 and 390 with all layout roles
+matching the Pillow comfortable density. Fixed in the 2026-10-20 pass: toolbar search
+input raised `h-9` → `h-11` (inputs cannot carry pseudo guards), and main content
+padding moved onto the spacing token scale (`pt-8 pb-24 sm:py-12`). Accepted findings:
+the sort and view-toggle triggers report ~36px visible rects because their pseudo
+guards are invisible to the spacing engine — both are verified with real clicks
+(portal-based dropdowns must be detected via `[data-radix-popper-content-wrapper]` at
+document level, not inside `main`). Also accepted: `h-9` text buttons (DS default,
+WCAG AA min 24px met) and the A4 preview's mm-based print padding. The pinned sticky
+header CTA was re-verified open/close at scroll positions 0/40/200 in a headed browser.
 
 If a restyle is ever wanted, catalog candidates: Marigold (recruiting, warm orange),
 Interior (tactile, square, crafted), Column (corporate fintech, trustworthy blue),
