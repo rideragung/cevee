@@ -28,17 +28,17 @@ const buttonVariants = cva(
         default: [
           "text-primary-foreground",
           "bg-[linear-gradient(180deg,color-mix(in_oklch,var(--primary)_85%,white)_0%,var(--primary)_55%,color-mix(in_oklch,var(--primary)_85%,black)_100%)]",
-          "shadow-[var(--shadow-pillow-primary)]",
+          "[box-shadow:var(--shadow-pillow-primary)]",
           "[@media(hover:hover)]:hover:-translate-y-px",
-          "[@media(hover:hover)]:hover:shadow-[var(--shadow-pillow-primary-hover)]",
+          "[@media(hover:hover)]:hover:[box-shadow:var(--shadow-pillow-primary-hover)]",
         ].join(" "),
         // Secondary — white pillow with hairline ring + ground shadow
         secondary: [
           "text-foreground",
           "bg-[linear-gradient(180deg,#FFFFFF_0%,#FAFAFB_100%)]",
-          "shadow-[var(--shadow-pillow-secondary)]",
+          "[box-shadow:var(--shadow-pillow-secondary)]",
           "[@media(hover:hover)]:hover:-translate-y-px",
-          "[@media(hover:hover)]:hover:shadow-[var(--shadow-pillow-secondary-hover)]",
+          "[@media(hover:hover)]:hover:[box-shadow:var(--shadow-pillow-secondary-hover)]",
         ].join(" "),
         // Outline — minimal hairline, no pillow
         outline:
@@ -49,9 +49,9 @@ const buttonVariants = cva(
         destructive: [
           "text-destructive-foreground",
           "bg-[linear-gradient(180deg,color-mix(in_oklch,var(--destructive)_85%,white)_0%,var(--destructive)_55%,color-mix(in_oklch,var(--destructive)_85%,black)_100%)]",
-          "shadow-[var(--shadow-pillow-destructive)]",
+          "[box-shadow:var(--shadow-pillow-destructive)]",
           "[@media(hover:hover)]:hover:-translate-y-px",
-          "[@media(hover:hover)]:hover:shadow-[var(--shadow-pillow-destructive-hover)]",
+          "[@media(hover:hover)]:hover:[box-shadow:var(--shadow-pillow-destructive-hover)]",
         ].join(" "),
         link: "text-primary underline-offset-4 [@media(hover:hover)]:hover:underline shadow-none",
       },
