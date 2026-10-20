@@ -311,16 +311,6 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5">
-            {!isLoading && onCreateResume && (
-              <Button
-                variant="default"
-                onClick={onCreateResume}
-                className="hidden sm:inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
-              >
-                <Plus className="size-4" />
-                <span>Create resume</span>
-              </Button>
-            )}
             {onSignOut && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -371,7 +361,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-24 sm:py-12 flex-1 w-full">
         {/* Title Section */}
-        <div className="mb-8">
+        <div className="mb-8 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Your resumes
@@ -387,6 +377,17 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
               Open one to edit, or export a PDF.
             </p>
           </div>
+
+          {!isLoading && onCreateResume && (
+            <Button
+              variant="default"
+              onClick={onCreateResume}
+              className="relative hidden sm:inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
+            >
+              <Plus className="size-4" />
+              <span>Create resume</span>
+            </Button>
+          )}
         </div>
 
         {syncStatus === 'error' && !isLoading && (

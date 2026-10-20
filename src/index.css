@@ -39,6 +39,13 @@
   [data-radix-menu-content][data-state="open"] {
     transition: none;
   }
+  /* The force-mount portal wrapper stays parked at the trigger while closed.
+     Its own box (not the hidden content) still hit-tests, swallowing real
+     clicks that land over whatever scrolled beneath it. Fold the closed
+     pointer-events rule up to the wrapper; the open state re-enables it. */
+  [data-radix-popper-content-wrapper]:has([data-radix-menu-content][data-state="closed"]) {
+    pointer-events: none;
+  }
   @supports (field-sizing: content) {
     textarea {
       field-sizing: content;

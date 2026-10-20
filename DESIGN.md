@@ -122,11 +122,11 @@ feedback only.
   the vertical seam is forgiving.
 - Hover styles on feedback-aggressive states are gated `[@media(hover:hover)]:hover:...`
   so touch devices don't stick-and-hold them.
-- The page's primary action (dashboard "Create resume") lives in the **sticky top bar's
-  right cluster**, before the account menu — not in the title row. The top bar needs
-  `pointer-events-none` with `pointer-events-auto` on its inner flex row so the CTA's
-  guard overlay (which can exceed the h-16 bar) clicks through everywhere except the row.
-  The title row does not duplicate the CTA (one primary action per screen).
+- The page's primary action (dashboard "Create resume") lives in the **title row**, right
+  of the page heading — the sticky top bar carries only the logo and the account menu.
+  The title-row CTA can scroll beneath the top bar; that is safe because of the closed
+  popper-wrapper rule below (2026-10-20: the CTA was briefly moved into the top bar to
+  dodge a click bug that turned out to be the closed dropdown portal, not the position).
 - Pillow shadows always use the arbitrary-property form `[box-shadow:var(--shadow-pillow-*)]`,
   never `shadow-[var(...)]`: Tailwind v3 parses the latter as a `--tw-shadow-color` override,
   which yields `box-shadow: none` (found in the Phase 5 rendered audit, 2026-10-20). The
@@ -136,6 +136,17 @@ feedback only.
   context-menu-sized open state, a pointer guard against erroneous outside-click close on
   right-click, and a `closed-portal` CSS rule so a closed dropdown cannot paint a stray
   layer over an open dialog.
+- The kit mounts dropdown portals with `forceMount`, so a closed menu's
+  `data-radix-popper-content-wrapper` stays parked at its trigger (e.g. the w-56 account
+  menu box under the avatar) with `visibility: hidden` content. The wrapper's own box
+  still hit-tests and swallows real clicks that land over whatever sits beneath it —
+  this was the actual root cause of the "Create resume CTA doesn't register clicks"
+  report (2026-10-20). The fix in `src/index.css` folds the closed state up to the
+  wrapper: `[data-radix-popper-content-wrapper]:has([data-radix-menu-content]
+  [data-state="closed"]) { pointer-events: none; }`. Open menus stay interactive
+  because Content re-declares `pointer-events: auto` over the wrapper's inherited
+  `none`. Verified with real clicks: title-row CTA at scroll 0/40/200, account and sort
+  menus opening, sort item selection, and click-through on the parked closed wrapper.
 
 ## Review status (2026-10-20)
 
@@ -143,14 +154,16 @@ feedback only.
 `check-comprehension` on the dashboard home (segmented view toggle treated as one
 grouped action), and `inspect-spacing` at 1440, 1728 and 390 with all layout roles
 matching the Pillow comfortable density. Fixed in the 2026-10-20 pass: toolbar search
-input raised `h-9` → `h-11` (inputs cannot carry pseudo guards), and main content
-padding moved onto the spacing token scale (`pt-8 pb-24 sm:py-12`). Accepted findings:
+input raised `h-9` → `h-11` (inputs cannot carry pseudo guards), main content
+padding moved onto the spacing token scale (`pt-8 pb-24 sm:py-12`), and the "Create
+resume" CTA was returned to the title row once the real click bug was traced to the
+force-mounted closed dropdown portal (see Conventions). Accepted findings:
 the sort and view-toggle triggers report ~36px visible rects because their pseudo
 guards are invisible to the spacing engine — both are verified with real clicks
 (portal-based dropdowns must be detected via `[data-radix-popper-content-wrapper]` at
 document level, not inside `main`). Also accepted: `h-9` text buttons (DS default,
-WCAG AA min 24px met) and the A4 preview's mm-based print padding. The pinned sticky
-header CTA was re-verified open/close at scroll positions 0/40/200 in a headed browser.
+WCAG AA min 24px met) and the A4 preview's mm-based print padding. Post-revert spot
+check screenshots at 1440 and 390 confirm the title-row CTA placement.
 
 If a restyle is ever wanted, catalog candidates: Marigold (recruiting, warm orange),
 Interior (tactile, square, crafted), Column (corporate fintech, trustworthy blue),
