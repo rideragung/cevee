@@ -77,6 +77,44 @@ export const saveUserResume = async (resume: ResumeDocument): Promise<boolean> =
   }
 };
 
+export const saveUserResumes = async (resumesToSave: ResumeDocument[]): Promise<boolean> => {
+  const supabase = getSupabase();
+  if (!supabase || resumesToSave.length === 0) return true;
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const payloads = resumesToSave.map((resume) => ({
+      id: resume.id,
+      user_id: user.id,
+      title: resume.title,
+      layout_id: normalizeLayoutId(resume.layoutId),
+      content: resume.content,
+      updated_at: resume.updatedAt || new Date().toISOString(),
+    }));
+
+    let { error } = await supabase
+      .from('resumes')
+      .upsert(payloads, { onConflict: 'id' });
+
+    if (error && /layout_id/i.test(error.message)) {
+      const strippedPayloads = payloads.map(({ layout_id: _layoutId, ...rest }) => rest);
+      ({ error } = await supabase.from('resumes').upsert(strippedPayloads, { onConflict: 'id' }));
+    }
+
+    if (error) {
+      console.error('Error batch saving resumes to Supabase:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Failed to batch save resumes:', err);
+    return false;
+  }
+};
+
 export const deleteUserResume = async (resumeId: string): Promise<boolean> => {
   const supabase = getSupabase();
   if (!supabase) return false;

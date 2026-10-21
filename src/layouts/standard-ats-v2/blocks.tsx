@@ -25,6 +25,7 @@ import {
 
 const REF_CONTENT_PART_CLASSES = {
   list: 'ref-bullet-list',
+  orderedList: 'ref-ordered-list',
   paragraph: 'ref-para',
 } as const;
 

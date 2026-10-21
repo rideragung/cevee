@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Outer C: circular arc with 45° angled terminals -->
+  <path fill="#0F172A" fill-rule="evenodd" d="
+    M 188 68
+    A 92 92 0 1 0 188 188
+    L 162 162
+    A 54 54 0 1 1 162 94
+    Z
+  "/>
+  <!-- Nested V: sharp chevron in the aperture -->
+  <path fill="#0F172A" d="
+    M 176 104
+    L 204 104
+    L 164 196
+    L 124 104
+    L 152 104
+    L 164 144
+    Z
+  "/>
+</svg>

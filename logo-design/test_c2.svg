@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- C Bracket on left: centered at (116, 128), outer R=88, inner r=50 -->
+  <path fill="#0F172A" fill-rule="evenodd" d="
+    M 140 40
+    H 116
+    A 88 88 0 0 0 116 216
+    H 140
+    V 178
+    H 116
+    A 50 50 0 0 1 116 78
+    H 140
+    Z
+  "/>
+  <!-- V Chevron on right: centered at (180, 128) -->
+  <path fill="#0F172A" d="
+    M 160 84
+    L 186 84
+    L 214 156
+    L 186 156
+    L 174 124
+    L 162 156
+    L 134 156
+    Z
+  "/>
+</svg>

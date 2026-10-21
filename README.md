@@ -122,14 +122,20 @@ cp .env.example .env
 ```env
 VITE_SUPABASE_URL=https://<project-id>.supabase.co
 VITE_SUPABASE_ANON_KEY=<your-anon-key>
+
+# Gemini API Keys (Server-side proxy, kept private from browser bundle)
+GEMINI_API_KEYS=key1,key2
+GEMINI_MODEL=gemini-3.8-flash
 ```
 
-| Variable | Description |
-| --- | --- |
-| `VITE_SUPABASE_URL` | Your Supabase project URL. |
-| `VITE_SUPABASE_ANON_KEY` | The public anon key for that project. Safe to expose; access is enforced by RLS. |
+| Variable | Description | Scope |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | Your Supabase project URL. | Client |
+| `VITE_SUPABASE_ANON_KEY` | Public anon key for Supabase project. Safe to expose; access is enforced by RLS. | Client |
+| `GEMINI_API_KEYS` | Google Gemini API key(s) for AI resume parsing. Kept private on serverless function; never bundled to client. | Server (Vercel / Dev) |
+| `GEMINI_MODEL` | Optional model override (default: `gemini-3.8-flash`). | Server (Vercel / Dev) |
 
-Leave both blank to run in guest mode.
+Leave Supabase blank to run in guest mode. Leave Gemini blank if you do not use PDF import.
 
 ## Database Setup
 
@@ -232,8 +238,9 @@ src/
 
 1. Import the `rideragung/cevee` repository into Vercel.
 2. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` under **Environment Variables**.
-3. Deploy. The included `vercel.json` handles SPA routing.
-4. In Supabase, open **Authentication → URL Configuration** and add your production domain to the **Redirect URLs** list.
+3. Add `GEMINI_API_KEYS` (without `VITE_` prefix) under **Environment Variables** so the key stays private.
+4. Deploy. The included `vercel.json` handles SPA routing and serverless `/api/parse-resume`.
+5. In Supabase, open **Authentication → URL Configuration** and add your production domain to the **Redirect URLs** list.
 
 ## Contributing
 

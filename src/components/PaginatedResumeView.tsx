@@ -46,7 +46,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
         const rect = el.getBoundingClientRect();
         let h = rect.height;
 
-        // Pastikan margin atas dan bawah elemen dihitung secara presisi
+        // Ensure element top and bottom margins are accurately included
         if (el.firstElementChild) {
           const comp = window.getComputedStyle(el.firstElementChild);
           const mt = parseFloat(comp.marginTop) || 0;

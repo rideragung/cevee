@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- C Bracket on left: outer R=84, inner r=44 (thickness 40) -->
+  <path fill="#0F172A" fill-rule="evenodd" d="
+    M 136 44
+    H 96
+    A 84 84 0 0 0 96 212
+    H 136
+    V 170
+    H 100
+    A 42 42 0 0 1 100 86
+    H 136
+    Z
+  "/>
+  <!-- V Chevron on right: thickness 40, matching C -->
+  <path fill="#0F172A" d="
+    M 144 80
+    L 182 80
+    L 214 128
+    L 182 176
+    L 144 176
+    L 176 128
+    Z
+  "/>
+</svg>

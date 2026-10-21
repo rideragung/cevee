@@ -32,6 +32,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             class: 'resume-bullet-list',
           },
         },
+        orderedList: {
+          HTMLAttributes: {
+            class: 'resume-ordered-list',
+          },
+        },
       }),
       Underline,
       Link.configure({
@@ -183,7 +188,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             }}
             placeholder="https://example.com"
             aria-label="Link URL"
-            className="min-w-0 flex-1 rounded-md border border-input px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+            className="min-w-0 flex-1 rounded-lg border border-input px-2 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
           />
           <button
             type="button"

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>Cevee Fusion 1 - Split Vertex</title>
+  <!-- Element 1: Upper C Stadium/Arc -->
+  <path fill="#0F172A" d="
+    M 196 62
+    C 176 38 146 26 116 26
+    C 69.6 26 32 63.6 32 110
+    C 32 131.2 39.8 150.6 52.8 165.4
+    L 82 136.2
+    C 77 128.6 74 119.6 74 110
+    C 74 86.8 92.8 68 116 68
+    C 134 68 150 79.2 157.6 95.4
+    L 196 62
+    Z
+  "/>
+  <!-- Element 2: Lower 45° V-Chevron -->
+  <path fill="#0F172A" d="
+    M 68 181
+    L 140 230
+    L 224 146
+    L 196 118
+    L 140 174
+    L 96 144
+    C 92 148 88 152 84 156
+    L 68 181
+    Z
+  "/>
+</svg>

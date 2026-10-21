@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title-fusion-color">
+  <title id="title-fusion-color">Cevee Fusion Symbol (Cobalt Vertex)</title>
+  <!-- Upper C Stadium in Dark Slate -->
+  <path fill="#0F172A" d="M 196 62
+    C 176 38 146 26 116 26
+    C 69.6 26 32 63.6 32 110
+    C 32 124 35.8 137.2 42.4 148.6
+    L 55 147
+    L 83 119
+    C 77.2 116.4 74 113.4 74 110
+    C 74 86.8 92.8 68 116 68
+    C 134 68 150 79.2 157.6 95.4
+    L 196 62
+    Z"/>
+  <!-- Lower V Checkmark in Cevee Cobalt -->
+  <path fill="#1E66FF" d="M 68 160
+    L 138 230
+    L 222 146
+    L 194 118
+    L 138 174
+    L 96 132
+    Z"/>
+</svg>

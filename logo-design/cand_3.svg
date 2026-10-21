@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Left element: Geometric C bracket -->
+  <path fill="#0F172A" d="
+    M 136 40
+    H 88
+    C 57 40 32 65 32 96
+    V 160
+    C 32 191 57 216 88 216
+    H 136
+    C 142.6 216 148 210.6 148 204
+    V 184
+    C 148 177.4 142.6 172 136 172
+    H 96
+    C 78.3 172 64 157.7 64 140
+    V 116
+    C 64 98.3 78.3 84 96 84
+    H 136
+    C 142.6 84 148 78.6 148 72
+    V 52
+    C 148 45.4 142.6 40 136 40
+    Z
+  "/>
+  <!-- Right element: Nested V chevron -->
+  <path fill="#0F172A" d="
+    M 176 80
+    L 204 80
+    L 174 176
+    L 144 80
+    L 172 80
+    Z
+  "/>
+</svg>

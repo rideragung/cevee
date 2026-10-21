@@ -203,6 +203,32 @@
   background: #212529;
 }
 
+/* Reference ordered list: 27.0217pt margin-left, real numbers, no before dot */
+.a4-page-sheet[data-layout="standard-ats-v2"] .ref-ordered-list,
+.a4-measure-container[data-layout="standard-ats-v2"] .ref-ordered-list {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.a4-page-sheet[data-layout="standard-ats-v2"] .ref-ordered-list li,
+.a4-measure-container[data-layout="standard-ats-v2"] .ref-ordered-list li {
+  list-style-type: decimal !important;
+  display: list-item !important;
+  position: relative;
+  margin: 0 !important;
+  margin-left: 27.0217pt !important;
+  padding: 0 0 0 3pt !important;
+  font-size: 8.40675pt !important;
+  line-height: 12.61013pt !important;
+  text-align: justify !important;
+  color: #212529 !important;
+}
+
+.a4-page-sheet[data-layout="standard-ats-v2"] .ref-ordered-list li::before,
+.a4-measure-container[data-layout="standard-ats-v2"] .ref-ordered-list li::before {
+  content: none !important;
+}
+
 /* First heading on a page carries no top margin (page padding provides the gap) */
 .resume-page-content > .ref-heading-wrap:first-child {
   margin-top: 0 !important;

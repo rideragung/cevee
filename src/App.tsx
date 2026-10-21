@@ -26,18 +26,54 @@ import { LayoutSelectModal } from './components/LayoutSelectModal';
 import { LayoutSidebar } from './components/LayoutSidebar';
 import { AuthPage } from './components/AuthPage';
 import { getSupabase } from './lib/supabase';
-import { fetchUserResumes, saveUserResume, deleteUserResume } from './lib/resumeService';
+import {
+  fetchUserResumes,
+  saveUserResume,
+  saveUserResumes,
+  deleteUserResume,
+} from './lib/resumeService';
 import { DEFAULT_LAYOUT_ID, normalizeLayoutId } from './layouts/registry';
+import { Dialog, DialogContent } from './components/ui/dialog';
 import { User } from '@supabase/supabase-js';
 import { Loader2 } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'cevee_resumes_v3';
 const ACTIVE_RESUME_KEY = 'cevee_active_resume_id_v3';
+const GUEST_DATA_FLAG_KEY = 'cevee_has_guest_data_v3';
+const IS_GUEST_KEY = 'cevee_is_guest_v3';
+
+const isResumeModified = (resume: ResumeDocument): boolean => {
+  if (resume.id !== 'resume-sample-1') return true;
+  if (resume.title !== 'Standard ATS Resume') return true;
+  const header = resume.content?.header;
+  if (header) {
+    if (header.fullName && header.fullName !== 'Your Name') return true;
+    if (header.headline && header.headline.trim() !== '') return true;
+    if (header.email && header.email !== 'email@address.com') return true;
+    if (header.phone && header.phone !== '+65 1234 5678') return true;
+    if (header.roles && header.roles.length > 0) return true;
+  }
+  const sections = resume.content?.sections || [];
+  for (const s of sections) {
+    if (s.type === 'summary' && (s.data as { html?: string })?.html?.trim()) return true;
+    if (s.type === 'experience' && (s.data as { items?: unknown[] })?.items?.length) return true;
+    if (s.type === 'education' && (s.data as { items?: unknown[] })?.items?.length) return true;
+    if (s.type === 'projects' && (s.data as { items?: unknown[] })?.items?.length) return true;
+    if (s.type === 'skills' && (s.data as { categories?: unknown[] })?.categories?.length)
+      return true;
+    if (s.type === 'custom_text' && (s.data as { html?: string })?.html?.trim()) return true;
+    if (s.type === 'custom_list' && (s.data as { items?: unknown[] })?.items?.length) return true;
+  }
+  return false;
+};
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [isGuest, setIsGuest] = useState(false);
+  const [isGuest, setIsGuest] = useState(() => {
+    return localStorage.getItem(IS_GUEST_KEY) === 'true';
+  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const fetchedUserIdRef = useRef<string | null>(null);
   const pendingPrintIdRef = useRef<string | null>(null);
 
@@ -53,6 +89,9 @@ export function App() {
     }
     return initialResumes;
   });
+
+  const resumesRef = useRef(resumes);
+  resumesRef.current = resumes;
 
   const [activeResumeId, setActiveResumeId] = useState<string>(() => {
     const savedId = localStorage.getItem(ACTIVE_RESUME_KEY);
@@ -88,7 +127,10 @@ export function App() {
         return next;
       });
       setIsAuthChecking(false);
-      if (session && (window.location.search.includes('code=') || window.location.hash.includes('access_token'))) {
+      if (
+        session &&
+        (window.location.search.includes('code=') || window.location.hash.includes('access_token'))
+      ) {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     });
@@ -103,7 +145,10 @@ export function App() {
       });
       setIsAuthChecking(false);
       if (event === 'SIGNED_IN' && session) {
-        if (window.location.search.includes('code=') || window.location.hash.includes('access_token')) {
+        if (
+          window.location.search.includes('code=') ||
+          window.location.hash.includes('access_token')
+        ) {
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       }
@@ -128,9 +173,17 @@ export function App() {
     setCurrentView('dashboard');
     localStorage.removeItem(LOCAL_STORAGE_KEY);
     localStorage.removeItem(ACTIVE_RESUME_KEY);
+    localStorage.removeItem(GUEST_DATA_FLAG_KEY);
+    localStorage.removeItem(IS_GUEST_KEY);
+  };
+
+  const handleContinueAsGuest = () => {
+    setIsGuest(true);
+    localStorage.setItem(IS_GUEST_KEY, 'true');
   };
 
   // Fetch user resumes from Supabase on login (only once per authenticated user)
+  // Seamlessly migrates and merges any resumes created in guest mode
   useEffect(() => {
     const userId = user?.id;
     if (!userId) {
@@ -151,7 +204,66 @@ export function App() {
       .then(async (dbResumes) => {
         if (!isMounted) return;
 
-        if (dbResumes && dbResumes.length > 0) {
+        const hasGuestFlag = localStorage.getItem(GUEST_DATA_FLAG_KEY) === 'true';
+        let localResumes: ResumeDocument[] = resumesRef.current;
+        if (!localResumes || localResumes.length === 0) {
+          const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+          if (raw) {
+            try {
+              localResumes = JSON.parse(raw);
+            } catch {
+              localResumes = [];
+            }
+          }
+        }
+
+        const guestResumesToSave =
+          hasGuestFlag || isGuest
+            ? localResumes.filter((r) => isResumeModified(r) || localResumes.length > 1)
+            : [];
+
+        if (guestResumesToSave.length > 0) {
+          // Prepare guest resumes with unique IDs to prevent database collisions
+          const preparedGuestResumes = guestResumesToSave.map((resume) => {
+            if (resume.id === 'resume-sample-1') {
+              return {
+                ...resume,
+                id: `resume-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return {
+              ...resume,
+              updatedAt: resume.updatedAt || new Date().toISOString(),
+            };
+          });
+
+          const cloudResumes = dbResumes || [];
+          const cloudIds = new Set(cloudResumes.map((r) => r.id));
+
+          // Filter out any resumes already present in cloud
+          const newToUpload = preparedGuestResumes.filter((r) => !cloudIds.has(r.id));
+
+          if (newToUpload.length > 0) {
+            await saveUserResumes(newToUpload);
+          }
+
+          // Directly merge: new guest resumes + cloud resumes
+          const merged = [...newToUpload, ...cloudResumes];
+          setResumes(merged);
+          setActiveResumeId((prevActiveId) => {
+            if (prevActiveId && merged.some((r) => r.id === prevActiveId)) {
+              return prevActiveId;
+            }
+            return merged[0]?.id || '';
+          });
+          setSyncStatus('saved');
+
+          // Clean up guest flags
+          localStorage.removeItem(GUEST_DATA_FLAG_KEY);
+          localStorage.removeItem(IS_GUEST_KEY);
+          setIsGuest(false);
+        } else if (dbResumes && dbResumes.length > 0) {
           setResumes(dbResumes);
           setActiveResumeId((prevActiveId) => {
             return prevActiveId && dbResumes.some((r) => r.id === prevActiveId)
@@ -159,12 +271,18 @@ export function App() {
               : dbResumes[0].id;
           });
           setSyncStatus('saved');
+          localStorage.removeItem(GUEST_DATA_FLAG_KEY);
+          localStorage.removeItem(IS_GUEST_KEY);
+          setIsGuest(false);
         } else if (dbResumes && dbResumes.length === 0) {
-          // First-time login: show clean empty dashboard
+          // First-time login without guest data: show clean empty dashboard
           setResumes([]);
           setActiveResumeId('');
           setCurrentView('dashboard');
           setSyncStatus('saved');
+          localStorage.removeItem(GUEST_DATA_FLAG_KEY);
+          localStorage.removeItem(IS_GUEST_KEY);
+          setIsGuest(false);
         } else {
           if (!localStorage.getItem(LOCAL_STORAGE_KEY)) {
             setResumes([]);
@@ -180,9 +298,10 @@ export function App() {
     return () => {
       isMounted = false;
     };
-  }, [user?.id]);
+  }, [user?.id, isGuest]);
 
-  const activeResume = resumes.find((r) => r.id === activeResumeId) || (resumes.length > 0 ? resumes[0] : undefined);
+  const activeResume =
+    resumes.find((r) => r.id === activeResumeId) || (resumes.length > 0 ? resumes[0] : undefined);
 
   // Auto-sync active resume to Supabase if logged in (debounced)
   useEffect(() => {
@@ -198,10 +317,13 @@ export function App() {
     return () => clearTimeout(timeout);
   }, [activeResume, activeResumeId, user, resumes.length, resumesLoadedForUser]);
 
-  // Auto-save to localStorage
+  // Auto-save to localStorage & mark guest data if unauthenticated
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(resumes));
-  }, [resumes]);
+    if (!user) {
+      localStorage.setItem(GUEST_DATA_FLAG_KEY, 'true');
+    }
+  }, [resumes, user]);
 
   useEffect(() => {
     if (activeResumeId) {
@@ -222,7 +344,7 @@ export function App() {
           };
         }
         return res;
-      })
+      }),
     );
   };
 
@@ -244,14 +366,18 @@ export function App() {
       content: {
         ...res.content,
         sections: res.content.sections.map((sec) =>
-          sec.id === sectionId ? { ...sec, title: newTitle } : sec
+          sec.id === sectionId ? { ...sec, title: newTitle } : sec,
         ),
       },
     }));
   };
 
   // Section data update
-  const handleUpdateSectionData = (sectionId: string, newData: SectionData, isPlaceholder?: boolean) => {
+  const handleUpdateSectionData = (
+    sectionId: string,
+    newData: SectionData,
+    isPlaceholder?: boolean,
+  ) => {
     updateActiveResume((res) => ({
       ...res,
       content: {
@@ -263,7 +389,7 @@ export function App() {
                 data: newData,
                 isPlaceholder: isPlaceholder !== undefined ? isPlaceholder : sec.isPlaceholder,
               } as ResumeSection)
-            : sec
+            : sec,
         ),
       },
     }));
@@ -429,20 +555,34 @@ export function App() {
     }));
   };
 
-  const handleConfirmLayout = (layoutId: ResumeLayoutId) => {
+  const handleConfirmLayout = (
+    layoutId: ResumeLayoutId,
+    importedResume?: ResumeDocument,
+    customTitle?: string,
+    targetRole?: string,
+  ) => {
     if (layoutModal.mode === 'create') {
-      executeCreateResume(layoutId);
+      if (importedResume) {
+        handleImportSuccess(importedResume);
+      } else {
+        executeCreateResume(layoutId, customTitle, targetRole);
+      }
     } else {
       handleSelectLayout(layoutId);
     }
     setLayoutModal((prev) => ({ ...prev, isOpen: false }));
   };
 
-  const executeCreateResume = (layoutId: ResumeLayoutId = DEFAULT_LAYOUT_ID) => {
+  const executeCreateResume = (
+    layoutId: ResumeLayoutId = DEFAULT_LAYOUT_ID,
+    customTitle?: string,
+    targetRole?: string,
+  ) => {
     const newId = `resume-${Date.now()}`;
+    const roles = targetRole?.trim() ? [targetRole.trim()] : [];
     const newResume: ResumeDocument = {
       id: newId,
-      title: 'Untitled Resume',
+      title: customTitle?.trim() || 'Untitled Resume',
       layoutId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -450,8 +590,8 @@ export function App() {
         header: {
           fullName: 'Your Name',
           isPlaceholder: true,
-          roles: [],
-          headline: '',
+          roles,
+          headline: targetRole?.trim() || '',
           location: 'City, State/Country',
           willingToRelocate: false,
           relocationStatus: '',
@@ -523,6 +663,15 @@ export function App() {
     setCurrentView('editor');
   };
 
+  const handleImportSuccess = (newResume: ResumeDocument) => {
+    setResumes((prev) => [newResume, ...prev]);
+    setActiveResumeId(newResume.id);
+    if (user) {
+      saveUserResume(newResume);
+    }
+    setCurrentView('editor');
+  };
+
   const handleDuplicateResume = (id: string) => {
     const target = resumes.find((r) => r.id === id);
     if (!target) return;
@@ -556,9 +705,7 @@ export function App() {
   };
 
   const handleRenameResume = (id: string, newTitle: string) => {
-    setResumes((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, title: newTitle } : r))
-    );
+    setResumes((prev) => prev.map((r) => (r.id === id ? { ...r, title: newTitle } : r)));
     if (user) {
       const target = resumes.find((r) => r.id === id);
       if (target) {
@@ -683,8 +830,11 @@ export function App() {
   if (!user && !isGuest) {
     return (
       <AuthPage
-        onAuthSuccess={() => setIsGuest(false)}
-        onContinueAsGuest={() => setIsGuest(true)}
+        onAuthSuccess={() => {
+          setIsGuest(false);
+          localStorage.removeItem(IS_GUEST_KEY);
+        }}
+        onContinueAsGuest={handleContinueAsGuest}
       />
     );
   }
@@ -714,6 +864,7 @@ export function App() {
               (user?.user_metadata?.picture as string)
             }
             onSignOut={handleSignOut}
+            onSignIn={() => setIsAuthModalOpen(true)}
             isLoading={Boolean(user) && resumesLoadedForUser !== user?.id}
             syncStatus={syncStatus}
           />
@@ -750,27 +901,127 @@ export function App() {
                 className="resume-a4-page w-full rounded-[20px]"
                 data-layout={normalizeLayoutId(activeResume.layoutId)}
               >
-              {/* Header */}
-              <ResumeHeader
-                data={activeResume.content.header}
-                onChange={handleHeaderChange}
-                layoutId={activeResume.layoutId}
-              />
+                {/* Header */}
+                <ResumeHeader
+                  data={activeResume.content.header}
+                  onChange={handleHeaderChange}
+                  layoutId={activeResume.layoutId}
+                />
 
-              {/* Dynamic Sections */}
-              {activeResume.content.sections.map((section, idx) => {
-                const isFirst = idx === 0;
-                const isLast = idx === activeResume.content.sections.length - 1;
+                {/* Dynamic Sections */}
+                {activeResume.content.sections.map((section, idx) => {
+                  const isFirst = idx === 0;
+                  const isLast = idx === activeResume.content.sections.length - 1;
 
-                if (section.type === 'summary') {
+                  if (section.type === 'summary') {
+                    return (
+                      <SummarySection
+                        key={section.id}
+                        title={section.title}
+                        showTitle={section.showTitle}
+                        isPlaceholder={section.isPlaceholder}
+                        data={section.data}
+                        layoutId={activeResume.layoutId}
+                        onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
+                        onUpdateData={(newData, isPlaceholder) =>
+                          handleUpdateSectionData(section.id, newData, isPlaceholder)
+                        }
+                        onMoveUp={() => handleMoveSectionUp(idx)}
+                        onMoveDown={() => handleMoveSectionDown(idx)}
+                        onDelete={() => handleDeleteSection(section.id)}
+                        isFirst={isFirst}
+                        isLast={isLast}
+                      />
+                    );
+                  }
+
+                  if (section.type === 'skills') {
+                    return (
+                      <SkillsSection
+                        key={section.id}
+                        title={section.title}
+                        isPlaceholder={section.isPlaceholder}
+                        data={section.data}
+                        onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
+                        onUpdateData={(newData, isPlaceholder) =>
+                          handleUpdateSectionData(section.id, newData, isPlaceholder)
+                        }
+                        onMoveUp={() => handleMoveSectionUp(idx)}
+                        onMoveDown={() => handleMoveSectionDown(idx)}
+                        onDelete={() => handleDeleteSection(section.id)}
+                        isFirst={isFirst}
+                        isLast={isLast}
+                      />
+                    );
+                  }
+
+                  if (section.type === 'experience') {
+                    return (
+                      <ExperienceSection
+                        key={section.id}
+                        title={section.title}
+                        isPlaceholder={section.isPlaceholder}
+                        data={section.data}
+                        onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
+                        onUpdateData={(newData, isPlaceholder) =>
+                          handleUpdateSectionData(section.id, newData, isPlaceholder)
+                        }
+                        onMoveUp={() => handleMoveSectionUp(idx)}
+                        onMoveDown={() => handleMoveSectionDown(idx)}
+                        onDelete={() => handleDeleteSection(section.id)}
+                        isFirst={isFirst}
+                        isLast={isLast}
+                      />
+                    );
+                  }
+
+                  if (section.type === 'projects') {
+                    return (
+                      <ProjectsSection
+                        key={section.id}
+                        title={section.title}
+                        isPlaceholder={section.isPlaceholder}
+                        data={section.data}
+                        onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
+                        onUpdateData={(newData, isPlaceholder) =>
+                          handleUpdateSectionData(section.id, newData, isPlaceholder)
+                        }
+                        onMoveUp={() => handleMoveSectionUp(idx)}
+                        onMoveDown={() => handleMoveSectionDown(idx)}
+                        onDelete={() => handleDeleteSection(section.id)}
+                        isFirst={isFirst}
+                        isLast={isLast}
+                      />
+                    );
+                  }
+
+                  if (section.type === 'education') {
+                    return (
+                      <EducationSection
+                        key={section.id}
+                        title={section.title}
+                        isPlaceholder={section.isPlaceholder}
+                        data={section.data}
+                        onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
+                        onUpdateData={(newData, isPlaceholder) =>
+                          handleUpdateSectionData(section.id, newData, isPlaceholder)
+                        }
+                        onMoveUp={() => handleMoveSectionUp(idx)}
+                        onMoveDown={() => handleMoveSectionDown(idx)}
+                        onDelete={() => handleDeleteSection(section.id)}
+                        isFirst={isFirst}
+                        isLast={isLast}
+                      />
+                    );
+                  }
+
+                  // Custom or Fallback Section
                   return (
-                    <SummarySection
+                    <CustomSection
                       key={section.id}
                       title={section.title}
-                      showTitle={section.showTitle}
                       isPlaceholder={section.isPlaceholder}
-                      data={section.data}
-                      layoutId={activeResume.layoutId}
+                      data={section.data as { items: CustomSectionItem[] }}
                       onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
                       onUpdateData={(newData, isPlaceholder) =>
                         handleUpdateSectionData(section.id, newData, isPlaceholder)
@@ -782,117 +1033,17 @@ export function App() {
                       isLast={isLast}
                     />
                   );
-                }
+                })}
 
-                if (section.type === 'skills') {
-                  return (
-                    <SkillsSection
-                      key={section.id}
-                      title={section.title}
-                      isPlaceholder={section.isPlaceholder}
-                      data={section.data}
-                      onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
-                      onUpdateData={(newData, isPlaceholder) =>
-                        handleUpdateSectionData(section.id, newData, isPlaceholder)
-                      }
-                      onMoveUp={() => handleMoveSectionUp(idx)}
-                      onMoveDown={() => handleMoveSectionDown(idx)}
-                      onDelete={() => handleDeleteSection(section.id)}
-                      isFirst={isFirst}
-                      isLast={isLast}
-                    />
-                  );
-                }
-
-                if (section.type === 'experience') {
-                  return (
-                    <ExperienceSection
-                      key={section.id}
-                      title={section.title}
-                      isPlaceholder={section.isPlaceholder}
-                      data={section.data}
-                      onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
-                      onUpdateData={(newData, isPlaceholder) =>
-                        handleUpdateSectionData(section.id, newData, isPlaceholder)
-                      }
-                      onMoveUp={() => handleMoveSectionUp(idx)}
-                      onMoveDown={() => handleMoveSectionDown(idx)}
-                      onDelete={() => handleDeleteSection(section.id)}
-                      isFirst={isFirst}
-                      isLast={isLast}
-                    />
-                  );
-                }
-
-                if (section.type === 'projects') {
-                  return (
-                    <ProjectsSection
-                      key={section.id}
-                      title={section.title}
-                      isPlaceholder={section.isPlaceholder}
-                      data={section.data}
-                      onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
-                      onUpdateData={(newData, isPlaceholder) =>
-                        handleUpdateSectionData(section.id, newData, isPlaceholder)
-                      }
-                      onMoveUp={() => handleMoveSectionUp(idx)}
-                      onMoveDown={() => handleMoveSectionDown(idx)}
-                      onDelete={() => handleDeleteSection(section.id)}
-                      isFirst={isFirst}
-                      isLast={isLast}
-                    />
-                  );
-                }
-
-                if (section.type === 'education') {
-                  return (
-                    <EducationSection
-                      key={section.id}
-                      title={section.title}
-                      isPlaceholder={section.isPlaceholder}
-                      data={section.data}
-                      onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
-                      onUpdateData={(newData, isPlaceholder) =>
-                        handleUpdateSectionData(section.id, newData, isPlaceholder)
-                      }
-                      onMoveUp={() => handleMoveSectionUp(idx)}
-                      onMoveDown={() => handleMoveSectionDown(idx)}
-                      onDelete={() => handleDeleteSection(section.id)}
-                      isFirst={isFirst}
-                      isLast={isLast}
-                    />
-                  );
-                }
-
-                // Custom or Fallback Section
-                return (
-                  <CustomSection
-                    key={section.id}
-                    title={section.title}
-                    isPlaceholder={section.isPlaceholder}
-                    data={section.data as { items: CustomSectionItem[] }}
-                    onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
-                    onUpdateData={(newData, isPlaceholder) =>
-                      handleUpdateSectionData(section.id, newData, isPlaceholder)
-                    }
-                    onMoveUp={() => handleMoveSectionUp(idx)}
-                    onMoveDown={() => handleMoveSectionDown(idx)}
-                    onDelete={() => handleDeleteSection(section.id)}
-                    isFirst={isFirst}
-                    isLast={isLast}
-                  />
-                );
-              })}
-
-              {/* Bottom Bar: Add Sections */}
-              <AddSectionBar
-                onAddSection={handleAddSection}
-                existingTitles={activeResume.content.sections.map((s) => s.title)}
-              />
-            </div>
-          </main>
+                {/* Bottom Bar: Add Sections */}
+                <AddSectionBar
+                  onAddSection={handleAddSection}
+                  existingTitles={activeResume.content.sections.map((s) => s.title)}
+                />
+              </div>
+            </main>
+          </div>
         </div>
-      </div>
       )}
 
       {/* Print-Only Paginated Sheets (used when downloading PDF).
@@ -939,6 +1090,21 @@ export function App() {
         onConfirm={handleConfirmLayout}
         onClose={() => setLayoutModal((prev) => ({ ...prev, isOpen: false }))}
       />
+
+      {/* Save to Cloud / Sign in Modal for Guests */}
+      <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
+        <DialogContent className="sm:max-w-[440px] p-0 border-0 bg-transparent shadow-none overflow-visible [&>button]:hidden">
+          <AuthPage
+            isModal={true}
+            onClose={() => setIsAuthModalOpen(false)}
+            onAuthSuccess={() => {
+              setIsAuthModalOpen(false);
+              setIsGuest(false);
+            }}
+            guestResumeCount={resumes.length}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

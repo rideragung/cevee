@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ResumeDocument } from '../types/resume';
 import { getLayoutPlugin } from '../layouts/registry';
 import { runPagination } from '../layouts/core/packing';
@@ -17,7 +17,6 @@ const ResumeContentThumbnailInner: React.FC<ResumeContentThumbnailProps> = ({
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const measureRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0);
-  const [measuredHeights, setMeasuredHeights] = useState<Record<string, number> | null>(null);
 
   const plugin = useMemo(() => getLayoutPlugin(resume.layoutId), [resume.layoutId]);
   const { geometry } = plugin;
@@ -30,13 +29,15 @@ const ResumeContentThumbnailInner: React.FC<ResumeContentThumbnailProps> = ({
     [plugin, header, sections],
   );
 
-  // Pack exactly like PaginatedResumeView (estimates first, then real DOM
-  // heights), then keep only page 1: the thumbnail previews page one of the
-  // rendered document, never a squeezed stream of every block.
-  const pageOneBlocks = useMemo(
-    () => runPagination(blocks, measuredHeights ?? undefined, geometry.maxPageHeightPx)[0] ?? [],
-    [blocks, measuredHeights, geometry],
-  );
+  // Initial estimate pagination strictly for page 1
+  const [pageOneBlocks, setPageOneBlocks] = useState<ContentBlock[]>(() => {
+    return runPagination(blocks, undefined, geometry.maxPageHeightPx)[0] ?? [];
+  });
+
+  // Re-run pagination with initial estimates whenever blocks change
+  useEffect(() => {
+    setPageOneBlocks(runPagination(blocks, undefined, geometry.maxPageHeightPx)[0] ?? []);
+  }, [blocks, geometry]);
 
   // Mirror PaginatedResumeView's real DOM measurement so the page-1 boundary
   // matches the visible preview instead of relying on block height estimates.
@@ -66,7 +67,10 @@ const ResumeContentThumbnailInner: React.FC<ResumeContentThumbnailProps> = ({
           hasPositiveHeights = true;
         }
       }
-      if (hasPositiveHeights) setMeasuredHeights(heights);
+      if (hasPositiveHeights && !cancelled) {
+        const pages = runPagination(blocks, heights, geometry.maxPageHeightPx);
+        setPageOneBlocks(pages[0] ?? []);
+      }
     };
 
     measure();
@@ -113,13 +117,17 @@ const ResumeContentThumbnailInner: React.FC<ResumeContentThumbnailProps> = ({
           top: 0,
           left: 0,
           margin: 0,
+          width: '210mm',
+          height: '297mm',
+          maxHeight: '297mm',
+          overflow: 'hidden',
           padding: geometry.sheetPadding,
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
         }}
       >
         <div
-          className={`w-full h-full flex flex-col justify-start${geometry.pageContentClassName || ''}`}
+          className={`w-full h-full flex flex-col justify-start overflow-hidden${geometry.pageContentClassName || ''}`}
         >
           {pageOneBlocks.map((block) => (
             <React.Fragment key={block.id}>{block.render()}</React.Fragment>
@@ -131,6 +139,7 @@ const ResumeContentThumbnailInner: React.FC<ResumeContentThumbnailProps> = ({
       <div
         ref={measureRef}
         data-layout={plugin.id}
+        data-a4-measure="true"
         className="a4-measure-container no-print"
         style={{
           position: 'absolute',

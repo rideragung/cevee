@@ -31,7 +31,7 @@ Calm, plain-spoken, tool-like. It behaves like a workshop, not a pitch.
   action, active/selected state, and live/sync status. Not for decorative icons, metadata,
   or every button.
 - **Neutral core:** background `#FFFFFF`, page wash `#F4F5F7`, foreground `#0F172A`,
-  secondary text `#5B6573`, border `#E5E7EB`. Light accent wash `#EEF2FF` for selected
+  secondary text `#5B6573`, border `#E5E7EB`, input border `#E5E7EB`. Light accent wash `#EEF2FF` for selected
   surfaces.
 - **Semantic (state only, never decoration):** destructive `#E11D48`; amber for warning
   and cloud-sync failure. Success states use a green that is distinct from the cobalt
@@ -147,6 +147,18 @@ feedback only.
   because Content re-declares `pointer-events: auto` over the wrapper's inherited
   `none`. Verified with real clicks: title-row CTA at scroll 0/40/200, account and sort
   menus opening, sort item selection, and click-through on the parked closed wrapper.
+
+## Profile & Account Dropdown (2026-10-21)
+
+- Modifikasi modal popup dropdown avatar profil mengadopsi token **Pillow Light**:
+  - Container: `rounded-[1.75rem]` dengan padding `p-5`, border `border-border/80`, background `bg-card`, dan shadow elevated 3D (`shadow-[0_12px_40px_-8px_rgba(15,23,42,0.12),0_4px_16px_-2px_rgba(15,23,42,0.06)]`).
+  - Header profil: `Avatar` ukuran `size-14` dengan border ring, nama pengguna (`font-bold text-foreground text-base`), pill status badge (`Beta Tester` dengan ikon `User` dalam container `bg-[#F3E8FF] text-[#7E22CE] rounded-full`), dan email pengguna (`text-xs text-muted-foreground`).
+  - Baris bahasa: Label "Language", bendera UK (`UKFlag` SVG circle) dalam pill container aktif (`bg-secondary/80 border-border shadow-2xs`), serta bendera Indonesia (`IndonesiaFlag` SVG circle) dalam status disabled/coming soon (`opacity-35 cursor-not-allowed`).
+  - Aksi keluar: `DropdownMenuItem` dengan ikon `LogOut` dalam rounded box merah (`size-10 rounded-2xl bg-destructive/10 text-destructive`) dan label "Exit guest mode" / "Log out".
+  - Standarisasi copy: Seluruh teks menggunakan bahasa Inggris konsisten (`Guest`, `User`, `Language`, `Exit guest mode`, `Log out`).
+
+- Navbar Floating Rounded Pill: Header dashboard diubah menjadi bilah navigasi floating kapsul (`rounded-full`) dengan efek kaca `bg-background/90 backdrop-blur-md`, border `border-border/80`, dan shadow elevasi halus (`shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08)]`). Kontainer terangkat di atas halaman (`sticky top-0 pt-3 sm:pt-4 px-3 sm:px-6`).
+- Account Trigger Pill: Tombol pembuka profil pada navbar mengadopsi format pill horizontal (`rounded-full h-11 px-1 sm:pr-3`) yang menampilkan foto avatar, nama dan email pengguna secara vertikal (pada breakpoint `sm:` ke atas), serta ikon chevron down panah penunjuk dropdown.
 
 ## Review status (2026-10-20)
 

@@ -3,7 +3,9 @@ import {
   AlertTriangle,
   ArrowUpDown,
   Check,
+  ChevronDown,
   Clock,
+  Cloud,
   Copy,
   Download,
   Edit2,
@@ -19,6 +21,7 @@ import {
   Plus,
   Search,
   Trash2,
+  User,
   X,
 } from 'lucide-react';
 import { ResumeDocument } from '../types/resume';
@@ -35,11 +38,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { logoIcon } from '@/assets/logo';
 
 interface ResumeDashboardProps {
   resumes: ResumeDocument[];
@@ -54,6 +57,7 @@ interface ResumeDashboardProps {
   userName?: string | null;
   userAvatarUrl?: string | null;
   onSignOut?: () => void;
+  onSignIn?: () => void;
   isLoading?: boolean;
   syncStatus?: 'saved' | 'saving' | 'error';
 }
@@ -90,6 +94,35 @@ const writeStoredValue = (key: string, value: string) => {
   }
 };
 
+function UKFlag({ className = 'size-6' }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      className={cn('overflow-hidden rounded-full shrink-0 border border-black/10 shadow-2xs', className)}
+      aria-hidden="true"
+    >
+      <rect width="32" height="32" fill="#012169" />
+      <path d="M0 0 L32 32 M32 0 L0 32" stroke="#FFFFFF" strokeWidth="5.5" />
+      <path d="M0 0 L32 32 M32 0 L0 32" stroke="#C8102E" strokeWidth="3.2" />
+      <path d="M16 0 V32 M0 16 H32" stroke="#FFFFFF" strokeWidth="9" />
+      <path d="M16 0 V32 M0 16 H32" stroke="#C8102E" strokeWidth="5.5" />
+    </svg>
+  );
+}
+
+function IndonesiaFlag({ className = 'size-6' }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      className={cn('overflow-hidden rounded-full shrink-0 border border-black/10 shadow-2xs', className)}
+      aria-hidden="true"
+    >
+      <rect width="32" height="16" fill="#E70011" />
+      <rect y="16" width="32" height="16" fill="#FFFFFF" />
+    </svg>
+  );
+}
+
 export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
   resumes,
   onSelectResume,
@@ -103,6 +136,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
   userName,
   userAvatarUrl,
   onSignOut,
+  onSignIn,
   isLoading = false,
   syncStatus = 'saved',
 }) => {
@@ -173,6 +207,8 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
   };
 
   const initials = getInitials(userName);
+  const displayName = userName || (isGuest ? 'Guest' : userEmail?.split('@')[0] || 'User');
+  const displayEmail = userEmail || (isGuest ? 'guest@cevee.app' : '');
 
   const formatDate = (isoString: string) => {
     try {
@@ -298,46 +334,122 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
 
   return (
     <div className="min-h-screen bg-muted/20 flex flex-col font-sans">
-      {/* Top Header */}
-      <header className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-30 pointer-events-none">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between pointer-events-auto">
+      {/* Floating Top Header */}
+      <header className="sticky top-0 z-30 pt-3 sm:pt-4 px-3 sm:px-6 pointer-events-none">
+        <div className="max-w-6xl mx-auto h-16 px-3.5 sm:px-6 flex items-center justify-between rounded-full border border-border/80 bg-background/90 backdrop-blur-md shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08),0_2px_8px_-2px_rgba(15,23,42,0.04)] pointer-events-auto transition-all">
           <div className="flex items-center gap-3">
-            <span className="font-extrabold text-lg tracking-tight text-foreground flex items-center gap-2">
-              <span className="bg-primary text-primary-foreground p-1.5 rounded-lg shadow-pillow-primary">
-                <FileText className="size-4" />
-              </span>
-              Cevee
+            <span className="font-extrabold text-xl tracking-tight text-foreground flex items-center gap-2.5">
+              <img
+                src={logoIcon}
+                alt="Cevee"
+                className="size-8 sm:size-9 object-contain drop-shadow-xs"
+              />
+              <span className="tracking-tight">Cevee</span>
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {isGuest && onSignIn && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onSignIn}
+                className="gap-1.5 text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors h-9 px-3.5 rounded-full"
+                title="Save resumes to cloud"
+              >
+                <Cloud className="size-3.5" />
+                <span className="hidden sm:inline">Save to cloud</span>
+              </Button>
+            )}
+
             {onSignOut && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="size-11 rounded-full overflow-hidden p-1"
+                    className="h-11 py-1 pl-1 pr-1 sm:pr-3 rounded-full gap-2.5 hover:bg-muted/70 transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     title="Account"
                     aria-label="Account menu"
                   >
-                    <Avatar className="size-9">
-                      {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt="" />}
+                    <Avatar className="size-9 ring-1 ring-border/80 shadow-2xs shrink-0">
+                      {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={displayName} className="object-cover" />}
                       <AvatarFallback className="bg-secondary text-xs font-semibold text-secondary-foreground">
                         {initials || 'U'}
                       </AvatarFallback>
                     </Avatar>
+                    <div className="hidden sm:flex flex-col text-left leading-tight min-w-0 max-w-[130px] md:max-w-[170px]">
+                      <span className="text-xs font-bold text-foreground truncate">
+                        {displayName}
+                      </span>
+                      {displayEmail && (
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {displayEmail}
+                        </span>
+                      )}
+                    </div>
+                    <ChevronDown className="size-3.5 text-muted-foreground shrink-0 hidden sm:block" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  {userEmail && (
-                    <>
-                      <DropdownMenuLabel className="font-normal text-xs text-muted-foreground truncate" title={userEmail}>
-                        {userEmail}
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={8}
+                  className="w-[19rem] sm:w-[20rem] rounded-[1.75rem] border border-border/80 bg-card p-5 text-card-foreground shadow-[0_12px_40px_-8px_rgba(15,23,42,0.12),0_4px_16px_-2px_rgba(15,23,42,0.06)]"
+                >
+                  {/* Profile Header */}
+                  <div className="flex items-center gap-3.5">
+                    <Avatar className="size-14 rounded-full ring-2 ring-border/80 shrink-0 shadow-xs">
+                      {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={displayName} className="object-cover" />}
+                      <AvatarFallback className="bg-secondary text-sm font-semibold text-secondary-foreground">
+                        {initials || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <span className="text-base font-bold text-foreground truncate leading-tight" title={displayName}>
+                        {displayName}
+                      </span>
+                      <div className="inline-flex items-center gap-1.5 self-start px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F3E8FF] text-[#7E22CE] border border-[#E9D5FF] shadow-2xs">
+                        <User className="size-3 text-[#7E22CE] shrink-0" />
+                        <span>Beta Tester</span>
+                      </div>
+                      {displayEmail && (
+                        <span className="text-xs text-muted-foreground truncate leading-tight mt-0.5" title={displayEmail}>
+                          {displayEmail}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <DropdownMenuSeparator className="-mx-5 my-4 bg-border/60" />
+
+                  {/* Language Section */}
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-sm font-semibold text-foreground">Language</span>
+                    <div className="flex items-center gap-2">
+                      {/* English - Selected */}
+                      <div
+                        className="flex size-10 items-center justify-center rounded-xl border border-border bg-secondary/80 p-1.5 shadow-2xs ring-1 ring-border/50 cursor-default"
+                        title="English (Selected)"
+                        role="status"
+                        aria-label="English selected"
+                      >
+                        <UKFlag className="size-6 rounded-full" />
+                      </div>
+
+                      {/* Indonesia - Inactive */}
+                      <div
+                        className="flex size-10 items-center justify-center rounded-xl p-1.5 opacity-35 cursor-not-allowed"
+                        title="Indonesian (Coming soon)"
+                        aria-disabled="true"
+                        aria-label="Indonesian (Coming soon)"
+                      >
+                        <IndonesiaFlag className="size-6 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <DropdownMenuSeparator className="-mx-5 my-4 bg-border/60" />
+
+                  {/* Sign Out Section */}
                   <DropdownMenuItem
                     onClick={() => {
                       if (isGuest) {
@@ -346,10 +458,14 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                         onSignOut();
                       }
                     }}
-                    className="gap-2 text-xs text-destructive focus:text-destructive cursor-pointer"
+                    className="w-full flex items-center gap-3.5 p-2 rounded-2xl text-destructive hover:bg-destructive/10 focus:bg-destructive/10 focus:text-destructive cursor-pointer transition-all active:scale-[0.98]"
                   >
-                    <LogOut className="size-4" />
-                    <span>{isGuest ? 'Exit guest mode' : 'Log out'}</span>
+                    <div className="size-10 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+                      <LogOut className="size-5" />
+                    </div>
+                    <span className="text-sm font-semibold">
+                      {isGuest ? 'Exit guest mode' : 'Log out'}
+                    </span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -430,8 +546,8 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
         ) : (
           <>
             {/* Toolbar */}
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative w-full sm:w-72">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+              <div className="relative w-full sm:flex-1 sm:min-w-0">
                 <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
                 <Input
                   type="text"
@@ -441,7 +557,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                   aria-label="Search resumes by title or candidate name"
                   autoComplete="off"
                   spellCheck={false}
-                  className="pl-9 pr-9 h-11 text-sm"
+                  className="pl-9 pr-9 h-11 text-sm w-full"
                 />
                 {searchQuery && (
                   <Button
@@ -458,7 +574,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                 )}
               </div>
 
-              <div className="flex items-center gap-2 sm:ml-auto">
+              <div className="flex items-center gap-2 shrink-0">
                 {/* Sort menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -556,18 +672,6 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
             ) : viewMode === 'grid' ? (
               /* Resumes Grid */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Create resume ghost card */}
-                <button
-                  type="button"
-                  onClick={onCreateResume}
-                  className="group flex min-h-[16rem] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card/60 px-6 py-10 text-center shadow-2xs transition-[border-color,background-color,box-shadow] duration-150 [@media(hover:hover)]:hover:border-primary/50 [@media(hover:hover)]:hover:bg-card [@media(hover:hover)]:hover:shadow-sm"
-                >
-                  <span className="flex size-11 items-center justify-center rounded-full bg-accent text-accent-foreground transition-[background-color,color,box-shadow] duration-150 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-pillow-primary">
-                    <Plus className="size-5" />
-                  </span>
-                  <span className="text-sm font-semibold text-foreground">Create resume</span>
-                </button>
-
                 {visibleResumes.map((resume) => {
                   const fullName = resume.content.header.fullName || 'Untitled Candidate';
 
@@ -640,6 +744,18 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                     </Card>
                   );
                 })}
+
+                {/* Create resume ghost card */}
+                <button
+                  type="button"
+                  onClick={onCreateResume}
+                  className="group flex min-h-[16rem] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card/60 px-6 py-10 text-center shadow-2xs transition-[border-color,background-color,box-shadow] duration-150 [@media(hover:hover)]:hover:border-primary/50 [@media(hover:hover)]:hover:bg-card [@media(hover:hover)]:hover:shadow-sm"
+                >
+                  <span className="flex size-11 items-center justify-center rounded-full bg-accent text-accent-foreground transition-[background-color,color,box-shadow] duration-150 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-pillow-primary">
+                    <Plus className="size-5" />
+                  </span>
+                  <span className="text-sm font-semibold text-foreground">Create resume</span>
+                </button>
               </div>
             ) : (
               /* Resumes List */
@@ -750,7 +866,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
       <ConfirmDialog
         isOpen={isConfirmingSignOut}
         title="Exit guest mode?"
-        description="Your resumes are stored only in this browser while using guest mode. Exiting deletes them permanently and returns you to the sign-in screen."
+        description="Your resumes are stored only in this browser while using guest mode. Exiting deletes them permanently. To keep them, use 'Save to cloud' to sign in."
         confirmLabel="Exit and delete"
         cancelLabel="Stay"
         isDestructive={true}

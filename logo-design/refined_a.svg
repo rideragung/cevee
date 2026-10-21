@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Concept A: Precision Monogram Vertex -->
+  <!-- Top terminal: horizontal at x=196, y=72 -->
+  <!-- Arc sweeps counter-clockwise from (196, 72) around (120, 116) to (36, 116) -->
+  <!-- Tangent transition into 45° diagonal to (132, 232) -->
+  <!-- Ascends at 45° to (216, 148) -->
+  <!-- Perpendicular end-cap to (188, 120) -->
+  <!-- Descends at 45° to inner vertex (132, 176) -->
+  <!-- Ascends at 45° to meet inner circular arc tangent -->
+  <!-- Inner arc sweeps to (196, 110) -->
+  <!-- Vertical cut to (196, 72) -->
+  <path fill="#0F172A" fill-rule="evenodd" d="
+    M 196 68
+    C 176 44 148 32 116 32
+    C 69.6 32 32 69.6 32 116
+    C 32 142.5 44.3 166.1 63.6 181.6
+    L 132 232
+    L 216 148
+    L 188 120
+    L 132 176
+    L 88 144
+    C 77 136 70 126.8 70 116
+    C 70 90.6 90.6 70 116 70
+    C 134 70 149.6 80.4 157.2 95.6
+    L 196 68
+    Z
+  "/>
+</svg>

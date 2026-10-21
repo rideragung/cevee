@@ -1,6 +1,6 @@
-// Utilitas pengurutan resume otomatis berdasarkan periode.
-// Semua bagian (pengalaman, pendidikan, proyek, sertifikasi, dsb.)
-// diurutkan dari yang paling baru ke yang paling lama.
+// Automatic reverse-chronological period sorting utility.
+// Entries across sections (experience, education, projects, certifications, etc.)
+// are ordered newest to oldest.
 
 export interface PeriodSortable {
   period?: string;
@@ -25,7 +25,7 @@ const MONTH_MAP: Record<string, number> = {
   dec: 11, december: 11, des: 11, desember: 11,
 };
 
-// Konversi "Month YYYY" / "YYYY" menjadi nilai numerik (year * 12 + month)
+// Convert "Month YYYY" / "YYYY" into numeric value (year * 12 + month)
 const parseTextToMonths = (text?: string): { min: number; max: number; present: boolean } => {
   if (!text) return { min: 0, max: 0, present: false };
 
@@ -71,7 +71,7 @@ export const getPeriodSortKey = (item: PeriodSortable): SortKey => {
     const parsed = parseTextToMonths(combined);
     if (parsed.present) present = true;
 
-    // Gunakan juga field individual jika period tidak lengkap
+    // Also inspect individual fields if period is incomplete
     const s = parseTextToMonths(startDate);
     const e = parseTextToMonths(endDate);
 
@@ -95,7 +95,7 @@ export const getPeriodSortKey = (item: PeriodSortable): SortKey => {
   };
 };
 
-// Urutkan dari periode paling baru (terbaru di atas). Stabil terhadap urutan asal.
+// Sort newest to oldest (latest at top). Stable with respect to original order.
 export const sortByPeriodDesc = <T extends PeriodSortable>(items: T[]): T[] => {
   return items
     .map((item, index) => ({ item, index }))

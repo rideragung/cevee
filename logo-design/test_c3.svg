@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Outer C frame: 3 sides of a 45° hexagon -->
+  <path fill="#0F172A" d="
+    M 192 44
+    L 108 44
+    L 44 108
+    V 148
+    L 108 212
+    L 192 212
+    L 164 174
+    L 120 174
+    L 82 136
+    V 120
+    L 120 82
+    L 164 82
+    Z
+  "/>
+  <!-- Inner V chevron nestled inside: -->
+  <path fill="#0F172A" d="
+    M 144 100
+    L 172 100
+    L 196 156
+    L 168 156
+    L 158 132
+    L 148 156
+    L 120 156
+    Z
+  "/>
+</svg>

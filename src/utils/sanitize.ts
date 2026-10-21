@@ -22,6 +22,6 @@ export const sanitizeHtml = (html: string): string => {
   if (!html) return '';
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS,
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'start', 'value'],
   });
 };

@@ -42,7 +42,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const [align, setAlign] = useState<'left' | 'right'>('left');
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Buka popover dengan posisi aman: hindari terpotong di tepi kanan layar
+  // Open popover with safe position: avoid overflowing right edge of viewport
   const openPopover = () => {
     if (disabled) return;
     const rect = containerRef.current?.getBoundingClientRect();

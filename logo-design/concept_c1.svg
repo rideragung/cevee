@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Left element: Thick C crescent arc -->
+  <path fill="#0F172A" fill-rule="evenodd" d="
+    M 132 44
+    A 84 84 0 0 0 132 212
+    V 168
+    A 40 40 0 0 1 132 88
+    Z
+  "/>
+  <!-- Right element: Bold geometric chevron V -->
+  <path fill="#0F172A" d="
+    M 152 68
+    L 186 68
+    L 214 128
+    L 186 188
+    L 152 188
+    L 180 128
+    Z
+  "/>
+</svg>

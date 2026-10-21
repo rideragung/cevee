@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.36.0  
+**Dokumen Versi:** 1.38.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Responsive — Desktop, Tablet & Mobile)  
@@ -37,9 +37,9 @@ Cevee memungkinkan pengguna:
 12. Mengedit CV secara penuh dari perangkat mobile (tata letak responsif penuh tanpa *horizontal scroll*), dengan kanvas A4 yang mengalir ulang sesuai lebar layar di bawah ambang `900px`.
 13. Memilih format layout saat membuat CV baru dan mengganti layout secara fleksibel langsung dari kanvas editor dengan preservasi konten 100%.
 
-### 1.3 Batasan Biaya & Aturan Non-AI (Strict Constraints)
-- **Zero Cost (Rp 0):** Seluruh infrastruktur wajib berjalan di tingkat gratis permanen (*free tier*) tanpa kewajiban kartu kredit.
-- **Tanpa AI:** Tidak ada fitur peringkas atau generator kalimat berbasis LLM di dalam aplikasi. Sistem berfokus pada ketepatan format, penataan konten manual terstruktur, dan performa instan.
+### 1.3 Batasan Biaya & Keamanan Infrastruktur AI (Strict Constraints)
+- **Zero Cost (Rp 0):** Seluruh infrastruktur wajib berjalan di tingkat gratis permanen (*free tier*) tanpa kewajiban kartu kredit (Supabase, Vercel Serverless, Google AI Studio / Gemini API free tier).
+- **Keamanan Kunci AI (Private Serverless Proxy):** Fitur import dan ekstraksi resume PDF menggunakan Google Gemini API via Vercel Serverless Function (`/api/parse-resume`). Kunci API (`GEMINI_API_KEYS`) disimpan secara privat di server environment variable tanpa prefix publik framework (`VITE_`), sehingga 100% terlindung dari kebocoran ke browser publik.
 
 ---
 
@@ -58,8 +58,9 @@ Cevee memungkinkan pengguna:
 | **Fonts** | `@fontsource/inter` + `@fontsource/arimo` | WOFF2 statis self-hosted (bebas CDN; substet Type0 saat cetak PDF) |
 | **Backend & DB** | Supabase (PostgreSQL 15+) | Autentikasi email, database JSONB, Row Level Security (RLS) |
 | **PDF Engine** | Native Print Engine (`window.print()` + CSS `@page`) | Cetak vektor PDF presisi A4 tanpa watermark |
+| **AI Resume Parser** | Google Gemini API via Vercel Serverless (`/api/parse-resume`) | Proxy serverless privat, multi-key rotation, 429 quota fallback, zero key leak |
 | **Code Quality** | ESLint 10 + Prettier | Flat config strict typing, hooks check, & automated lint |
-| **Deployment** | Vercel / Cloudflare Pages | Hosting static web gratis |
+| **Deployment** | Vercel (SPA rewrites + Serverless Functions) | Hosting static web gratis + runtime API |
 
 ### 2.2 Diagram Alur Arsitektur
 
@@ -132,9 +133,12 @@ Cevee memungkinkan pengguna:
 - **FR-2.6 (Switch Active):** Pengguna dapat berpindah dari satu CV ke CV lain tanpa me-refresh halaman.
 - **FR-2.7 (UX Writing & Microcopy Standards):** Seluruh tombol aksi, tooltip, status indikator, dialog modal konfirmasi, pesan kesalahan autentikasi, serta placeholder input pada seluruh section distandarisasi 100% ke bahasa Inggris (English US) profesional yang ringkas, berorientasi tindakan (*verb-oriented*), dan konsisten tanpa residu teks multibahasa. Teks dialog penghapusan disesuaikan agar akurat untuk lingkungan penyimpanan lokal maupun akun cloud.
 - **FR-2.8 (Thumbnail Halaman 1 via Mesin Paginasi Nyata):**
-  - Thumbnail kartu dashboard menampilkan **hanya halaman 1** dari resume, bukan seluruh konten yang dipadatkan/terpotong ke dalam satu lembar.
-  - `ResumeContentThumbnail` meniru persis pipeline `PaginatedResumeView`: kontainer ukur tersembunyi mengukur tinggi `getBoundingClientRect()` setiap blok (dikalibrasi ulang setelah `document.fonts.ready`), kemudian `runPagination()` di `layouts/core/packing.ts` mengambil halaman pertama dengan geometri layout (`maxPageHeightPx`, lebar konten, tipografi) yang sama persis.
-  - Hasilnya identik 1:1 dengan halaman 1 modal preview — resume multi-halaman tampil sebagai kover halaman 1 yang utuh (whitespace bawah fisik dipertahankan), dan teks thumbnail terverifikasi identik dengan pratinjau print.
+  - **Prinsip Utama Single-Page Thumbnail:** Seluruh thumbnail/pratinjau layout resume pada halaman daftar resume (`ResumeDashboard`), baik pada mode tampilan kartu (*Grid view*) maupun baris tabel (*List view*), **WAJIB HANYA merender Halaman 1 (`pages[0]`)** dari resume tersebut. Sistem DILARANG merender seluruh isi resume atau membiarkan konten halaman 2, 3, dst. tumpah (*overflow*) atau termampatkan ke dalam satu lembar thumbnail.
+  - **Arsitektur Paginasi Identik:** `ResumeContentThumbnail` menggunakan pipeline paginasi yang sama persis dengan `PaginatedResumeView` (`runPagination` di `src/layouts/core/packing.ts`), dengan kontainer ukur 1:1 tersembunyi berlebar `geometry.contentWidth` (`a4-measure-container`) yang membaca tinggi riil DOM setiap blok secara subpixel.
+  - **Sinkronisasi State & Isolasi Dimensi Fisik:**
+    - State `pageOneBlocks` diinisialisasi dan diperbarui menggunakan blok halaman pertama (`runPagination(blocks, ...)[0] ?? []`).
+    - Lembar A4 thumbnail (`a4-page-sheet`) dikunci secara inline pada rasio dan ukuran fisik pasti (`width: 210mm; height: 297mm; max-height: 297mm; overflow: hidden;`), dan kontainer konten dalamnya dibatasi pada `maxHeight: geometry.maxPageHeightPx` dengan `overflow: hidden`.
+    - Dengan proteksi ini, thumbnail resume multi-halaman dijamin tampil presisi sebagai kover halaman 1 yang utuh (1:1 dengan halaman 1 modal pratinjau), dengan sisa ruang bawah fisik (*whitespace*) yang terkalibrasi akurat tanpa artefak tumpang tindih.
 
 ### 3.3 FR-3: In-Place Canvas & Editor (WYSIWYG)
 - **FR-3.1 (A4 Container & Margin Padat):** Area kerja menampilkan lembar putih dengan rasio aspek A4 (210mm x 297mm) dengan margin padat standar ATS: `10mm` (atas), `13mm` (samping kiri-kanan), dan `12mm` (bawah) guna memaksimalkan kepadatan informasi dokumen.
@@ -305,6 +309,15 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
   - Seluruh data konten (kontak header, riwayat pekerjaan, pendidikan, proyek, keahlian, dan custom section) dipertahankan 100% tanpa adanya pemotongan atau penghapusan data (*zero data loss*).
 - **FR-12.5 (Sinkronisasi Pratinjau & Output Cetak PDF):**
   - Mesin pratinjau live PDF (`PreviewModal` & `PaginatedResumeView`) serta aturan cetak `@media print` merender dokumen berdasarkan `layoutId` yang tersimpan pada resume aktif, menjamin hasil ekspor PDF 1:1 persis sama dengan yang dilihat pengguna di editor.
+
+### 3.13 FR-13: AI Resume Import & Serverless Proxy
+- **FR-13.1 (Ekstraksi Teks PDF di Sisi Client):** Menggunakan `pdfjs-dist` di browser untuk membaca teks mentah dari file PDF yang diunggah pengguna dalam `LayoutSelectModal`.
+- **FR-13.2 (Serverless AI Proxy `/api/parse-resume`):** Endpoint serverless Vercel (`api/parse-resume.ts`) menerima teks PDF, melakukan validasi schema, dan memanggil Google Gemini API secara privat.
+- **FR-13.3 (Perlindungan Kunci API / Zero Leak):** Kunci Gemini API dikonfigurasi menggunakan nama variabel privat `GEMINI_API_KEYS` (dan model `GEMINI_MODEL`), tanpa prefix publik `VITE_`. Kunci tidak pernah terinjeksi ke dalam bundel JavaScript client.
+- **FR-13.4 (Multi-Key Rotation & 429 Quota Fallback):** Sistem serverless mendukung beberapa API key (dipisahkan koma) dengan rotasi otomatis dan cooldown 60 detik jika mendeteksi status HTTP 429 / quota limit.
+- **FR-13.5 (Model Fallback Cascade):** Model cadangan berurutan (`gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`) untuk menjamin tingkat keberhasilan ekstraksi tinggi saat model tertentu mengalami downtime.
+- **FR-13.6 (Mapping Otomatis ke Format Dokumen Cevee):** Output JSON terstruktur dari Gemini diadaptasi oleh `resumeAdapter.ts` menjadi `ResumeDocument` Cevee lengkap dengan section Header, Summary, Experience, Education, Projects, Skills, dan Custom Sections.
+- **FR-13.7 (Dukungan Dev Server Lokal):** Vite dev server (`vite.config.ts`) mengintegrasikan middleware lokal untuk `/api/parse-resume` agar fitur import berfungsi identik pada lingkungan development lokal tanpa Vercel CLI.
 
 ---
 
@@ -609,6 +622,25 @@ export interface ResumeDocument {
 
 ## 7. RIWAYAT VERSI (CHANGELOG)
 
+### 1.38.0 — Hardening Thumbnail Halaman 1, Numbered List, dan Konsistensi Input Pillow Light
+- **Proteksi Halaman 1 Pratinjau Layout Resume (`ResumeContentThumbnail`):**
+  - Mengunci antarmuka pratinjau layout di daftar resume (`ResumeDashboard` Grid & List View) agar **hanya merender Halaman 1 (`pages[0]`)** dari resume.
+  - State paginasi `pageOneBlocks` disinkronkan secara reaktif dengan `runPagination(blocks, heights, geometry.maxPageHeightPx)[0]`, meniru arsitektur `PaginatedResumeView`.
+  - Mengunci inline styles lembar A4 thumbnail pada dimensi fisik `width: 210mm; height: 297mm; max-height: 297mm; overflow: hidden;` serta batas tinggi konten `maxHeight: geometry.maxPageHeightPx; overflow: hidden;` guna mencegah konten halaman 2+ bocor atau terpotong semu.
+- **Dukungan Penuh Numbered List (Daftar Bernomor):**
+  - `src/components/RichTextEditor.tsx`: Mengonfigurasi `orderedList` Tiptap dengan class `resume-ordered-list`.
+  - `src/index.css` & `src/layouts/standard-ats-v2/standard-ats-v2.css`: Memisahkan selector list agar `ul li` menggunakan `list-style-type: disc !important` dan `ol li` menggunakan `list-style-type: decimal !important; display: list-item !important;`.
+  - `src/layouts/core/content.tsx` & `types.ts`: Memecah setiap butir `<ol><li>` menjadi item blok terpisah dengan atribut `order`, dan merendernya kembali menggunakan `<ol start={part.order}>` agar penomoran urut tetap kohesif saat mengalir antar halaman.
+  - `src/utils/sanitize.ts`: Menambahkan atribut `start` dan `value` ke dalam `ALLOWED_ATTR` DOMPurify.
+- **Konsistensi Stroke & Radius Input Form Editor (Pillow Light):**
+  - `src/index.css`: Memperbarui token `--input` menjadi `#E5E7EB` (sebelumnya `#FFFFFF`) sehingga seluruh input form editor memiliki garis tepi (*stroke*) border 1px yang tegas dan kontras di atas latar belakang kartu putih.
+  - Menambahkan feedback transisi dan hover border pada field input untuk pengalaman pengguna yang lebih taktil.
+  - `src/components/ResumeHeader.tsx`: Memperbarui seluruh field input "Header & Contact" agar menggunakan `rounded-lg`, konsisten dengan seluruh section formulir lainnya.
+- **UX Daftar Resume & Perbaikan Scroll:**
+  - `src/components/ResumeDashboard.tsx`: Memindahkan tombol kartu aksi "Create resume" ke posisi paling akhir setelah daftar resume pengguna.
+  - `src/components/ui/dropdown-menu.tsx`: Mengonfigurasi default `modal={false}` pada komponen DropdownMenu untuk menonaktifkan `react-remove-scroll` saat menu tertutup, memulihkan kemampuan scroll gesture sentuh pada mobile dan wheel scroll pada desktop.
+- **Verifikasi:** `npm run lint` ✓ (0 error), `npm run build` ✓ (TypeScript + Vite bundle lulus).
+
 ### 1.37.0 — Layout Spacing & Anti-Orphan Alignment Across Presets
 - **Standard ATS V2 — Eliminasi Spacer & Paritas Margin Item:**
   - Menghapus 4 blok spacer `ref-spacer` (`16.8135px`) di `standard-ats-v2/blocks.tsx` (positions, single experience, projects, education) yang sebelumnya memicu jarak bawah berlebih di pratinjau dan cetak PDF dibanding kanvas editor (editor V2 menol-kan margin antar-item via stylesheet `standard-ats-v2.css`).
@@ -716,6 +748,16 @@ export interface ResumeDocument {
   - Alignment: Summary & bullet descriptions berformat rata kiri (*left-aligned*, non-justified).
   - Divider: `0.60pt solid #1F2937`.
 - **Preservasi Lintas Format:** Pengguna dapat beralih antara `classic-ats`, `modern-photo`, dan `reference-nodeflair` kapan saja melalui modal pembuatan CV maupun sidebar kiri editor tanpa kehilangan data.
+
+### 1.32.0 — Floating Rounded Navbar & Account Profile Dropdown (Pillow Light)
+- **Pembaruan Floating Navbar:** Header bilah navigasi atas dashboard dimodifikasi menjadi model *rounded floating pill* (`rounded-full`, backdrop blur kaca, border halus, elevasi bayangan) yang terangkat mengambang di atas konten halaman.
+- **Pembaruan Trigger Profil Akun:** Mengadopsi format pill horizontal terintegrasi dengan foto avatar, nama dan email pengguna (pada desktop), serta ikon panah chevron penunjuk dropdown.
+- **Pembaruan:** Modal popup profil pada avatar dashboard diselaraskan dengan referensi desain dan token **Pillow Light**:
+  - Menampilkan foto profil, nama pengguna (`Guest` / nama akun), badge status `Beta Tester`, dan email pengguna.
+  - Selektor bahasa menampilkan opsi "Language" dengan bendera UK (status aktif terpilih) dan bendera Indonesia (non-aktif/segera hadir).
+  - Tombol keluar terpadu dengan label "Exit guest mode" / "Log out" dan ikon merah berlatar rounded box.
+  - Standarisasi copy 100% bahasa Inggris konsisten di seluruh elemen menu akun.
+- **Pembaruan Toolbar Dashboard:** Input pencarian resume pada toolbar dashboard kini berukuran dinamis (`sm:flex-1 sm:min-w-0`) mengisi ruang horizontal hingga mendekati tombol filter sortir ("Last updated") dan view mode switcher (`sm:gap-3`), menciptakan tata letak yang proporsional dan mudah diakses.
 
 ### 1.31.0 — Comprehensive PDF Formatting & Layout Specification
 - **Dokumentasi Terpadu:** Pembuatan dokumen `PDF_FORMATTING_SPEC.md` yang merinci 100% parameter tipografi dan tata letak output PDF vektor:

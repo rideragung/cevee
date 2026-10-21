@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Outer C: stadium arc from top to bottom -->
+  <path fill="#0F172A" d="
+    M 148 44
+    H 96
+    A 84 84 0 0 0 96 212
+    H 148
+    V 168
+    H 104
+    A 40 40 0 0 1 104 88
+    H 148
+    Z
+  "/>
+  <!-- Sharp V chevron: pointing down, perfectly centered in height, 44px thick -->
+  <path fill="#0F172A" d="
+    M 152 84
+    H 196
+    L 168 184
+    L 140 84
+    H 152
+    Z
+  "/>
+</svg>

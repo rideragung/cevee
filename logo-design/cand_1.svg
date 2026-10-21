@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Outer C: rounded geometric arc with horizontal terminals -->
+  <path fill="#0F172A" fill-rule="evenodd" d="
+    M 192 48
+    C 112 48, 48 84, 48 128
+    C 48 172, 112 208, 192 208
+    L 192 168
+    C 132 168, 88 150, 88 128
+    C 88 106, 132 88, 192 88
+    Z
+  "/>
+</svg>

@@ -15,6 +15,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { ConfirmDialog } from './ConfirmDialog';
+import { logoIcon } from '@/assets/logo';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -91,12 +92,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={onBackToDashboard}
-                className="gap-1.5 px-2.5 h-8 text-muted-foreground hover:text-foreground flex-shrink-0"
+                className="gap-2 px-2.5 h-8 text-muted-foreground hover:text-foreground flex-shrink-0"
                 title="Back to dashboard"
                 aria-label="Back to dashboard"
               >
                 <ArrowLeft className="size-4" />
-                <span className="hidden md:inline font-medium text-xs">Dashboard</span>
+                <img src={logoIcon} alt="Cevee" className="size-5 object-contain" />
+                <span className="hidden md:inline font-semibold text-xs text-foreground">Cevee</span>
               </Button>
             )}
           </div>

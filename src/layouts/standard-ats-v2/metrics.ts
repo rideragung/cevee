@@ -29,7 +29,7 @@ export const estimateStandardAtsV2HeaderHeight = (header: HeaderData): number =>
 
 export const estimateStandardAtsV2ContentPartHeight = (part: ContentPart): number => {
   const text = stripHtml(part.html);
-  const charsPerLine = part.kind === 'list' ? 128 : 134;
+  const charsPerLine = part.kind === 'list' || part.kind === 'ordered-list' ? 128 : 134;
   const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
   return lines * 16.8135;
 };

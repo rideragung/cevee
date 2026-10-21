@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- C Bracket (outer arc from top-right around to bottom-right) -->
+  <path fill="#0F172A" fill-rule="evenodd" d="
+    M 152 48
+    A 92 92 0 1 0 152 208
+    H 116
+    A 54 54 0 1 1 116 86
+    H 152
+    V 48
+    Z
+  "/>
+  <!-- Downward V Chevron in the aperture -->
+  <path fill="#0F172A" d="
+    M 148 96
+    H 186
+    L 164 168
+    L 142 96
+    Z
+  "/>
+</svg>

@@ -23,11 +23,11 @@ export function runPagination(
     const b = blocks[i];
     const h = heightOf(b);
 
-    // Anti-orphan rule untuk judul section, header item, dan sub-header posisi:
-    // Pastikan blok header TIDAK pernah tertinggal sendirian di dasar halaman.
-    // Blok header wajib muat bersama seluruh rangkaian header berurutan
-    // berikutnya (judul section → header item → sub-header posisi) plus satu
-    // blok konten pertama setelah rangkaian tersebut.
+    // Anti-orphan rule for section titles, item headers, and position sub-headers:
+    // Ensure header blocks are NEVER stranded alone at the bottom of a page.
+    // A header block must fit together with any immediate consecutive headers
+    // (section title -> item header -> position sub-header) plus the first content
+    // block immediately following the chain.
     if (HEADER_BLOCK_TYPES.includes(b.type)) {
       let chainHeight = h;
       let j = i + 1;

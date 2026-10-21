@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>Cevee Fusion 4 - Interlocking Check</title>
+  <!-- Element 1: C Stadium bracket -->
+  <path fill="#0F172A" d="
+    M 116 44
+    H 96
+    A 84 84 0 0 0 96 212
+    H 116
+    V 174
+    H 96
+    A 46 46 0 0 1 96 82
+    H 116
+    Z
+  "/>
+  <!-- Element 2: V-Checkmark nestled inside (45° angle) -->
+  <path fill="#0F172A" d="
+    M 132 136
+    L 164 168
+    L 220 92
+    L 194 72
+    L 164 114
+    L 152 102
+    Z
+  "/>
+</svg>

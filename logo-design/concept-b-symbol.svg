@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title-b">
+  <title id="title-b">Cevee Precision Frame Symbol</title>
+  <path fill="#0F172A" fill-rule="evenodd" d="
+    M 84 26
+    H 176
+    L 200 50
+    V 86
+    C 200 92.6 194.6 98 188 98
+    H 124
+    C 113 98 104 107 104 118
+    V 138
+    C 104 149 113 158 124 158
+    H 188
+    C 194.6 158 200 163.4 200 170
+    V 218
+    C 200 224.6 194.6 230 188 230
+    H 84
+    C 68.5 230 56 217.5 56 202
+    V 54
+    C 56 38.5 68.5 26 84 26
+    Z
+"/>
+</svg>

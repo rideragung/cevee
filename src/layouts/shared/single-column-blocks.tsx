@@ -24,19 +24,20 @@ export interface HeaderBlockSpec {
 
 const CONTENT_PART_CLASSES = {
   list: 'resume-bullet-single text-slate-800 text-justify',
+  orderedList: 'resume-ordered-single text-slate-800 text-justify',
   paragraph: 'resume-paragraph-single text-slate-800 text-justify',
 } as const;
 
-// Estimasi tinggi satu bagian konten (list lebih sempit karena indent)
+// Estimate height of a single content part (lists are narrower due to indentation)
 const estimateContentPartHeight = (part: ContentPart): number => {
   const text = stripHtml(part.html);
-  const charsPerLine = part.kind === 'list' ? 92 : 95;
+  const charsPerLine = part.kind === 'list' || part.kind === 'ordered-list' ? 92 : 95;
   const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
   const lineH = 15.5;
-  return lines * lineH + (part.kind === 'list' ? 2.5 : 4);
+  return lines * lineH + (part.kind === 'list' || part.kind === 'ordered-list' ? 2.5 : 4);
 };
 
-// Estimasi tinggi teks/HTML realistis berbasis font Inter 7.75pt (lebar 184mm, 1 baris ~ 92-95 karakter)
+// Realistic text/HTML height estimate based on Inter 7.75pt (184mm width, ~92-95 chars per line)
 const estimateHtmlHeight = (html: string): number => {
   if (!html || !html.trim()) return 0;
 
@@ -45,7 +46,7 @@ const estimateHtmlHeight = (html: string): number => {
     let totalHeight = 5; // ul top + bottom margins
     for (const li of liMatches) {
       const text = stripHtml(li);
-      // Lebar bullet list indent = 673px. Rata-rata 92 karakter per baris (dengan istilah bold)
+      // Indented bullet list width = 673px. Average 92 characters per line (including bold terms)
       const lines = Math.max(1, Math.ceil(text.length / 92));
       totalHeight += lines * 15.5 + 2.5; // line height + li margin-bottom
     }
@@ -210,7 +211,7 @@ export const buildSingleColumnBlocks = (
 
           if (hasMultiPositions) {
             const sortedPositions = sortByPeriodDesc(item.positions || []);
-            // Blok 1: nama perusahaan + lokasi (sticky dengan posisi pertama)
+            // Block 1: company name + location (sticky with first position)
             list.push({
               id: `item-${section.id}-${item.id}-company`,
               type: 'item-head',
@@ -227,7 +228,7 @@ export const buildSingleColumnBlocks = (
               const positionBullets = parseContentParts(pos.bullets || '');
               const isLastPosition = posIdx === sortedPositions.length - 1;
 
-              // Sub-header posisi (role + periode) — sticky dengan bullet pertama
+              // Position sub-header (role + period) — sticky with first bullet
               list.push({
                 id: `item-${section.id}-${item.id}-pos-${pos.id || posIdx}-head`,
                 type: 'item-subhead',
@@ -272,7 +273,7 @@ export const buildSingleColumnBlocks = (
 
           const itemBullets = parseContentParts(item.bullets || '');
 
-          // Blok header: role + company (sticky dengan bullet pertama)
+          // Header block: role + company (sticky with first bullet)
           list.push({
             id: `item-${section.id}-${item.id}-head`,
             type: 'item-head',
@@ -342,7 +343,7 @@ export const buildSingleColumnBlocks = (
           const isLastItem = itemIdx === itemArr.length - 1;
           const itemBullets = parseContentParts(item.bullets || '');
 
-          // Blok header proyek: nama + periode (sticky dengan bullet pertama)
+          // Project header block: name + period (sticky with first bullet)
           list.push({
             id: `item-${section.id}-${item.id}-head`,
             type: 'item-head',
@@ -422,7 +423,7 @@ export const buildSingleColumnBlocks = (
           const isLastItem = itemIdx === itemArr.length - 1;
           const descBlocks = parseContentParts(item.description || '');
 
-          // Blok header pendidikan: degree + institution (sticky dengan deskripsi pertama)
+          // Education header block: degree + institution (sticky with first description item)
           list.push({
             id: `item-${section.id}-${item.id}-head`,
             type: 'item-head',

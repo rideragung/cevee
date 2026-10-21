@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <path fill="#0F172A" fill-rule="evenodd" d="
+    M 56 32
+    H 188
+    C 194.6 32 200 37.4 200 44
+    V 92
+    H 148
+    V 84
+    H 112
+    V 172
+    H 148
+    V 164
+    H 200
+    V 212
+    C 200 218.6 194.6 224 188 224
+    H 56
+    C 49.4 224 44 218.6 44 212
+    V 44
+    C 44 37.4 49.4 32 56 32
+    Z
+  "/>
+  <!-- Precision center bullet / indicator -->
+  <rect x="112" y="116" width="56" height="24" rx="4" fill="#0F172A"/>
+</svg>

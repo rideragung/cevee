@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>Cevee Fusion 2 - Caliper V</title>
+  <!-- Left element: Stadium C Bracket -->
+  <path fill="#0F172A" d="
+    M 124 44
+    H 104
+    A 84 84 0 0 0 104 212
+    H 124
+    V 174
+    H 104
+    A 46 46 0 0 1 104 82
+    H 124
+    Z
+  "/>
+  <!-- Center/Right element: Sharp V Chevron pointing down -->
+  <path fill="#0F172A" d="
+    M 148 76
+    H 186
+    L 186 96
+    L 167 170
+    L 148 96
+    Z
+  "/>
+</svg>

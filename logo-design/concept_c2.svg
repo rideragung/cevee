@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Top-Left C element -->
+  <path fill="#0F172A" d="
+    M 48 128
+    L 128 48
+    H 184
+    L 104 128
+    L 184 208
+    H 128
+    Z
+  "/>
+  <!-- Right V element -->
+  <path fill="#0F172A" d="
+    M 148 128
+    L 196 80
+    H 224
+    L 176 128
+    L 224 176
+    H 196
+    Z
+  "/>
+</svg>

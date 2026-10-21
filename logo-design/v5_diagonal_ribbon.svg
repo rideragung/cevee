@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Top bar of C -->
+  <path fill="#0F172A" d="
+    M 64 48
+    H 192
+    V 88
+    H 104
+    L 64 48
+    Z
+  "/>
+  <!-- Left diagonal / vertical spine -->
+  <path fill="#0F172A" d="
+    M 64 48
+    L 104 88
+    V 168
+    L 64 208
+    Z
+  "/>
+  <!-- Bottom chevron V -->
+  <path fill="#0F172A" d="
+    M 64 208
+    L 104 168
+    H 136
+    L 168 208
+    L 208 148
+    H 236
+    L 176 236
+    L 124 168
+    H 104
+    Z
+  "/>
+</svg>

@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import {
   Eye,
   EyeOff,
-  FileText,
   Key,
   AlertCircle,
   CheckCircle,
   Loader2,
+  X,
 } from 'lucide-react';
+import { logoIcon } from '@/assets/logo';
 import {
   getSupabase,
   isSupabaseConfigured,
@@ -29,11 +30,17 @@ import {
 interface AuthPageProps {
   onAuthSuccess: () => void;
   onContinueAsGuest?: () => void;
+  isModal?: boolean;
+  onClose?: () => void;
+  guestResumeCount?: number;
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({
   onAuthSuccess,
   onContinueAsGuest,
+  isModal = false,
+  onClose,
+  guestResumeCount,
 }) => {
   const [mode, setMode] = useState<'signup' | 'signin'>('signup');
   const [email, setEmail] = useState('');
@@ -195,43 +202,50 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
   };
 
-  return (
-    <div className="flex min-h-screen flex-col justify-between overflow-x-hidden bg-muted text-foreground">
-      {/* Top Bar */}
-      <header className="relative z-10 px-4 sm:px-8 py-5 flex items-center justify-end">
-        {!isSupabaseConfigured() && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setShowConfigModal(true)}
-            className="gap-1.5 border-amber-300 bg-amber-50 text-amber-800 [@media(hover:hover)]:hover:bg-amber-100 text-xs"
-          >
-            <Key className="size-3.5" />
-            <span>Connect Supabase</span>
-          </Button>
-        )}
-      </header>
+  const authCard = (
+    <Card className="rounded-2xl border border-border/70 bg-card p-6 shadow-xl sm:p-8 relative">
+            {isModal && onClose && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="absolute right-4 top-4 size-8 text-muted-foreground hover:text-foreground"
+                aria-label="Close"
+              >
+                <X className="size-4" />
+              </Button>
+            )}
 
-      {/* Centered card (focal point on this screen, layout preserved) */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
-        <div className="w-full max-w-[420px]">
-          <Card className="rounded-2xl border border-border/70 bg-card p-6 shadow-xl sm:p-8">
             {/* Heading — Centered brand & title preserved from original layout */}
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center gap-2.5 mb-3.5">
-                <span className="size-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-pillow-primary">
-                  <FileText className="size-4" />
-                </span>
-                <span className="font-bold text-lg tracking-tight text-foreground">
-                  Cevee
-                </span>
-              </div>
+        <div className="inline-flex items-center justify-center gap-3 mb-4">
+          <img
+            src={logoIcon}
+            alt="Cevee"
+            className="size-12 object-contain drop-shadow-xs"
+          />
+          <span className="font-extrabold text-2xl tracking-tight text-foreground">
+            Cevee
+          </span>
+        </div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                {mode === 'signup' ? 'Create your account' : 'Welcome back'}
+                {isModal
+                  ? mode === 'signup'
+                    ? 'Create account to save'
+                    : 'Sign in to save'
+                  : mode === 'signup'
+                  ? 'Create your account'
+                  : 'Welcome back'}
               </h1>
               <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                {mode === 'signup'
+                {isModal
+                  ? `Sign in or register to sync your ${
+                      guestResumeCount && guestResumeCount > 1
+                        ? `${guestResumeCount} resumes`
+                        : 'resume'
+                    } to the cloud.`
+                  : mode === 'signup'
                   ? 'Build an ATS-friendly resume, then export it as a PDF.'
                   : 'Sign in to access and edit your resumes.'}
               </p>
@@ -287,7 +301,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 <span>Continue with Google</span>
               </Button>
 
-              {onContinueAsGuest && (
+              {!isModal && onContinueAsGuest && (
                 <Button
                   type="button"
                   variant="secondary"
@@ -426,9 +440,130 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     Sign up
                   </button>
                 </span>
+                )}
+              </div>
+
+              {isModal && onClose && (
+                <div className="mt-5 pt-3 border-t border-border/60 text-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onClose}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Stay in guest mode
+                  </Button>
+                </div>
               )}
-            </div>
-          </Card>
+            </Card>
+  );
+
+  const configModal = (
+    <Dialog open={showConfigModal} onOpenChange={setShowConfigModal}>
+      <DialogContent className="max-w-md p-6">
+        <DialogHeader className="flex flex-row items-center gap-2 space-y-0 text-left">
+          <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <Key className="size-4" />
+          </div>
+          <div>
+            <DialogTitle className="text-base font-bold">Connect Supabase</DialogTitle>
+          </div>
+        </DialogHeader>
+        <DialogDescription className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          Enter <strong>Project URL</strong> and <strong>Anon public key</strong> from your Supabase dashboard (Settings → API), or add them to your <code className="rounded bg-muted px-1 py-0.5 text-[11px] text-foreground">.env</code> file.
+        </DialogDescription>
+
+        <form onSubmit={handleSaveConfig} className="mt-2 space-y-3">
+          <div className="space-y-1">
+            <label htmlFor="supabase-url" className="block text-[11px] font-semibold text-foreground">
+              Project URL
+            </label>
+            <Input
+              id="supabase-url"
+              type="url"
+              autoComplete="url"
+              placeholder="https://xyzcompany.supabase.co"
+              value={configUrl}
+              onChange={(e) => setConfigUrl(e.target.value)}
+              required
+              className="h-9 text-xs"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="supabase-anon-key" className="block text-[11px] font-semibold text-foreground">
+              Anon public key
+            </label>
+            <Input
+              id="supabase-anon-key"
+              type="password"
+              autoComplete="off"
+              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              value={configKey}
+              onChange={(e) => setConfigKey(e.target.value)}
+              required
+              className="h-9 text-xs"
+            />
+          </div>
+
+          <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-3">
+            {isSupabaseConfigured() && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowConfigModal(false)}
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+            )}
+            <Button
+              type="submit"
+              variant="default"
+              size="sm"
+              className="text-xs font-semibold"
+            >
+              Save and connect
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (isModal) {
+    return (
+      <div className="w-full max-w-[420px] mx-auto p-0">
+        {authCard}
+        {configModal}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col justify-between overflow-x-hidden bg-muted text-foreground">
+      {/* Top Bar */}
+      <header className="relative z-10 px-4 sm:px-8 py-5 flex items-center justify-end">
+        {!isSupabaseConfigured() && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowConfigModal(true)}
+            className="gap-1.5 border-amber-300 bg-amber-50 text-amber-800 [@media(hover:hover)]:hover:bg-amber-100 text-xs"
+          >
+            <Key className="size-3.5" />
+            <span>Connect Supabase</span>
+          </Button>
+        )}
+      </header>
+
+      {/* Centered card (focal point on this screen, layout preserved) */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
+        <div className="w-full max-w-[420px]">
+          {authCard}
 
           {/* Plain facts */}
           <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
@@ -446,78 +581,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         </p>
       </footer>
 
-      {/* Supabase Connection Setup Modal */}
-      <Dialog open={showConfigModal} onOpenChange={setShowConfigModal}>
-        <DialogContent className="max-w-md p-6">
-          <DialogHeader className="flex flex-row items-center gap-2 space-y-0 text-left">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-              <Key className="size-4" />
-            </div>
-            <div>
-              <DialogTitle className="text-base font-bold">Connect Supabase</DialogTitle>
-            </div>
-          </DialogHeader>
-          <DialogDescription className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Enter <strong>Project URL</strong> and <strong>Anon public key</strong> from your Supabase dashboard (Settings → API), or add them to your <code className="rounded bg-muted px-1 py-0.5 text-[11px] text-foreground">.env</code> file.
-          </DialogDescription>
-
-          <form onSubmit={handleSaveConfig} className="mt-2 space-y-3">
-            <div className="space-y-1">
-              <label htmlFor="supabase-url" className="block text-[11px] font-semibold text-foreground">
-                Project URL
-              </label>
-              <Input
-                id="supabase-url"
-                type="url"
-                autoComplete="url"
-                placeholder="https://xyzcompany.supabase.co"
-                value={configUrl}
-                onChange={(e) => setConfigUrl(e.target.value)}
-                required
-                className="h-9 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label htmlFor="supabase-anon-key" className="block text-[11px] font-semibold text-foreground">
-                Anon public key
-              </label>
-              <Input
-                id="supabase-anon-key"
-                type="password"
-                autoComplete="off"
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                value={configKey}
-                onChange={(e) => setConfigKey(e.target.value)}
-                required
-                className="h-9 text-xs"
-              />
-            </div>
-
-            <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-3">
-              {isSupabaseConfigured() && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowConfigModal(false)}
-                  className="text-xs"
-                >
-                  Cancel
-                </Button>
-              )}
-              <Button
-                type="submit"
-                variant="default"
-                size="sm"
-                className="text-xs font-semibold"
-              >
-                Save and connect
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {configModal}
     </div>
   );
 };

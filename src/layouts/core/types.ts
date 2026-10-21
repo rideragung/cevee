@@ -19,7 +19,8 @@ export interface ContentBlock {
 }
 
 export interface ContentPart {
-  kind: 'list' | 'paragraph';
+  kind: 'list' | 'ordered-list' | 'paragraph';
+  order?: number;
   html: string;
 }
 

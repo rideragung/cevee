@@ -13,9 +13,10 @@ import { CheckIcon, ChevronRightIcon } from "@/components/icons"
    this React 18 + Radix 2.2 combination. */
 const DropdownMenuOpenContext = React.createContext(false)
 
-const DropdownMenu = function DropdownMenu({
+function DropdownMenu({
   open: openProp,
   onOpenChange,
+  modal = false,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false)
@@ -29,10 +30,11 @@ const DropdownMenu = function DropdownMenu({
   )
   return (
     <DropdownMenuOpenContext.Provider value={open}>
-      <DropdownMenuPrimitive.Root open={open} onOpenChange={handleOpenChange} {...props} />
+      <DropdownMenuPrimitive.Root open={open} onOpenChange={handleOpenChange} modal={modal} {...props} />
     </DropdownMenuOpenContext.Provider>
   )
 }
+DropdownMenu.displayName = DropdownMenuPrimitive.Root.displayName
 
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
 

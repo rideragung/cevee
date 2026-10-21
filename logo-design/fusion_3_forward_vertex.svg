@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>Cevee Fusion 3 - Forward Vertex</title>
+  <path fill="#0F172A" fill-rule="evenodd" d="
+    M 188 44
+    H 112
+    A 84 84 0 0 0 46 160
+    L 112 212
+    L 204 128
+    L 176 100
+    L 112 160
+    L 82 136
+    A 46 46 0 0 1 112 82
+    H 188
+    Z
+  "/>
+</svg>

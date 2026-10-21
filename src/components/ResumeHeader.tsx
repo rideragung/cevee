@@ -177,7 +177,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 placeholder="e.g. Your Name"
                 aria-label="Full name"
-                className="w-full px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
               />
             </div>
 
@@ -191,7 +191,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 placeholder="e.g. City, State/Country"
                 aria-label="Location"
-                className="w-full px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
               />
             </div>
 
@@ -205,7 +205,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="e.g. email@address.com"
                 aria-label="Email"
-                className="w-full px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
               />
             </div>
 
@@ -219,7 +219,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="e.g. +65 1234 5678"
                 aria-label="Phone number"
-                className="w-full px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
               />
             </div>
           </div>
@@ -323,7 +323,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                     onChange={(e) => handleUpdateRole(idx, e.target.value)}
                     aria-label={`Target role ${idx + 1}`}
                     placeholder={`Role ${idx + 1} (e.g. ${idx === 0 ? 'UI/UX Designer' : idx === 1 ? 'Product Designer' : idx === 2 ? 'UX Researcher' : 'Product Manager'})`}
-                    className="flex-1 px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                    className="flex-1 rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                   />
                   {(formData.roles || []).length > 1 && (
                     <button
@@ -356,7 +356,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                     onChange={(e) => handleUpdateLink(link.id, 'label', e.target.value)}
                     aria-label="Link label"
                     placeholder="Display name (e.g. linkedin.com/in/your_linkedin)"
-                    className="w-full sm:w-1/3 px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                    className="w-full sm:w-1/3 rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                   />
                   <div className="flex items-center gap-2 sm:flex-1">
                     <input
@@ -365,7 +365,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                       onChange={(e) => handleUpdateLink(link.id, 'url', e.target.value)}
                       aria-label="Link URL"
                       placeholder="URL (https://...)"
-                      className="flex-1 min-w-0 px-3 py-1.5 text-xs border border-input bg-card text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                      className="flex-1 min-w-0 rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                     />
                     <button
                       type="button"

@@ -29,6 +29,19 @@
   textarea {
     resize: vertical;
   }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+  textarea,
+  select {
+    transition: border-color var(--default-transition-duration, 150ms) var(--default-transition-timing-function, cubic-bezier(0.165, 0.84, 0.44, 1)),
+                box-shadow var(--default-transition-duration, 150ms) var(--default-transition-timing-function, cubic-bezier(0.165, 0.84, 0.44, 1));
+  }
+  @media (hover: hover) and (pointer: fine) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):hover:not(:focus):not(:disabled),
+    textarea:hover:not(:focus):not(:disabled),
+    select:hover:not(:focus):not(:disabled) {
+      border-color: color-mix(in srgb, var(--foreground) 30%, var(--input));
+    }
+  }
 
   /* Radix dropdown content is force-mounted for the exit motion; delay-hidden
      after close so the collision box never paints as a stray white pill. */
@@ -72,7 +85,7 @@
     --destructive: #E11D48;
     --destructive-foreground: #FFFFFF;
     --border: #E5E7EB;
-    --input: #FFFFFF;
+    --input: #E5E7EB;
     --ring: #1E66FF;
     --radius: 0.875rem;
     --shadow-pillow-primary: inset 0 0.0625rem 0 0 rgba(255, 255, 255, 0.30), inset 0 -0.125rem 0 0 rgba(0, 0, 0, 0.18), 0 0.0625rem 0.0625rem 0 rgba(15, 23, 42, 0.08), 0 0.25rem 0.625rem -0.125rem color-mix(in oklch, var(--primary) 35%, transparent);
@@ -129,7 +142,7 @@
     --destructive: #E11D48;
     --destructive-foreground: #FFFFFF;
     --border: #E5E7EB;
-    --input: #FFFFFF;
+    --input: #E5E7EB;
     --ring: #1E66FF;
     --radius: 0.875rem;
     --shadow-pillow-primary: inset 0 0.0625rem 0 0 rgba(255, 255, 255, 0.30), inset 0 -0.125rem 0 0 rgba(0, 0, 0, 0.18), 0 0.0625rem 0.0625rem 0 rgba(15, 23, 42, 0.08), 0 0.25rem 0.625rem -0.125rem color-mix(in oklch, var(--primary) 35%, transparent);
@@ -266,11 +279,11 @@
   line-height: 1.48 !important;
 }
 
-.resume-a4-page li,
-.a4-page-sheet li,
-.a4-measure-container li,
+.resume-a4-page ul li,
+.a4-page-sheet ul li,
+.a4-measure-container ul li,
 .resume-bullet-list li,
-.ProseMirror li {
+.ProseMirror ul li {
   list-style-type: disc !important;
   display: list-item !important;
   margin-bottom: 0.12rem !important;
@@ -279,22 +292,56 @@
   line-height: 1.48 !important;
 }
 
-/* Split-bullet: satu butir per elemen list agar butir terakhir bisa mengalir ke halaman berikutnya
-   tanpa memindahkan seluruh poin. Margin di-nol-kan supaya tampak menyatu seperti list utuh. */
+/* Universal Numbered/Ordered List Styling for Canvas, Preview, and Print */
+.resume-a4-page ol,
+.a4-page-sheet ol,
+.a4-measure-container ol,
+.resume-ordered-list,
+.ProseMirror ol {
+  list-style-type: decimal !important;
+  margin-left: 1.25rem !important;
+  padding-left: 0.1rem !important;
+  margin-top: 0.15rem !important;
+  margin-bottom: 0.15rem !important;
+  font-size: 7.75pt !important;
+  line-height: 1.48 !important;
+}
+
+.resume-a4-page ol li,
+.a4-page-sheet ol li,
+.a4-measure-container ol li,
+.resume-ordered-list li,
+.ProseMirror ol li {
+  list-style-type: decimal !important;
+  display: list-item !important;
+  margin-bottom: 0.12rem !important;
+  padding-left: 0.1rem !important;
+  font-size: 7.75pt !important;
+  line-height: 1.48 !important;
+}
+
+/* Split-bullet: one item per list element so trailing items can flow across page boundaries
+   without shifting the entire block. Margins zeroed out to visually resemble a continuous list. */
 .resume-a4-page .resume-bullet-single,
 .a4-page-sheet .resume-bullet-single,
-.a4-measure-container .resume-bullet-single {
+.a4-measure-container .resume-bullet-single,
+.resume-a4-page .resume-ordered-single,
+.a4-page-sheet .resume-ordered-single,
+.a4-measure-container .resume-ordered-single {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
 
 .resume-a4-page .resume-bullet-single li,
 .a4-page-sheet .resume-bullet-single li,
-.a4-measure-container .resume-bullet-single li {
+.a4-measure-container .resume-bullet-single li,
+.resume-a4-page .resume-ordered-single li,
+.a4-page-sheet .resume-ordered-single li,
+.a4-measure-container .resume-ordered-single li {
   margin-bottom: 0 !important;
 }
 
-/* Split-paragraph: satu paragraf per elemen agar bisa mengalir lintas halaman */
+/* Split-paragraph: one paragraph per element so text flows cleanly across pages */
 .resume-a4-page .resume-paragraph-single,
 .a4-page-sheet .resume-paragraph-single,
 .a4-measure-container .resume-paragraph-single {
@@ -308,11 +355,6 @@
   outline: none;
   font-size: 7.75pt;
   line-height: 1.48;
-}
-
-.ProseMirror ol {
-  list-style-type: decimal;
-  margin-left: 1.1rem;
 }
 
 .ProseMirror p {
