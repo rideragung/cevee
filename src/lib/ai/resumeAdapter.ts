@@ -127,9 +127,10 @@ export function adaptParsedResumeToDocument(
     id: `edu-${timestamp}-${idx + 1}`,
     degree: edu.degree || 'Degree / Major',
     institution: edu.institution || 'University / Institution',
-    period: formatPeriod(edu.startDate, edu.endDate),
+    period: formatPeriod(edu.startDate, edu.endDate, edu.current),
     startDate: edu.startDate || '',
     endDate: edu.endDate || '',
+    current: Boolean(edu.current),
     gpa: edu.gpa || '',
     description: edu.description || '',
   }));

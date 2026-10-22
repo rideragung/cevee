@@ -125,7 +125,7 @@ VITE_SUPABASE_ANON_KEY=<your-anon-key>
 
 # Gemini API Keys (Server-side proxy, kept private from browser bundle)
 GEMINI_API_KEYS=key1,key2
-GEMINI_MODEL=gemini-3.8-flash
+GEMINI_MODEL=gemini-3.6-flash
 ```
 
 | Variable | Description | Scope |
@@ -133,7 +133,7 @@ GEMINI_MODEL=gemini-3.8-flash
 | `VITE_SUPABASE_URL` | Your Supabase project URL. | Client |
 | `VITE_SUPABASE_ANON_KEY` | Public anon key for Supabase project. Safe to expose; access is enforced by RLS. | Client |
 | `GEMINI_API_KEYS` | Google Gemini API key(s) for AI resume parsing. Kept private on serverless function; never bundled to client. | Server (Vercel / Dev) |
-| `GEMINI_MODEL` | Optional model override (default: `gemini-3.8-flash`). | Server (Vercel / Dev) |
+| `GEMINI_MODEL` | Optional model override (default: `gemini-3.6-flash`). | Server (Vercel / Dev) |
 
 Leave Supabase blank to run in guest mode. Leave Gemini blank if you do not use PDF import.
 

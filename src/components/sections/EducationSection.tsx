@@ -23,6 +23,7 @@ interface EducationSectionProps {
 const normalizeEduItem = (it: EducationItem): EducationItem => {
   let startDate = it.startDate || '';
   let endDate = it.endDate || '';
+  let current = it.current || false;
   if (!startDate && !endDate && it.period) {
     if (it.period.includes(' - ')) {
       const parts = it.period.split(' - ');
@@ -32,10 +33,14 @@ const normalizeEduItem = (it: EducationItem): EducationItem => {
       endDate = it.period.trim();
     }
   }
+  if (!current && (endDate.toLowerCase() === 'present' || it.period?.toLowerCase().includes('present'))) {
+    current = true;
+  }
   return {
     ...it,
     startDate,
-    endDate,
+    endDate: current && endDate.toLowerCase() === 'present' ? '' : endDate,
+    current,
   };
 };
 
@@ -56,11 +61,24 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
     sortByPeriodDesc((data.items || []).map(normalizeEduItem))
   );
 
+  const computePeriod = (item: {
+    startDate?: string;
+    endDate?: string;
+    current?: boolean;
+    period?: string;
+  }) => {
+    if (item.current) {
+      return item.startDate ? `${item.startDate} - Present` : 'Present';
+    }
+    if (item.startDate && item.endDate) {
+      return `${item.startDate} - ${item.endDate}`;
+    }
+    return item.startDate || item.endDate || item.period || '';
+  };
+
   const handleSave = () => {
     const updated = items.map((it) => {
-      const period = it.startDate && it.endDate
-        ? `${it.startDate} - ${it.endDate}`
-        : (it.startDate || it.endDate || it.period || '');
+      const period = computePeriod(it);
       return {
         ...it,
         period,
@@ -84,6 +102,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
       period: '',
       startDate: '',
       endDate: '',
+      current: false,
       gpa: '',
     };
     setItems([...items, newItem]);
@@ -93,9 +112,20 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
     setItems(items.filter((item) => item.id !== id));
   };
 
-  const handleUpdateField = (id: string, field: keyof EducationItem, value: string) => {
-    setItems(
-      items.map((it) => (it.id === id ? { ...it, [field]: value } : it))
+  const handleUpdateField = <K extends keyof EducationItem>(
+    id: string,
+    field: K,
+    value: EducationItem[K]
+  ) => {
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.id !== id) return it;
+        const updated = { ...it, [field]: value };
+        return {
+          ...updated,
+          period: computePeriod(updated),
+        };
+      })
     );
   };
 
@@ -173,6 +203,23 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                   </button>
                 </div>
 
+                {/* Currently studying checkbox */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`current-${item.id}`}
+                    checked={item.current || false}
+                    onChange={(e) => handleUpdateField(item.id, 'current', e.target.checked)}
+                    className="h-3.5 w-3.5 cursor-pointer rounded border-input text-primary focus:ring-primary/30"
+                  />
+                  <label
+                    htmlFor={`current-${item.id}`}
+                    className="cursor-pointer select-none text-xs text-foreground"
+                  >
+                    I currently study here
+                  </label>
+                </div>
+
                 {/* Row 2: Institution & Dates */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="sm:col-span-2">
@@ -195,11 +242,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                     </label>
                     <DatePicker
                       value={item.startDate || ''}
-                      onChange={(val) => {
-                        const end = item.endDate || '';
-                        const period = val && end ? `${val} - ${end}` : (val || end || '');
-                        setItems(items.map((it) => it.id === item.id ? { ...it, startDate: val, period } : it));
-                      }}
+                      onChange={(val) => handleUpdateField(item.id, 'startDate', val)}
                       ariaLabel="Education start date"
                       placeholder="Select start date"
                     />
@@ -207,15 +250,12 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
 
                   <div>
                     <label className="mb-1 block text-[11px] font-semibold text-foreground">
-                      End date or graduation <span className="text-destructive">*</span>
+                      End date or graduation {!item.current && <span className="text-destructive">*</span>}
                     </label>
                     <DatePicker
-                      value={item.endDate || ''}
-                      onChange={(val) => {
-                        const start = item.startDate || '';
-                        const period = start && val ? `${start} - ${val}` : (val || start || '');
-                        setItems(items.map((it) => it.id === item.id ? { ...it, endDate: val, period } : it));
-                      }}
+                      value={item.current ? 'Present' : (item.endDate || '')}
+                      disabled={item.current || false}
+                      onChange={(val) => handleUpdateField(item.id, 'endDate', val)}
                       ariaLabel="Education end date or graduation"
                       placeholder="Select graduation date"
                     />
@@ -277,7 +317,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
           role="button"
           tabIndex={0}
           onClick={() => {
-            setItems(data.items.length > 0 && !isPlaceholder ? sortByPeriodDesc((data.items || []).map(normalizeEduItem)) : [{ id: `edu-${Date.now()}`, degree: '', institution: '', period: '', gpa: '', startDate: '', endDate: '' }]);
+            setItems(data.items.length > 0 && !isPlaceholder ? sortByPeriodDesc((data.items || []).map(normalizeEduItem)) : [{ id: `edu-${Date.now()}`, degree: '', institution: '', period: '', gpa: '', startDate: '', endDate: '', current: false }]);
             setIsEditing(true);
           }}
           onKeyDown={(event) => {

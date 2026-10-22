@@ -50,6 +50,7 @@ const PROMPT_SCHEMA_GUIDE = `Target JSON format:
       "institution": "University / Institution",
       "startDate": "Start Year",
       "endDate": "End Year",
+      "current": false,
       "gpa": "3.85 / 4.00",
       "description": "Additional activities or honors"
     }
@@ -109,59 +110,17 @@ const PROMPT_SCHEMA_GUIDE = `Target JSON format:
   ]
 }`;
 
-class ServerKeyRotator {
-  private keys: string[] = [];
-  private currentIndex = 0;
-  private cooldownMap = new Map<string, number>();
-
-  constructor(rawKeys: string) {
-    this.keys = rawKeys
-      .split(',')
-      .map((k) => k.trim())
-      .filter((k) => k.length > 0);
-  }
-
-  public getKeysCount(): number {
-    return this.keys.length;
-  }
-
-  public getNextKey(): { key: string; index: number } {
-    if (this.keys.length === 0) {
-      throw new Error('GEMINI_API_KEYS is not configured.');
-    }
-
-    const now = Date.now();
-    for (let i = 0; i < this.keys.length; i++) {
-      const idx = (this.currentIndex + i) % this.keys.length;
-      const key = this.keys[idx];
-      const cooldown = this.cooldownMap.get(key) || 0;
-
-      if (now >= cooldown) {
-        this.currentIndex = (idx + 1) % this.keys.length;
-        return { key, index: idx + 1 };
-      }
-    }
-
-    const currentKey = this.keys[this.currentIndex];
-    const keyIndex = this.currentIndex + 1;
-    this.currentIndex = (this.currentIndex + 1) % this.keys.length;
-    return { key: currentKey, index: keyIndex };
-  }
-
-  public markRateLimited(key: string, cooldownMs = 60000): void {
-    this.cooldownMap.set(key, Date.now() + cooldownMs);
-  }
-}
-
 export async function executeGeminiParse(
   pdfText: string,
   rawKeys: string,
   modelOverride?: string
 ): Promise<ParsedResumeRaw> {
-  const rotator = new ServerKeyRotator(rawKeys);
-  const totalKeys = rotator.getKeysCount();
+  const keys = rawKeys
+    .split(',')
+    .map((k) => k.trim())
+    .filter((k) => k.length > 0);
 
-  if (totalKeys === 0) {
+  if (keys.length === 0) {
     throw new Error('GEMINI_API_KEYS is not configured. Add your API key in environment variables.');
   }
 
@@ -169,24 +128,44 @@ export async function executeGeminiParse(
     new Set(
       [
         modelOverride,
-        'gemini-3.8-flash',
-        'gemini-3.7-flash',
         'gemini-3.6-flash',
         'gemini-3.5-flash',
+        'gemini-3-flash-preview',
         'gemini-flash-latest',
+        'gemini-3.5-flash-lite',
+        'gemini-flash-lite-latest',
+        'gemini-3.8-flash',
+        'gemini-3.7-flash',
+        'gemini-3.1-flash-lite',
       ].filter((m): m is string => Boolean(m && m.trim()))
     )
   );
 
-  let attempts = 0;
-  const maxAttempts = totalKeys;
   let lastError: Error | null = null;
+  const requestStartTime = Date.now();
+  const isVercelServerless = Boolean(process.env.VERCEL);
+  const maxTotalDurationMs = isVercelServerless ? 9000 : 45000;
+  const maxPerFetchTimeoutMs = isVercelServerless ? 7000 : 25000;
 
-  while (attempts < maxAttempts) {
-    attempts++;
-    const { key, index } = rotator.getNextKey();
+  for (const model of models) {
+    const elapsedModel = Date.now() - requestStartTime;
+    if (maxTotalDurationMs - elapsedModel < 2000) {
+      lastError = new Error('Request execution time budget exhausted. Please try again.');
+      break;
+    }
 
-    for (const model of models) {
+    for (let keyIndex = 0; keyIndex < keys.length; keyIndex++) {
+      const key = keys[keyIndex];
+      const elapsed = Date.now() - requestStartTime;
+      const remainingTime = maxTotalDurationMs - elapsed;
+
+      if (remainingTime < 2000) {
+        lastError = new Error('Request execution time budget exhausted. Please try again.');
+        break;
+      }
+
+      const fetchTimeoutMs = Math.min(remainingTime, maxPerFetchTimeoutMs);
+
       try {
         const response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
@@ -194,6 +173,7 @@ export async function executeGeminiParse(
           )}:generateContent?key=${encodeURIComponent(key)}`,
           {
             method: 'POST',
+            signal: AbortSignal.timeout(fetchTimeoutMs),
             headers: {
               'Content-Type': 'application/json',
             },
@@ -225,12 +205,13 @@ export async function executeGeminiParse(
             errorBody.includes('quota');
 
           if (isRateLimit) {
-            rotator.markRateLimited(key);
-            lastError = new Error(`Gemini key #${index} quota exceeded (429).`);
-            break;
+            lastError = new Error(
+              `Service quota reached for ${model} on key #${keyIndex + 1} (429). Trying next key/model...`
+            );
+            continue; // Try next key for this model
           }
 
-          const isRetryableModelError =
+          const isModelUnavailable =
             response.status === 404 ||
             response.status === 503 ||
             response.status === 500 ||
@@ -238,14 +219,14 @@ export async function executeGeminiParse(
             errorBody.includes('high demand') ||
             errorBody.includes('UNAVAILABLE');
 
-          if (isRetryableModelError) {
+          if (isModelUnavailable) {
             lastError = new Error(
-              `Gemini model ${model} unavailable (${response.status}). Trying next model...`
+              `Analysis engine ${model} unavailable (${response.status}). Trying next model...`
             );
-            continue;
+            break; // Skip remaining keys for this unavailable model, move to next model
           }
 
-          throw new Error(`Gemini API Error (${response.status}): ${errorBody}`);
+          throw new Error(`Analysis engine returned error (${response.status}).`);
         }
 
         const result = (await response.json()) as {
@@ -254,7 +235,7 @@ export async function executeGeminiParse(
         const candidate = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (!candidate) {
-          throw new Error('No valid response received from Gemini.');
+          throw new Error('No structured content could be extracted from this document.');
         }
 
         let cleanJson = candidate.trim();
@@ -265,19 +246,27 @@ export async function executeGeminiParse(
         const parsed = JSON.parse(cleanJson) as ParsedResumeRaw;
         return parsed;
       } catch (err: unknown) {
-        if (err instanceof Error && err.message.includes('quota exceeded')) {
-          break;
+        const isTimeout =
+          err instanceof Error &&
+          (err.name === 'TimeoutError' ||
+            err.name === 'AbortError' ||
+            err.message.toLowerCase().includes('timeout') ||
+            err.message.toLowerCase().includes('aborted'));
+        if (isTimeout) {
+          lastError = new Error(
+            `Analysis request for ${model} timed out after ${fetchTimeoutMs}ms. Trying next fallback...`
+          );
+          break; // Timeout on this model, switch to next model
         }
         lastError = err instanceof Error ? err : new Error(String(err));
       }
     }
-
-    if (attempts < maxAttempts) {
-      rotator.markRateLimited(key);
-    }
   }
 
-  throw lastError || new Error('Failed to process resume with available Gemini API keys.');
+  throw (
+    lastError ||
+    new Error('The resume analysis service is busy. Please try again later.')
+  );
 }
 
 interface ApiRequest {
@@ -318,8 +307,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
 
     if (!geminiKeys.trim()) {
       res.status(500).json({
-        error:
-          'GEMINI_API_KEYS is not configured on the server. Please add GEMINI_API_KEYS to your Vercel Environment Variables or .env file.',
+        error: 'Resume analysis service is not configured on the server.',
       });
       return;
     }
@@ -328,6 +316,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     res.status(200).json({ success: true, data: parsedData });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown server error.';
-    res.status(500).json({ error: message });
+    const statusCode =
+      message.includes('429') || message.includes('quota exceeded')
+        ? 429
+        : message.includes('503') || message.includes('high demand')
+          ? 503
+          : 500;
+    res.status(statusCode).json({ error: message });
   }
 }

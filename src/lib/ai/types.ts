@@ -27,6 +27,7 @@ export interface ParsedEducationItemRaw {
   institution: string;
   startDate?: string;
   endDate?: string;
+  current?: boolean;
   gpa?: string;
   description?: string;
 }

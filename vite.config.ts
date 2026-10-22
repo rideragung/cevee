@@ -27,15 +27,16 @@ export default defineConfig(({ mode }) => {
 
             req.on('end', async () => {
               try {
+                const currentEnv = loadEnv(mode, process.cwd(), '');
                 process.env.GEMINI_API_KEYS =
+                  currentEnv.GEMINI_API_KEYS ||
+                  currentEnv.VITE_GEMINI_API_KEYS ||
                   process.env.GEMINI_API_KEYS ||
-                  env.GEMINI_API_KEYS ||
-                  env.VITE_GEMINI_API_KEYS ||
                   '';
                 process.env.GEMINI_MODEL =
+                  currentEnv.GEMINI_MODEL ||
+                  currentEnv.VITE_GEMINI_MODEL ||
                   process.env.GEMINI_MODEL ||
-                  env.GEMINI_MODEL ||
-                  env.VITE_GEMINI_MODEL ||
                   '';
 
                 const { default: handler } = await import('./api/parse-resume');

@@ -489,6 +489,7 @@ export function App() {
             period: '',
             startDate: '',
             endDate: '',
+            current: false,
             gpa: '',
             description: '',
           },

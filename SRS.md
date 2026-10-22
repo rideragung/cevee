@@ -102,16 +102,19 @@ Cevee memungkinkan pengguna:
 - **FR-1.1:** Pengguna dapat mendaftar dan masuk menggunakan email & kata sandi via Supabase Auth.
 - **FR-1.2:** Sistem menyediakan mode tamu (*Guest / Offline Mode*) menggunakan `localStorage` jika pengguna belum masuk.
 - **FR-1.3:** Saat masuk, data lokal dapat dimigrasi ke akun cloud Supabase pengguna.
+- **FR-1.4 (Password Strength Meter):** Pada form pendaftaran (*Sign up*), input password dilengkapi komponen visual `PasswordStrength` (Pillow Light) dengan 4 bar segmen evaluasi kekuatan kata sandi, deteksi pola mudah ditebak (*commonly guessed*), dan checklist kriteria keamanan dinamis (minimal 8 karakter, huruf besar & kecil, angka, dan karakter khusus).
 
 ### 3.2 FR-2: Manajemen Multi-CV & Resume Dashboard
 - **FR-2.1 (Resume Dashboard & Default Landing View):**
   - **Halaman Awal:** Saat pengguna membuka aplikasi, pengguna pertama kali diarahkan ke halaman **Resume Dashboard** (`ResumeDashboard`) yang menampilkan daftar seluruh CV yang dimiliki sebelum memasuki kanvas kustomisasi.
   - **Kartu Resume Terstruktur:** Setiap resume ditampilkan dalam kartu informatif memuat judul CV, nama kandidat, tanggal pembaruan terakhir (`relativeTime` — "Updated 2 hours ago"), jumlah section, serta tombol aksi cepat: *Edit resume* (membuka editor kanvas), *Quick Preview* (modal pratinjau instan), dan menu tiga titik berisi *Rename resume* (inline, langsung tersimpan), *Duplicate resume*, *Download PDF*, dan *Delete resume*. Pada tampilan daftar (*list view*), kolom *Actions* menyediakan tombol mata (*Quick preview*) dan menu tiga titik yang sama.
   - **Thumbnail Konten Nyata (Real-Content Thumbnail):** Kartu dashboard merender halaman 1 dari konten resume sungguhan dengan tipografi dan geometri layout masing-masing (`ResumeContentThumbnail`), menggantikan wireframe SVG statis. Konten mendukung rich text, foto profil, dan skala A4 aslinya.
-  - **Kondisi Kosong (Empty State Anti-Slop):** Jika pengguna belum memiliki resume sama sekali (0 resume), dashboard menampilkan antarmuka bersih tanpa ilustrasi generik:
-    - Judul: *"No resumes created yet"*
-    - Penjelasan: *"You haven't created any resumes yet. Start building your first ATS-friendly resume to edit and download."*
-    - Tombol primer: *"Start building resume"* yang langsung menginisialisasi template standar dan mengarahkan pengguna ke kanvas editor.
+  - **Kondisi Kosong (Icon Stack Empty State - Pillow Light):** Jika pengguna belum memiliki resume sama sekali (0 resume), dashboard menampilkan kartu terstruktur berorientasi masa depan (`ResumeEmptyState`):
+    - Komposisi bertumpuk tiga lapis (*Icon Stack*) dengan kartu primer berikon dokumen, garis mini resume, lencana sparkle, dan tombol plus, diapit kartu bayangan bersudut miring dan latar ambient radial glow.
+    - Judul: *"Create your first resume"*
+    - Penjelasan: *"Choose an ATS-friendly layout, import an existing PDF, or start with a clean template."*
+    - Tombol primer: *"Create resume"* dengan ikon `Plus` dan bayangan `shadow-pillow-primary`.
+    - Eliminasi teks pajangan: Baris centang redundan dihilangkan agar layout bersih dan bebas dari visual noise / AI slop.
   - **Navigasi Antar Halaman:** Di kanvas editor, pengguna dapat kembali ke halaman Dashboard kapan saja melalui logo Cevee atau tombol navigasi *"Dashboard"* di bilah navbar atas.
 - **FR-2.2 (Create New Resume & Pre-Creation Layout Selection):**
   - **Alur Pemilihan Layout:** Saat pengguna membuat CV baru (baik melalui tombol *"Create Resume"* di dashboard, *"Start Building Resume"* di empty state, maupun tombol `+` di navbar), sistem menampilkan dialog/modal pemilihan layout terlebih dahulu (`LayoutSelectModal`) sebelum dokumen dibuat.
@@ -180,9 +183,10 @@ Cevee memungkinkan pengguna:
     3. **Field Labels:** Teks label berukuran `11px` tebal (`font-semibold text-slate-700`) dengan penanda merah bintang `*` untuk kolom wajib.
     4. **Input Box & Textarea:** Kotak input putih bersih (`bg-white`), border abu-abu tipis `border-slate-300`, sudut rounded-lg, dengan ring fokus warna emerald (`focus:border-emerald-500 focus:ring-emerald-500`).
     5. **Tombol Hapus Item:** Tombol kotak mandiri berikon tong sampah merah (`Trash2 text-red-500 border border-slate-200 rounded-lg p-1.5 hover:bg-red-50`).
-    6. **Work Experience Khusus:** Checkbox `[ ] I am currently working in this role`, grid 4 kolom (Position, City/Country, Start Date, End Date dengan tombol silang `x` pembatalan cepat), serta toolbar Rich Text Tiptap langsung terintegrasi di atas box deskripsi tugas.
-    7. **Skills Khusus:** Input Skill Category dan Textarea List of skills dengan catatan panduan `Use comma to separate each skill`.
-    8. **Bilah Aksi Bawah Terpadu:**
+    6. **Work Experience Khusus:** Checkbox `[ ] I currently work in this role`, grid 4 kolom (Position, City/Country, Start Date, End Date dengan tombol silang `x` pembatalan cepat), serta toolbar Rich Text Tiptap langsung terintegrasi di atas box deskripsi tugas.
+    7. **Education Khusus:** Checkbox `[ ] I currently study here` di atas baris institusi dan tanggal yang otomatis menonaktifkan picker tanggal kelulusan/selesai dan menampilkan nilai `Present`.
+    8. **Skills Khusus:** Input Skill Category dan Textarea List of skills dengan catatan panduan `Use comma to separate each skill`.
+    9. **Bilah Aksi Bawah Terpadu:**
        - Sisi Kiri: Tombol outline hijau `+ Add More` (`border border-emerald-500 text-emerald-600 rounded-lg font-semibold px-4 py-1.5`).
        - Sisi Kanan: Tautan teks hijau `Cancel` (`text-emerald-600 font-semibold px-3 py-1.5`) dan tombol hijau pekat `Save` (`bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-semibold px-6 py-1.5 shadow-2xs`).
 
@@ -205,7 +209,7 @@ Sistem mendukung beragam tipe struktur section:
    - **Tautan Teks & Ikon Terpadu:** Teks nama proyek dan ikon eksternal (`ExternalLink`) dibungkus bersama dalam satu elemen `<a>` interaktif (`target="_blank"`), sehingga pengguna dapat mengklik langsung nama proyek maupun ikonnya untuk membuka tautan portofolio/demo di tab baru.
    - Ikon eksternal dan tautan tampil konsisten 1:1 pada kanvas editor, modal preview A4, dan dokumen cetak PDF.
    - Dilengkapi pencegahan propagasi (`e.stopPropagation()`) pada kanvas editor agar klik pada nama proyek langsung membuka tautan tanpa memicu mode edit section.
-5. **Education Section:** Gelar, institusi, tahun, dan nilai (GPA).
+5. **Education Section:** Gelar, institusi, tahun, nilai (GPA), dan checkbox `I currently study here` (`current: boolean`) yang otomatis mengunci tanggal selesai ke `Present`.
 6. **Certifications Section & Single-Line Credential Hyperlink:**
    - Setiap butir sertifikasi dirender pada **satu baris tunggal**:
      - **Sisi Kiri:** `[Title] (Credential ID: [ID]) by [Organization]`. Bagian judul dan ID dicetak tebal (`font-bold`), kata penghubung `by` normal, dan nama institusi penerbit dicetak tebal.
@@ -288,8 +292,8 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
 - **FR-12.1 (Alur Pemilihan Layout Pra-Pembuatan / Pre-Creation Selection):**
   - Sebelum dokumen CV baru dibuat dan masuk ke kanvas editor, pengguna **wajib** melalui tahap pemilihan format/layout melalui modal atau panel dialog pilihan (`LayoutSelectModal`).
   - Tahap ini dipicu saat menekan tombol pembuatan CV baru (*Create Resume* di Dashboard, *Start Building Resume* di Empty State, atau tombol `+` di Navbar).
-  - Modal menampilkan daftar layout yang tersedia dengan thumbnail/pratinjau visual dan deskripsi ringkas format.
-  - Pengguna memilih format layout yang diinginkan (default terpilih: layout standar aktif) dan menekan tombol konfirmasi pembuatan (*Use Layout* / *Create*) untuk membuat dokumen.
+  - Modal menggunakan indikator progress **`OnboardingStepper`** berformat segmen horizontal (`ix-onboarding-stepper-segments`) dengan label jelas per langkah (`Step 1 of 2: Choose layout` dan `Step 2 of 2: Content source`).
+  - Pengguna memilih format layout yang diinginkan (default terpilih: layout standar aktif) dan menekan tombol konfirmasi pembuatan (*Continue to source*) untuk melanjutkan ke tahap penamaan dan pemilihan sumber konten (Blank atau Import PDF).
 - **FR-12.2 (Left Sidebar Container & Layout Selector Murni Visual / Mobbin-Style Left Panel):**
   - Pada halaman editor CV (`currentView === 'editor'`), antarmuka mengadopsi arsitektur container panel kiri (`LayoutSidebar`) di sebelah kanvas A4, merujuk pada standar pola desain editor modern di Mobbin (Adobe Express, Ditto, Canva):
     - **Container Sisi Kiri (Left Sidebar Container):** Sebuah kontainer panel vertikal (`w-56 xl:w-64 bg-white border-r border-slate-200/90 shadow-2xs sticky top-14 h-[calc(100vh-3.5rem)]`) yang berdiri di sisi kiri workspace di bawah navbar.
@@ -315,9 +319,11 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
 - **FR-13.2 (Serverless AI Proxy `/api/parse-resume`):** Endpoint serverless Vercel (`api/parse-resume.ts`) menerima teks PDF, melakukan validasi schema, dan memanggil Google Gemini API secara privat.
 - **FR-13.3 (Perlindungan Kunci API / Zero Leak):** Kunci Gemini API dikonfigurasi menggunakan nama variabel privat `GEMINI_API_KEYS` (dan model `GEMINI_MODEL`), tanpa prefix publik `VITE_`. Kunci tidak pernah terinjeksi ke dalam bundel JavaScript client.
 - **FR-13.4 (Multi-Key Rotation & 429 Quota Fallback):** Sistem serverless mendukung beberapa API key (dipisahkan koma) dengan rotasi otomatis dan cooldown 60 detik jika mendeteksi status HTTP 429 / quota limit.
-- **FR-13.5 (Model Fallback Cascade):** Model cadangan berurutan (`gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`) untuk menjamin tingkat keberhasilan ekstraksi tinggi saat model tertentu mengalami downtime.
+- **FR-13.5 (High-Speed Model Fallback Cascade & Cross-Key Rotation):** Model cadangan cepat berurutan (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3-flash-preview`, `gemini-flash-latest`, `gemini-3.5-flash-lite`, `gemini-flash-lite-latest`, `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.1-flash-lite`). Rotasi multi-key dijalankan di setiap level model tercepat terlebih dahulu saat mendeteksi HTTP 429 (Resource Exhausted) sebelum beralih ke model berikutnya, serta dipersenjatai batas waktu dinamis lingkungan (Vercel serverless: 9s, Lokal dev: 45s) guna menjamin ekstraksi instan dan mencegah HTTP 504.
 - **FR-13.6 (Mapping Otomatis ke Format Dokumen Cevee):** Output JSON terstruktur dari Gemini diadaptasi oleh `resumeAdapter.ts` menjadi `ResumeDocument` Cevee lengkap dengan section Header, Summary, Experience, Education, Projects, Skills, dan Custom Sections.
-- **FR-13.7 (Dukungan Dev Server Lokal):** Vite dev server (`vite.config.ts`) mengintegrasikan middleware lokal untuk `/api/parse-resume` agar fitur import berfungsi identik pada lingkungan development lokal tanpa Vercel CLI.
+- **FR-13.7 (Dukungan Dev Server Lokal & Dynamic Env Reload):** Vite dev server (`vite.config.ts`) mengintegrasikan middleware lokal untuk `/api/parse-resume` yang memuat ulang konfigurasi `.env` secara dinamis pada setiap request tanpa perlu restart server.
+- **FR-13.8 (Human-Friendly UX Writing, TaskSteps & Provider Abstraction):** Antarmuka pengguna (`LayoutSelectModal`) dan layer komunikasi AI (`geminiParser.ts`) mengabstraksikan nama vendor internal. Proses pemindaian dan analisis AI menggunakan komponen terstruktur **`TaskSteps`** (`ix-task-steps`) dengan 3 tahapan visual jelas (Extracting PDF document text -> Structuring experience and skills with AI -> Formatting layout and readying editor) lengkap dengan indikator animasi shimmer, status centang hijau, dan ikon spinning progress. Kegagalan/timeout/kuota dipetakan ke pesan yang solutif tanpa memaparkan kode error teknis atau istilah vendor ke pengguna.
+- **FR-13.9 (Magnetic Drop Zone):** Dropzone upload PDF resume menggunakan komponen `MagneticDropZone` berbasis fisika pegas (`motion/react`) yang memberikan efek tarikan magnetik ikon ke arah kursor/file, penyorotan visual border dan latar saat berkas ditarik di atas zona, serta dukungan aksesibilitas keyboard dan reduced-motion.
 
 ---
 
@@ -449,6 +455,7 @@ export interface EducationItem {
   period: string;
   startDate?: string;
   endDate?: string;
+  current?: boolean;
   gpa?: string;
   description?: string;
 }
@@ -774,6 +781,23 @@ export interface ResumeDocument {
 - **Pembaruan:** Uploader foto profil terintegrasi pada form edit header dengan kompresi kanvas client-side (`compressProfilePhoto`) Base64 hemat memori (~30 KB).
 - **Pratinjau Sinkron:** Wireframe thumbnail pada sidebar kiri secara otomatis membedakan layout `classic-ats` (header tengah) dan `modern-photo` (header berfoto 3:4) secara visual murni tanpa teks.
 - **Dukungan Cetak:** `PaginatedResumeView` merender foto profil secara deterministik pada mode pratinjau dan ekspor cetak PDF 1:1.
+
+### 1.30.0 — MagneticDropZone for PDF Resume Import
+- **Pembaruan:** Menggantikan dropzone native dengan komponen `MagneticDropZone` berbasis `motion/react` dengan efek fisika pegas magnetik yang responsif terhadap pergerakan kursor saat menarik file.
+
+### 1.29.0 — PasswordStrength Component on Sign Up Page
+- **Pembaruan:** Halaman registrasi / sign up (`AuthPage`) kini dilengkapi komponen resmi `PasswordStrength` dari Pillow Light.
+- **Fitur Evaluasi:** Meter kekuatan password berbasis 4 segmen warna dinamis (`Empty`, `Weak`, `Fair`, `Good`, `Strong`), deteksi pola umum/tebakan populer (`Commonly guessed`), serta checklist kriteria keamanan (minimal 8 karakter, huruf besar & kecil, angka, dan karakter khusus) yang terupdate secara real-time.
+
+### 1.28.0 — OnboardingStepper & TaskSteps Redesign for Resume Creation
+- **Pembaruan:** Redesain modal pembuatan resume (`LayoutSelectModal`) mengadopsi komponen resmi Pillow Light:
+  - **`OnboardingStepper` (`ix-onboarding-stepper`):** Menggantikan progress bar kaku dan tombol pill ganda dengan indikator segmen horizontal presisi (`segments`), transisi `motion/react`, dan teks status langkah `Step X of 2` bersanding dengan persentase `50%` / `100%`.
+  - **`TaskSteps` (`ix-task-steps`):** Menggantikan baris progress bar AI lama dengan daftar tugas interaktif multi-status (`Extracting PDF document text` -> `Structuring experience and skills with AI` -> `Formatting layout and readying editor`) dengan animasi arc spinning, shimmer gradient text, centang hijau sukses, dan cross icon saat error.
+
+### 1.27.0 — Currently Enrolled / Studying Option in Education Section
+- **Pembaruan:** Menambahkan opsi status sedang menempuh pendidikan via checkbox `[ ] I currently study here` pada form editor section Education.
+- **Perilaku UX:** Jika dicentang (`current: true`), field "End date or graduation" otomatis dinonaktifkan (`disabled`), tanda bintang wajib `*` disembunyikan, dan tanggal periode terkomputasi menjadi `[Start Date] - Present` (atau `Present`).
+- **Skema Data:** Menambahkan field opsional `current?: boolean` pada tipe `EducationItem` dan parser resume AI `ParsedEducationItemRaw`.
 
 ### 1.26.2 — Left Sidebar Container Architecture (Mobbin-Aligned)
 - **Pembaruan:** FR-12.2 disempurnakan sesuai referensi Mobbin (Adobe Express / Ditto / Canva) — arsitektur tata letak kini menggunakan **Left Sidebar Container** mandiri yang terpasang (*docked*) di sisi kiri layar di bawah navbar, dengan selector layout murni visual (tanpa teks) tertata rapi di dalamnya.

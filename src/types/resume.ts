@@ -64,6 +64,7 @@ export interface EducationItem {
   period: string;
   startDate?: string;
   endDate?: string;
+  current?: boolean;
   gpa?: string;
   description?: string;
 }

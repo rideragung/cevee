@@ -160,6 +160,88 @@ feedback only.
 - Navbar Floating Rounded Pill: Header dashboard diubah menjadi bilah navigasi floating kapsul (`rounded-full`) dengan efek kaca `bg-background/90 backdrop-blur-md`, border `border-border/80`, dan shadow elevasi halus (`shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08)]`). Kontainer terangkat di atas halaman (`sticky top-0 pt-3 sm:pt-4 px-3 sm:px-6`).
 - Account Trigger Pill: Tombol pembuka profil pada navbar mengadopsi format pill horizontal (`rounded-full h-11 px-1 sm:pr-3`) yang menampilkan foto avatar, nama dan email pengguna secara vertikal (pada breakpoint `sm:` ke atas), serta ikon chevron down panah penunjuk dropdown.
 
+## Resume Import UX & Copy Writing (2026-10-22)
+
+- Standarisasi UX Writing pada modal import resume (`LayoutSelectModal` & `geminiParser`):
+  - Mengabstraksi nama vendor teknis (tidak menampilkan "Gemini", nomor model, atau status code mentah ke antarmuka pengguna).
+  - Teks progres dibuat alami dan bertahap:
+    - Langkah 1: `1/3: Reading PDF document...` (indikator pill: `1. Read file`)
+    - Langkah 2: `2/3: Structuring your experience and skills...` (indikator pill: `2. Structure content`)
+    - Langkah 3: `3/3: Applying resume template...` (indikator pill: `3. Format layout`)
+  - Penanganan error mengadopsi prinsip *better-writing*:
+    - Nada tenang (*calm*), tanpa tanda seru (*no exclamation marks*), tanpa menyalahkan pengguna (*no blame*).
+    - Judul banner error: `Unable to import resume`.
+    - Pesan error dipetakan ke instruksi solusi nyata:
+      - Quota/traffic tinggi: *"The resume analyzer is receiving high traffic right now. Wait a moment and try again, or continue by choosing a blank template."*
+      - Timeout/durasi lambat: *"Document analysis took longer than expected. Try uploading a simpler PDF or fill in your details manually."*
+      - Layanan sibuk/down: *"The resume analysis service is temporarily busy. Please wait a few moments and try again."*
+      - PDF tidak terbaca/gambar hasil scan: *"Could not find readable text in this PDF. Ensure your file has selectable text rather than a scanned image, or enter your details manually."*
+
+## Education Section "Currently Enrolled" Pattern (2026-10-22)
+
+- Menyelaraskan form editor `EducationSection` dengan pola `ExperienceSection`:
+  - Kontrol: Checkbox `[ ] I currently study here` (`h-3.5 w-3.5 rounded border-input text-primary focus:ring-primary/30`) dengan label klik (`text-xs text-foreground select-none cursor-pointer`).
+  - Penempatan: Berada tepat di antara baris Gelar/GPA dan baris Institusi/Tanggal, memberikan pemisahan visual yang jelas dan konteks langsung sebelum tanggal diisi.
+  - Interaktivitas & State:
+    - Saat dicentang: Picker tanggal kelulusan/selesai (`End date or graduation`) terkunci (`disabled`), menampilkan label "Present", dan indikator wajib merah (`*`) disembunyikan.
+    - Periode terkomputasi otomatis: Format `[Start Date] - Present` atau `Present`.
+    - Saat tidak dicentang: Picker tanggal selesai kembali aktif untuk memilih bulan/tahun kelulusan spesifik.
+  - Sort reverse-chronological: Utilitas `sortByPeriodDesc` memetakan `current: true` sebagai tanggal teratas (`HUGE` timestamp), memastikan pendidikan yang sedang ditempuh selalu berada di urutan teratas resume secara konsisten.
+
+## Resume Creation Modal: OnboardingStepper & TaskSteps (2026-10-22)
+
+- Redesain modal pembuatan resume (`LayoutSelectModal`) dengan adopsi komponen resmi **Pillow Light**:
+  - **`OnboardingStepper` (`ix-onboarding-stepper` / `ix-onboarding-stepper-segments`):**
+    - Diposisikan di header modal sebagai indikator progres utama alur 2-step: `1. Choose layout` dan `2. Content source`.
+    - Menggunakan progress style `segments` dengan animasi pegas `scaleX` halus, ring highlight pada langkah aktif (`ring-2 ring-primary/30`), serta teks status langkah `Step X of 2` yang bersih (tanpa persentase berlebih di kanan atas).
+    - Mengeliminasi bilah progress bar edge-to-edge kaku dan pill buttons yang saling tumpang tindih sebelumnya.
+  - **`TaskSteps` (`ix-task-steps`):**
+    - Menggantikan progress bar statis pada proses ekstraksi resume AI dari dokumen PDF.
+    - Transformasi in-place: saat proses scanning berjalan, dropzone dan file card bertransisi langsung di tempat (*in-place morph*) menjadi kartu progress `TaskSteps`, mempertahankan posisi tombol footer tanpa pergeseran layout mendadak.
+    - Memetakan 3 tahapan ekstraksi berurutan: `Extracting PDF document text` -> `Structuring experience and skills with AI` -> `Formatting layout and readying editor`.
+    - Visual state interaktif:
+      - Tahap aktif: Ikon arc berputar (`Arc spin`) dengan efek teks gradien berkilau (`shimmer gradient text animation`).
+      - Tahap selesai: Lencana sukses hijau dengan ikon centang halus (`Tick`).
+      - Tahap pending: Dot abu-abu netral terpadu.
+      - Tahap gagal: Lencana merah dengan ikon silang (`Cross`) dan pesan error kontekstual.
+  - **Zero-Scroll Step 2:**
+    - Banner layout terpilih disederhanakan menjadi bilah ringkas 48px (`p-3 bg-muted/40 rounded-xl`) dengan thumbnail mikro A4, nama layout, badge, dan tombol `Change`, menghemat >100px tinggi vertikal.
+
+## Password Strength Component on Registration (2026-10-22)
+
+- Integrasi komponen `PasswordStrength` (`ix-password-strength`) dari katalog **Pillow Light** pada form Sign up (`AuthPage`):
+  - Visual Meter: 4 bilah segmen proporsional dengan pewarnaan semantik (`danger` destructive merah, `caution` amber-500, `safe` emerald-500).
+  - Indikator Guessability: Mendeteksi pola umum (`password`, `qwerty`, berulang, atau urutan karakter) dan menampilkan lencana peringatan *"Commonly guessed"*.
+  - Rule Checklist: Grid 2 kolom responsif berisi 4 kriteria keamanan (minimal 8 karakter, huruf besar & kecil, angka, karakter khusus). Tiap butir dilengkapi ikon centang mikro animasi `scale` dan warna teks transisi dinamis.
+  - Aksesibilitas: Pengumuman pembaca layar debounced melalui tag tersembunyi `aria-live="polite"` dan role `meter`.
+
+## Magnetic Drop Zone (2026-10-22)
+
+- Dropzone dokumen PDF pada modal pembuatan resume (`LayoutSelectModal`) mengadopsi komponen `MagneticDropZone` (`src/components/ui/magnetic-drop-zone.tsx`) dengan desain spesifik:
+  - Bentuk Kartu: Kontainer persegi lapang (`py-10 px-6 sm:py-12 sm:px-8 rounded-[1.75rem] border-[1.5px] border-dashed border-border/90 bg-card hover:border-primary/50 hover:bg-primary/[0.02]`).
+  - Puck Magnetik Sentral: Squircle mengambang (`size-14 sm:size-16 rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-xs`) memuat ikon fungsi dokumen Cevee `FileUp` (`size-7 text-primary`).
+  - Fisika Pegas: Menggunakan token pegas `stiffness: 350, damping: 25, mass: 0.5` dari `motion/react`. Ikon sentral ditarik secara dinamis mengikuti koordinat kursor pointer saat drag-and-drop (`clamp max 18px`).
+  - Tipografi Sesuai Fungsi:
+    - Judul tebal: *"Drop your PDF resume here"* (`text-sm sm:text-base font-bold text-foreground tracking-tight mb-1`).
+    - Subjudul: *"or choose from your device · PDF up to 15 MB"* (`text-xs sm:text-[13px] text-muted-foreground font-normal`).
+  - Efek Hover & Drag: Saat file diarahkan ke area drop, kontainer membesar lembut (`scale 1.012`), border menyala aksen primer (`border-primary bg-primary/[0.04] ring-2 ring-primary/25 ring-offset-2 ring-offset-card`), dan puck beralih ke warna solid brand Cevee (`bg-primary text-primary-foreground shadow-[0_8px_24px_-4px_rgba(30,102,255,0.35)]`).
+  - Aksesibilitas: Mendukung navigasi keyboard (`Enter`/`Space`), pembaca layar, dan pematian otomatis efek magnetik pada preferensi `prefers-reduced-motion`.
+
+## Dashboard Empty State: Icon Stack Component (2026-10-23)
+
+- Redesain tampilan kosong dashboard saat belum ada resume (`ResumeEmptyState.tsx` di `ResumeDashboard.tsx`):
+  - **Komposisi "Icon Stack":**
+    - Desain visual bertumpuk (*layered icon stack*) dengan kedalaman 3 dimensi lembut mengikuti token **Pillow Light**:
+      - Kartu belakang kiri: Sudut kemiringan `-12°` (`-rotate-12 -translate-x-8 -translate-y-1`), border `border-border/80`, background `bg-card/90`, memuat ikon `Layers` dan skematik baris dokumen miniatur.
+      - Kartu belakang kanan: Sudut kemiringan `+12°` (`rotate-12 translate-x-8 -translate-y-1`), memuat ikon `FileCheck` dan baris konten terpadu.
+      - Kartu depan (Centerpiece Hero): Kartu tegak elevasi tinggi (`shadow-md shadow-primary/5 ring-4 ring-primary/5 border-2 border-primary/25 bg-card`), memuat ikon `FileText` ukuran `size-6`, garis resume aksen primer, lencana sparkle amber di sudut kiri atas, serta tombol badge plus di sudut kanan bawah (`ring-2 ring-background`).
+      - Efek hover interaktif: Sudut rotasi dan pergeseran kartu bertransisi dinamis (`group-hover:-rotate-16`, `group-hover:rotate-16`, `group-hover:scale-105`) dengan latar belakang glow radial lembut (`bg-primary/10 blur-3xl`).
+  - **UX Writing Bersih & Fokus (Anti-Slop):**
+    - Judul: `Create your first resume` (Sentence case, mengarahkan tindakan ke depan daripada mengulang ketiadaan data *"No resumes yet"*).
+    - Deskripsi: `Choose an ATS-friendly layout, import an existing PDF, or start with a clean template.` (Konkret, tanpa kata pengisi, menjelaskan opsi yang akan didapat).
+    - Tombol Aksi Utama: `Create resume` dengan ikon `Plus`, shadow `shadow-pillow-primary`.
+    - Eliminasi AI Slop: Seluruh butir teks centang pajangan dihilangkan agar layout tidak redundan dan fokus 100% pada call-to-action utama tanpa artefak dot separator yang berantakan saat wrap.
+
 ## Review status (2026-10-20)
 
 `npm run build` and lint pass. Better Design review gates pass:

@@ -10,7 +10,6 @@ import {
   Download,
   Edit2,
   Eye,
-  FileText,
   LayoutGrid,
   LayoutTemplate,
   List,
@@ -29,6 +28,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { ResumeContentThumbnail } from './ResumeContentThumbnail';
 import { getLayoutById } from '../data/layouts';
 import { formatRelativeTime } from '../utils/relativeTime';
+import { ResumeEmptyState } from './ResumeEmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -529,20 +529,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
             </div>
           </div>
         ) : resumes.length === 0 ? (
-          <Card className="mx-auto my-8 max-w-lg border-dashed bg-card/60 p-12 text-center">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-              <FileText className="size-6" />
-            </div>
-            <h2 className="mb-6 text-base font-bold text-foreground">No resumes yet</h2>
-            <Button
-              variant="default"
-              onClick={onCreateResume}
-              className="gap-2 px-5 py-2.5 text-xs font-semibold"
-            >
-              <Plus className="size-4" />
-              <span>Create resume</span>
-            </Button>
-          </Card>
+          <ResumeEmptyState onCreateResume={onCreateResume} />
         ) : (
           <>
             {/* Toolbar */}

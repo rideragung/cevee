@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PasswordStrength } from '@/components/ui/password-strength';
 import {
   Dialog,
   DialogContent,
@@ -390,6 +391,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     )}
                   </button>
                 </div>
+                {mode === 'signup' && (
+                  <div className="pt-2">
+                    <PasswordStrength value={password} showRules={true} />
+                  </div>
+                )}
               </div>
 
               {/* Primary Action Button */}

@@ -1,10 +1,9 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Check,
   CheckCircle2,
   LayoutTemplate,
   Sparkles,
-  UploadCloud,
   FileCheck,
   FilePlus,
   Loader2,
@@ -20,7 +19,7 @@ import { RESUME_LAYOUTS, LayoutDefinition, getLayoutById } from '../data/layouts
 import { DEFAULT_LAYOUT_ID, normalizeLayoutId } from '../layouts/registry';
 import { ResumeMiniPreview } from './ResumeMiniPreview';
 import { extractTextFromPdf } from '../lib/pdf/extractor';
-import { parseResumeWithGemini } from '../lib/ai/geminiParser';
+import { parseResumeWithGemini, formatResumeImportError } from '../lib/ai/geminiParser';
 import { adaptParsedResumeToDocument } from '../lib/ai/resumeAdapter';
 import {
   Dialog,
@@ -33,8 +32,31 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Progress } from '@/components/ui/progress';
+import { OnboardingStepper, OnboardingStepperStep } from '@/components/ui/onboarding-stepper';
+import { TaskSteps, TaskStep } from '@/components/ui/task-steps';
+import { MagneticDropZone } from '@/components/ui/magnetic-drop-zone';
 import { cn } from '@/lib/utils';
+
+const ONBOARDING_STEPS: OnboardingStepperStep[] = [
+  {
+    id: 'step-layout',
+    label: 'Choose layout',
+    title: 'Choose resume layout',
+    description: 'Select a starting layout for your resume. You can change this anytime in the editor.',
+  },
+  {
+    id: 'step-content',
+    label: 'Content source',
+    title: 'Choose content source',
+    description: 'Name your resume and choose whether to start blank or import a PDF.',
+  },
+];
+
+const AI_TASK_STEPS: TaskStep[] = [
+  { id: 'extract', label: 'Extracting PDF document text' },
+  { id: 'structure', label: 'Structuring experience and skills with AI' },
+  { id: 'format', label: 'Formatting layout and readying editor' },
+];
 
 interface LayoutSelectModalProps {
   isOpen: boolean;
@@ -62,11 +84,7 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
   const [customTitle, setCustomTitle] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processPercent, setProcessPercent] = useState(0);
-  const [statusText, setStatusText] = useState('');
   const [errorText, setErrorText] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -77,9 +95,7 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
       setCustomTitle('');
       setIsProcessing(false);
       setProcessPercent(0);
-      setStatusText('');
       setErrorText(null);
-      setIsDragging(false);
     }
   }, [isOpen, currentLayoutId]);
 
@@ -113,25 +129,6 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!isProcessing) setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (isProcessing) return;
-
-    const droppedFile = e.dataTransfer.files?.[0];
-    handleFileSelect(droppedFile);
-  };
-
   const handleCreateBlank = () => {
     onConfirm(selectedId, undefined, customTitle.trim() || undefined);
   };
@@ -145,25 +142,21 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
     setIsProcessing(true);
     setErrorText(null);
     setProcessPercent(20);
-    setStatusText('1/3: Extracting text from PDF document...');
 
     try {
       // 1. PDF Text extraction
       const { text: pdfText } = await extractTextFromPdf(file);
       setProcessPercent(55);
 
-      // 2. Parse text with Gemini model
-      setStatusText('2/3: Analyzing and structuring resume with Gemini AI...');
+      // 2. Parse text with structured AI extraction
       const parsedData = await parseResumeWithGemini(pdfText, {
-        onStatusUpdate: (msg) => {
-          setStatusText(`2/3: ${msg}`);
+        onStatusUpdate: () => {
           setProcessPercent((prev) => Math.min(prev + 10, 85));
         },
       });
 
       // 3. Populate into Cevee ResumeDocument
       setProcessPercent(92);
-      setStatusText('3/3: Populating resume layout template...');
       const resumeDoc = adaptParsedResumeToDocument(
         parsedData,
         selectedId,
@@ -175,18 +168,15 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
       onConfirm(selectedId, resumeDoc, customTitle.trim() || undefined);
     } catch (err: unknown) {
       console.error('Import Resume Error:', err);
-      setErrorText(
-        err instanceof Error
-          ? err.message
-          : 'Unable to process resume. Check that the PDF file is valid and your API key is active.',
-      );
+      setErrorText(formatResumeImportError(err));
     } finally {
       setIsProcessing(false);
     }
   };
 
   const selectedLayout = getLayoutById(selectedId);
-  const stepPercent = step === 1 ? 50 : 100;
+  const activeTaskIndex =
+    processPercent >= 100 ? 3 : processPercent >= 85 ? 2 : processPercent >= 45 ? 1 : 0;
 
   return (
     <Dialog
@@ -196,88 +186,31 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
       }}
     >
       <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden no-print">
-        {/* Progress Bar (Create mode only) */}
-        {mode === 'create' && (
-          <Progress
-            value={stepPercent}
-            aria-label="Resume creation progress"
-            className="w-full h-2 rounded-none bg-muted/60"
-          />
-        )}
-
         {/* Modal Header */}
         <DialogHeader className="p-5 sm:p-6 border-b border-border space-y-0 text-left bg-card">
           {mode === 'create' ? (
-            <>
-              {/* Stepper Tracker Bar */}
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  {/* Step 1 Pill */}
-                  <button
-                    type="button"
-                    onClick={() => !isProcessing && setStep(1)}
-                    disabled={isProcessing}
-                    className={cn(
-                      'flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-colors',
-                      step === 1
-                        ? 'bg-primary text-primary-foreground shadow-2xs'
-                        : 'bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer',
-                    )}
-                  >
-                    {step > 1 ? (
-                      <Check className="size-3" strokeWidth={3} />
-                    ) : (
-                      <span className="size-3.5 rounded-full bg-primary-foreground/20 text-primary-foreground flex items-center justify-center text-[9px] font-bold">
-                        1
-                      </span>
-                    )}
-                    <span>Choose layout</span>
-                  </button>
-
-                  <div
-                    className={cn(
-                      'h-0.5 w-3 sm:w-5 rounded-full transition-colors',
-                      step === 2 ? 'bg-primary' : 'bg-border',
-                    )}
-                  />
-
-                  {/* Step 2 Pill */}
-                  <div
-                    className={cn(
-                      'flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full transition-colors',
-                      step === 2
-                        ? 'bg-primary text-primary-foreground shadow-2xs'
-                        : 'bg-muted/70 text-muted-foreground',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'size-3.5 rounded-full flex items-center justify-center text-[9px] font-bold',
-                        step === 2
-                          ? 'bg-primary-foreground/20 text-primary-foreground'
-                          : 'bg-foreground/10 text-foreground',
-                      )}
-                    >
-                      2
-                    </span>
-                    <span>Content source</span>
-                  </div>
-                </div>
-
-                {/* Progress Metric */}
-                <div className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground tabular-nums shrink-0">
-                  <span className="text-primary font-bold">{stepPercent}%</span>
-                  <span className="hidden sm:inline">completed</span>
-                </div>
-              </div>
+            <div className="space-y-3.5">
+              {/* Onboarding Stepper Indicator */}
+              <OnboardingStepper
+                steps={ONBOARDING_STEPS}
+                index={step - 1}
+                onIndexChange={(newIdx) => {
+                  if (!isProcessing) {
+                    setStep((newIdx + 1) as 1 | 2);
+                  }
+                }}
+                progressStyle="segments"
+                labelMode="none"
+                progressLabel="Resume creation progress"
+              />
 
               {/* Step Header Content */}
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 bg-accent text-accent-foreground rounded-xl border border-border flex-shrink-0 mt-0.5">
+              <div className="flex items-start gap-3 pt-0.5">
+                <div className="p-2 bg-accent text-accent-foreground rounded-xl border border-border flex-shrink-0 mt-0.5">
                   {step === 1 ? (
-                    <LayoutTemplate className="size-5 text-primary" />
+                    <LayoutTemplate className="size-4.5 text-primary" />
                   ) : (
-                    <FileText className="size-5 text-primary" />
+                    <FileText className="size-4.5 text-primary" />
                   )}
                 </div>
                 <div className="flex-1 pr-6">
@@ -293,11 +226,11 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
                   </DialogDescription>
                 </div>
               </div>
-            </>
+            </div>
           ) : (
             <div className="flex items-start gap-3">
-              <div className="p-2.5 bg-accent text-accent-foreground rounded-xl border border-border flex-shrink-0 mt-0.5">
-                <LayoutTemplate className="size-5 text-primary" />
+              <div className="p-2 bg-accent text-accent-foreground rounded-xl border border-border flex-shrink-0 mt-0.5">
+                <LayoutTemplate className="size-4.5 text-primary" />
               </div>
               <div className="flex-1 pr-6">
                 <DialogTitle className="text-base sm:text-lg font-bold tracking-tight text-foreground">
@@ -404,52 +337,44 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
 
           {/* TAHAP 2: Metode & Data Resume */}
           {mode === 'create' && step === 2 && (
-            <div className="space-y-5">
-              {/* Selected Layout Indicator Banner */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border border-border bg-card shadow-xs gap-4">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-20 sm:w-24 aspect-[210/297] rounded-lg border border-border/80 overflow-hidden bg-white shadow-2xs flex-shrink-0">
+            <div className="space-y-4">
+              {/* Selected Layout Compact Summary Bar */}
+              <div className="flex items-center justify-between p-3 rounded-xl border border-border/80 bg-muted/40 gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-11 rounded border border-border/70 overflow-hidden bg-white shadow-2xs flex-shrink-0">
                     <ResumeMiniPreview
                       layoutId={selectedId}
                       className="w-full h-full border-0 rounded-none shadow-none pointer-events-none"
                     />
                   </div>
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm sm:text-base font-bold text-foreground truncate">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-bold text-foreground truncate">
                         {selectedLayout.name}
                       </span>
                       <Badge
                         variant="secondary"
-                        className="text-[10px] px-2 py-0.5 h-5 font-medium"
+                        className="text-[9px] px-1.5 py-0 h-4 font-medium"
                       >
                         {selectedLayout.badge}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
+                    <p className="text-[11px] text-muted-foreground truncate">
                       {selectedLayout.description}
                     </p>
-                    <div className="flex items-center gap-3 text-[11px] text-foreground font-medium pt-0.5">
-                      {selectedLayout.features.slice(0, 2).map((feat, idx) => (
-                        <span key={idx} className="flex items-center gap-1 text-muted-foreground">
-                          <CheckCircle2 className="size-3 text-primary shrink-0" />
-                          <span>{feat}</span>
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 </div>
 
                 {!isProcessing && (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={() => setStep(1)}
-                    className="text-xs font-semibold gap-1.5 shrink-0 self-end sm:self-center h-9 px-3"
+                    className="text-xs font-semibold gap-1 text-primary hover:text-primary hover:bg-accent shrink-0 h-8 px-2.5"
                   >
-                    <Pencil className="size-3.5" />
-                    <span>Change layout</span>
+                    <Pencil className="size-3" />
+                    <span>Change</span>
                   </Button>
                 )}
               </div>
@@ -572,41 +497,43 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
                 </div>
               </div>
 
-              {/* Upload Dropzone (Only shown when Import option is selected) */}
+              {/* Upload Dropzone / In-place TaskSteps (Only shown when Import option is selected) */}
               {creationMethod === 'import' && (
                 <div className="space-y-3 pt-1">
-                  {!file ? (
-                    <div
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                      onClick={() => fileInputRef.current?.click()}
-                      className={cn(
-                        'border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-2.5',
-                        isDragging
-                          ? 'border-primary bg-primary/5 scale-[0.99]'
-                          : 'border-border hover:border-primary/50 hover:bg-muted/40',
-                      )}
-                    >
-                      <div className="p-2.5 bg-muted rounded-full text-muted-foreground">
-                        <UploadCloud className="size-6 text-primary" />
+                  {isProcessing ? (
+                    <div className="p-4 rounded-xl border border-primary/25 bg-card shadow-xs space-y-3.5">
+                      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                            <FileCheck className="size-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate">
+                              {file?.name}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              Extracting document
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-primary tabular-nums">
+                          <Loader2 className="size-3.5 animate-spin" />
+                          <span>{processPercent}%</span>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs sm:text-sm font-semibold text-foreground">
-                          Drag and drop your PDF resume here, or click to browse
-                        </p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          PDF format up to 15 MB. Content will be scanned directly into the template.
-                        </p>
-                      </div>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="application/pdf,.pdf"
-                        onChange={(e) => handleFileSelect(e.target.files?.[0])}
-                        className="hidden"
+
+                      <TaskSteps
+                        steps={AI_TASK_STEPS}
+                        current={activeTaskIndex}
+                        failed={Boolean(errorText)}
+                        label="AI extraction progress"
                       />
                     </div>
+                  ) : !file ? (
+                    <MagneticDropZone
+                      onFileSelect={handleFileSelect}
+                      disabled={isProcessing}
+                    />
                   ) : (
                     <div className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card shadow-xs">
                       <div className="flex items-center gap-3 min-w-0">
@@ -622,69 +549,17 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
                           </p>
                         </div>
                       </div>
-                      {!isProcessing && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setFile(null)}
-                          className="size-7 rounded-lg text-muted-foreground hover:text-destructive"
-                          title="Change file"
-                          aria-label="Change file"
-                        >
-                          <X className="size-4" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Processing Multi-stage Progress Bar */}
-                  {isProcessing && (
-                    <div className="p-4 rounded-xl border border-primary/25 bg-primary/5 space-y-3">
-                      <div className="flex items-center justify-between text-xs font-semibold text-primary">
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="size-4 animate-spin" />
-                          <span>{statusText || 'Processing resume...'}</span>
-                        </div>
-                        <span className="tabular-nums font-bold">{processPercent}%</span>
-                      </div>
-
-                      {/* Bar Visual Progress */}
-                      <Progress
-                        value={processPercent}
-                        aria-label="Document extraction progress"
-                        className="w-full h-2 bg-primary/15"
-                      />
-
-                      <div className="grid grid-cols-3 gap-2 pt-1 text-[10px] text-muted-foreground">
-                        <div
-                          className={cn(
-                            'flex items-center gap-1',
-                            processPercent >= 20 ? 'text-primary font-medium' : '',
-                          )}
-                        >
-                          <CheckCircle2 className="size-3" />
-                          <span>1. Extract PDF</span>
-                        </div>
-                        <div
-                          className={cn(
-                            'flex items-center gap-1',
-                            processPercent >= 55 ? 'text-primary font-medium' : '',
-                          )}
-                        >
-                          <CheckCircle2 className="size-3" />
-                          <span>2. AI Analysis</span>
-                        </div>
-                        <div
-                          className={cn(
-                            'flex items-center gap-1',
-                            processPercent >= 92 ? 'text-primary font-medium' : '',
-                          )}
-                        >
-                          <CheckCircle2 className="size-3" />
-                          <span>3. Template</span>
-                        </div>
-                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setFile(null)}
+                        className="size-7 rounded-lg text-muted-foreground hover:text-destructive"
+                        title="Change file"
+                        aria-label="Change file"
+                      >
+                        <X className="size-4" />
+                      </Button>
                     </div>
                   )}
 
@@ -693,7 +568,7 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
                     <div className="flex items-start gap-2.5 p-3 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-xs leading-relaxed">
                       <AlertCircle className="size-4 flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <p className="font-semibold">Unable to process resume</p>
+                        <p className="font-semibold">Unable to import resume</p>
                         <p className="mt-0.5 text-destructive/90">{errorText}</p>
                       </div>
                     </div>
