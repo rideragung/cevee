@@ -3,7 +3,7 @@ import { ResumeLayoutId } from '../types/resume';
 import { RESUME_LAYOUTS, LayoutDefinition } from '../data/layouts';
 import { normalizeLayoutId } from '../layouts/registry';
 import { LayoutThumbnail } from './LayoutThumbnail';
-import { LayoutTemplate } from 'lucide-react';
+import { IconTemplate as LayoutTemplate } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,

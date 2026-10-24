@@ -54,7 +54,7 @@ Cevee memungkinkan pengguna:
 | **UI Components** | shadcn/ui + Radix UI | Komponen aksesibel headless (Dropdown, Dialog, Tooltip, Input, Button) |
 | **Rich Text Editor** | Tiptap (`@tiptap/react`, `@tiptap/starter-kit`) | Headless in-place rich text editing |
 | **Sanitasi HTML** | DOMPurify | Sanitasi XSS konten rich text & markup dokumen |
-| **Icons** | Lucide React | Ikon antarmuka ringan dan konsisten |
+| **Icons** | Tabler Icons (`@tabler/icons-react`) | Ikon antarmuka presisi, minimalis, dan konsisten (https://tabler.io/icons) |
 | **Fonts** | `@fontsource/inter` + `@fontsource/arimo` | WOFF2 statis self-hosted (bebas CDN; substet Type0 saat cetak PDF) |
 | **Backend & DB** | Supabase (PostgreSQL 15+) | Autentikasi email, database JSONB, Row Level Security (RLS) |
 | **PDF Engine** | Native Print Engine (`window.print()` + CSS `@page`) | Cetak vektor PDF presisi A4 tanpa watermark |
@@ -685,7 +685,7 @@ export interface ResumeDocument {
   - Modal `PreviewModal`: dukungan navigasi tombol `Escape`, penguncian body-scroll saat terbuka, dan kalkulasi dinamis reset zoom.
   - Perbaikan SVG `ResumeMiniPreview` menggunakan `React.useId()` agar ID klip/gradien unik per instance.
 - **Optimalisasi Bundle & Tooling:**
-  - Konfigurasi code splitting `manualChunks` di `vite.config.ts` untuk memecah vendor chunk (supabase, tiptap, lucide), mengeliminasi warning chunk >500 kB.
+  - Konfigurasi code splitting `manualChunks` di `vite.config.ts` untuk memecah vendor chunk (supabase, tiptap, tabler icons), mengeliminasi warning chunk >500 kB.
   - Penambahan konfigurasi flat ESLint 10 (`eslint.config.js`) dan Prettier (`.prettierrc.json`) serta script `lint`, `lint:fix`, `format`, `format:check`. Pembersihan seluruh `any` type via *discriminated union* pada `ResumeSection`.
   - Penambahan meta `description` dan `theme-color` pada `index.html`. Pembersihan dependensi tak terpakai `shadcn`.
 - **Eliminasi Skeleton AI Generik:** Mengganti baris skeleton `h-1.5` / `rounded-full` yang terdistorsi dan meninggalkan whitespace berlebihan dengan komponen vektor SVG `ResumeMiniPreview` presisi koordinat milimeter A4 (210 × 297).

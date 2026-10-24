@@ -1,5 +1,11 @@
 import React from 'react';
-import { FileText, Sparkles, Layers, Plus, FileCheck } from 'lucide-react';
+import {
+  IconFileText as FileText,
+  IconSparkles as Sparkles,
+  IconStack2 as Layers,
+  IconPlus as Plus,
+  IconFileCheck as FileCheck,
+} from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 

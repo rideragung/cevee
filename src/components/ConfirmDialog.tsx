@@ -10,7 +10,7 @@ import {
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
 import { buttonVariants } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-react';
+import { IconAlertTriangle as AlertTriangle } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
 
 interface ConfirmDialogProps {

@@ -1,5 +1,11 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { Pencil, ArrowUp, ArrowDown, Trash2, Check } from 'lucide-react';
+import {
+  IconPencil as Pencil,
+  IconArrowUp as ArrowUp,
+  IconArrowDown as ArrowDown,
+  IconTrash as Trash2,
+  IconCheck as Check,
+} from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 
 interface SectionHeaderProps {

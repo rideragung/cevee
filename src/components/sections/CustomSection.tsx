@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
 import { CustomSectionItem } from '../../types/resume';
-import { Plus, Trash2 } from 'lucide-react';
+import { IconPlus as Plus, IconTrash as Trash2 } from '@tabler/icons-react';
 import { DatePicker } from '../DatePicker';
 import { sortByPeriodDesc } from '../../utils/periodSort';
 

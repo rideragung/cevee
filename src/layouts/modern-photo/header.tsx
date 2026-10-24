@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import { HeaderData } from '../../types/resume';
-import { User as UserIcon } from 'lucide-react';
+import { IconUser as UserIcon } from '@tabler/icons-react';
 import { getWhatsAppUrl } from '../../utils/whatsApp';
 
 export const estimateModernPhotoHeaderHeight = (header: HeaderData): number => {

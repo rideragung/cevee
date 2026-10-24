@@ -78,7 +78,7 @@ Switching templates from the creation dialog or the editor sidebar preserves all
 | Typography | Inter and Arimo via `@fontsource` (self-hosted static fonts) |
 | Rich text | Tiptap (StarterKit, Underline, Link) |
 | Sanitization | DOMPurify (XSS prevention) |
-| Icons | Lucide React |
+| Icons | Tabler Icons (`@tabler/icons-react`) |
 | Backend and auth | Supabase (PostgreSQL, Auth, Row Level Security) |
 | PDF engine | Native print engine (`window.print()` + CSS `@page`) |
 | Code quality | ESLint 10 (Flat config) + Prettier |

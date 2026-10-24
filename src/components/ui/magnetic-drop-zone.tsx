@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useCallback } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { FileUp } from "lucide-react";
+import { IconFileUpload as FileUp } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 const MAGNETIC_SPRING = {

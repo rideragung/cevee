@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
 import { EducationItem } from '../../types/resume';
-import { Plus, Trash2 } from 'lucide-react';
+import { IconPlus as Plus, IconTrash as Trash2 } from '@tabler/icons-react';
 import { DatePicker } from '../DatePicker';
 import { RichTextEditor } from '../RichTextEditor';
 import { sortByPeriodDesc } from '../../utils/periodSort';

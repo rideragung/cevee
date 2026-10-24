@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
-  Eye,
-  EyeOff,
-  Key,
-  AlertCircle,
-  CheckCircle,
-  Loader2,
-  X,
-} from 'lucide-react';
+  IconEye as Eye,
+  IconEyeOff as EyeOff,
+  IconKey as Key,
+  IconAlertCircle as AlertCircle,
+  IconCircleCheck as CheckCircle,
+  IconLoader2 as Loader2,
+  IconX as X,
+} from '@tabler/icons-react';
 import { logoIcon } from '@/assets/logo';
 import {
   getSupabase,

@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { ResumeDocument } from '../types/resume';
 import {
-  Plus,
-  Copy,
-  Trash2,
-  Eye,
-  Download,
-  CheckCircle2,
-  ChevronDown,
-  Edit2,
-  Check,
-  ArrowLeft,
-  Cloud,
-  Loader2,
-} from 'lucide-react';
+  IconPlus as Plus,
+  IconCopy as Copy,
+  IconTrash as Trash2,
+  IconEye as Eye,
+  IconDownload as Download,
+  IconCircleCheck as CheckCircle2,
+  IconChevronDown as ChevronDown,
+  IconEdit as Edit2,
+  IconCheck as Check,
+  IconArrowLeft as ArrowLeft,
+  IconCloud as Cloud,
+  IconLoader2 as Loader2,
+} from '@tabler/icons-react';
 import { ConfirmDialog } from './ConfirmDialog';
 import { logoIcon } from '@/assets/logo';
 import { Button } from '@/components/ui/button';

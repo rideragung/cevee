@@ -10,7 +10,7 @@ import {
   EducationItem,
   CustomSectionItem,
 } from '../../types/resume';
-import { ExternalLink } from 'lucide-react';
+import { IconExternalLink as ExternalLink } from '@tabler/icons-react';
 import { getWhatsAppUrl } from '../../utils/whatsApp';
 import { sortByPeriodDesc } from '../../utils/periodSort';
 import { sanitizeHtml } from '../../utils/sanitize';

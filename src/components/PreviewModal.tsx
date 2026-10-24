@@ -1,6 +1,12 @@
 ﻿import React, { useState } from 'react';
 import { ResumeDocument } from '../types/resume';
-import { X, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
+import {
+  IconX as X,
+  IconZoomIn as ZoomIn,
+  IconZoomOut as ZoomOut,
+  IconRotate2 as RotateCcw,
+  IconDownload as Download,
+} from '@tabler/icons-react';
 import { PaginatedResumeView } from './PaginatedResumeView';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

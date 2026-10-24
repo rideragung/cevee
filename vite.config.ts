@@ -93,7 +93,7 @@ export default defineConfig(({ mode }) => {
               '@tiptap/extension-underline',
               '@tiptap/extension-link',
             ],
-            'icons-vendor': ['lucide-react'],
+            'icons-vendor': ['@tabler/icons-react'],
           },
         },
       },

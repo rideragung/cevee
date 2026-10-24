@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, X } from 'lucide-react';
+import { IconPlus as Plus, IconCheck as Check, IconX as X } from '@tabler/icons-react';
 import { SectionType } from '../types/resume';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

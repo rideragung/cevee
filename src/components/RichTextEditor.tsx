@@ -3,7 +3,16 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, Check, X } from 'lucide-react';
+import {
+  IconBold as Bold,
+  IconItalic as Italic,
+  IconUnderline as UnderlineIcon,
+  IconLink as LinkIcon,
+  IconList as List,
+  IconListNumbers as ListOrdered,
+  IconCheck as Check,
+  IconX as X,
+} from '@tabler/icons-react';
 
 interface RichTextEditorProps {
   initialContent: string;

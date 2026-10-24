@@ -1,19 +1,19 @@
 ﻿import React, { useState, useEffect } from 'react';
 import {
-  Check,
-  CheckCircle2,
-  LayoutTemplate,
-  Sparkles,
-  FileCheck,
-  FilePlus,
-  Loader2,
-  AlertCircle,
-  ArrowRight,
-  ArrowLeft,
-  X,
-  FileText,
-  Pencil,
-} from 'lucide-react';
+  IconCheck as Check,
+  IconCircleCheck as CheckCircle2,
+  IconTemplate as LayoutTemplate,
+  IconSparkles as Sparkles,
+  IconFileCheck as FileCheck,
+  IconFilePlus as FilePlus,
+  IconLoader2 as Loader2,
+  IconAlertCircle as AlertCircle,
+  IconArrowRight as ArrowRight,
+  IconArrowLeft as ArrowLeft,
+  IconX as X,
+  IconFileText as FileText,
+  IconPencil as Pencil,
+} from '@tabler/icons-react';
 import { ResumeDocument, ResumeLayoutId } from '../types/resume';
 import { RESUME_LAYOUTS, LayoutDefinition, getLayoutById } from '../data/layouts';
 import { DEFAULT_LAYOUT_ID, normalizeLayoutId } from '../layouts/registry';

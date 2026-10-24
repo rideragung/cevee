@@ -35,7 +35,7 @@ import {
 import { DEFAULT_LAYOUT_ID, normalizeLayoutId } from './layouts/registry';
 import { Dialog, DialogContent } from './components/ui/dialog';
 import { User } from '@supabase/supabase-js';
-import { Loader2 } from 'lucide-react';
+import { IconLoader2 as Loader2 } from '@tabler/icons-react';
 
 const LOCAL_STORAGE_KEY = 'cevee_resumes_v3';
 const ACTIVE_RESUME_KEY = 'cevee_active_resume_id_v3';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
 import { ExperienceItem, ExperiencePosition } from '../../types/resume';
-import { Plus, Trash2, TrendingUp } from 'lucide-react';
+import { IconPlus as Plus, IconTrash as Trash2, IconTrendingUp as TrendingUp } from '@tabler/icons-react';
 import { RichTextEditor } from '../RichTextEditor';
 import { DatePicker } from '../DatePicker';
 import { sortByPeriodDesc } from '../../utils/periodSort';

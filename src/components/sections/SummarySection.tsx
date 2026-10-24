@@ -1,7 +1,12 @@
 ﻿import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
 import { RichTextEditor } from '../RichTextEditor';
-import { Pencil, ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
+import {
+  IconPencil as Pencil,
+  IconArrowDown as ArrowDown,
+  IconArrowUp as ArrowUp,
+  IconTrash as Trash2,
+} from '@tabler/icons-react';
 import { sanitizeHtml } from '../../utils/sanitize';
 import { normalizeLayoutId } from '../../layouts/registry';
 

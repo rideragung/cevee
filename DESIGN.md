@@ -74,10 +74,9 @@ Calm, plain-spoken, tool-like. It behaves like a workshop, not a pitch.
 
 ## Iconography
 
-- `lucide-react` for feature code; `src/components/icons/` (tabler) exists for
-  design-system internals. Functional glyphs only (Plus, Copy, Trash2, Pencil, Eye,
-  Download, Cloud, Loader2, FileText). No sparkle, star, magic, lightning, diamond,
-  robot, or orb.
+- `@tabler/icons-react` (Tabler Icons) for feature code and UI components; `src/components/icons/` (tabler)
+  aligns with the locked design-system family. Functional glyphs only (Plus, Copy, Trash, Pencil, Eye,
+  Download, Cloud, Loader, FileText).
 - Icons name a real action or state; they are never decoration. Icon-only buttons require
   an accessible name plus a hit-area guard (see Conventions).
 

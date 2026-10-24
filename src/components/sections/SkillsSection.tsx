@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
 import { SkillCategory } from '../../types/resume';
-import { Plus, Trash2 } from 'lucide-react';
+import { IconPlus as Plus, IconTrash as Trash2 } from '@tabler/icons-react';
 
 interface SkillsSectionProps {
   title: string;

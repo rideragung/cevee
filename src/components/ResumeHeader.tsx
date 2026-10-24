@@ -1,6 +1,12 @@
 ﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { HeaderData, ContactLink, ResumeLayoutId } from '../types/resume';
-import { Pencil, Plus, Trash2, Upload, User as UserIcon } from 'lucide-react';
+import {
+  IconPencil as Pencil,
+  IconPlus as Plus,
+  IconTrash as Trash2,
+  IconUpload as Upload,
+  IconUser as UserIcon,
+} from '@tabler/icons-react';
 import { compressProfilePhoto } from '../utils/imageCompressor';
 import { getWhatsAppUrl } from '../utils/whatsApp';
 

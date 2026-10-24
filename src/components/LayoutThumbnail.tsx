@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Check } from 'lucide-react';
+import { IconCheck as Check } from '@tabler/icons-react';
 import { ResumeLayoutId } from '../types/resume';
 import { ResumeMiniPreview } from './ResumeMiniPreview';
 

@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import {
+  IconCalendar as Calendar,
+  IconChevronLeft as ChevronLeft,
+  IconChevronRight as ChevronRight,
+  IconX as X,
+} from '@tabler/icons-react';
 
 interface DatePickerProps {
   value: string;
