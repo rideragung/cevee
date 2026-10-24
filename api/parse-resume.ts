@@ -124,28 +124,38 @@ export async function executeGeminiParse(
     throw new Error('GEMINI_API_KEYS is not configured. Add your API key in environment variables.');
   }
 
+  const SLOW_MODELS = new Set([
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
+    'gemini-3-flash-preview',
+  ]);
+
+  const candidateModels: string[] = [
+    // Prioritize explicit override if not known to be slow/overloaded
+    ...(modelOverride && !SLOW_MODELS.has(modelOverride) ? [modelOverride] : []),
+    // Tier 1: Ultra-fast lightweight models (tested ~1.2s - 1.8s, reliable JSON)
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-lite-latest',
+    // Tier 2: Standard flash models (~3s - 6s)
+    'gemini-3.5-flash',
+    'gemini-3.6-flash',
+    'gemini-flash-latest',
+    // Tier 3: High-latency / preview models (fallback only)
+    ...(modelOverride && SLOW_MODELS.has(modelOverride) ? [modelOverride] : []),
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
+  ];
+
   const models = Array.from(
-    new Set(
-      [
-        modelOverride,
-        'gemini-3.6-flash',
-        'gemini-3.5-flash',
-        'gemini-3-flash-preview',
-        'gemini-flash-latest',
-        'gemini-3.5-flash-lite',
-        'gemini-flash-lite-latest',
-        'gemini-3.8-flash',
-        'gemini-3.7-flash',
-        'gemini-3.1-flash-lite',
-      ].filter((m): m is string => Boolean(m && m.trim()))
-    )
+    new Set(candidateModels.filter((m): m is string => Boolean(m && m.trim())))
   );
 
   let lastError: Error | null = null;
   const requestStartTime = Date.now();
   const isVercelServerless = Boolean(process.env.VERCEL);
-  const maxTotalDurationMs = isVercelServerless ? 9000 : 45000;
-  const maxPerFetchTimeoutMs = isVercelServerless ? 7000 : 25000;
+  const maxTotalDurationMs = isVercelServerless ? 50000 : 55000;
+  const maxPerFetchTimeoutMs = isVercelServerless ? 10000 : 15000;
 
   for (const model of models) {
     const elapsedModel = Date.now() - requestStartTime;
