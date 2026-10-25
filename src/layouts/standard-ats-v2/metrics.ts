@@ -1,7 +1,6 @@
 import type { HeaderData } from '../../types/resume';
 import type { ContentPart } from '../core/types';
 import { stripHtml } from '../core/content';
-import { formatDisplayUrl } from '../../utils/formatUrl';
 
 // Reference preset geometry (pt): content box 541.0341pt x 826.1632pt = 1080.435px at 96 DPI;
 // 1080px keeps the measured page-1 fill and pushes the next item to page 2.
@@ -17,7 +16,7 @@ export const estimateStandardAtsV2HeaderHeight = (header: HeaderData): number =>
     header.willingToRelocate ??
     (header.relocationStatus && header.relocationStatus.includes('Willing'));
   const linksLen = usableLinks.reduce(
-    (acc, l) => acc + (formatDisplayUrl(l.url, l.label).length || 10) + 3,
+    (acc, l) => acc + ((l.label || l.url || '').length || 10) + 3,
     0
   );
   const totalContactLen =

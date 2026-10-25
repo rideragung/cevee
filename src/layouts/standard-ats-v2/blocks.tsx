@@ -14,7 +14,6 @@ import { IconExternalLink as ExternalLink } from '@tabler/icons-react';
 import { getWhatsAppUrl } from '../../utils/whatsApp';
 import { sortByPeriodDesc } from '../../utils/periodSort';
 import { sanitizeHtml } from '../../utils/sanitize';
-import { formatDisplayUrl } from '../../utils/formatUrl';
 import { parseContentParts, renderContentPart, stripHtml } from '../core/content';
 import type { ContentBlock } from '../core/types';
 import {
@@ -88,8 +87,15 @@ const renderStandardAtsV2Header = (header: HeaderData): ReactNode => {
         {usableLinks.map((link, idx) => (
           <React.Fragment key={link.id || idx}>
             <span className="ref-sep"> • </span>
-            <a href={link.url || '#'} target="_blank" rel="noreferrer" className="ref-link">
-              {formatDisplayUrl(link.url, link.label)}
+            <a
+              href={link.url || '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="ref-link"
+              title={link.url || link.label}
+              aria-label={link.url ? `${link.label || 'Link'}: ${link.url}` : link.label}
+            >
+              {link.label || link.url}
             </a>
           </React.Fragment>
         ))}

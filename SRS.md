@@ -731,8 +731,8 @@ export interface ResumeDocument {
 - **Karakter Teks Bullet Unicode Asli (U+2022) & Preservasi Layout (Layout 1 & 2):**
   - `src/index.css` & `src/layouts/standard-ats-v2/standard-ats-v2.css`: Aturan bullet list Layout 1 dan Layout 2 diperkuat dengan pseudo-elemen `li::marker { content: '•  ' !important; }`. Titik peluru kini diekspor sebagai karakter teks Unicode `•` (`\u2022`) riil di layer teks PDF (terbaca di pdftotext, PyMuPDF, dan saat disalin ke Notepad), bukan sekadar lingkaran grafis `path`/vektor.
   - Pada Layout 2 (`standard-ats-v2`), `position: relative` pada `li` dihilangkan untuk menjaga urutan teks linier alami dalam stream PDF (menghindari teks bullet tergeser ke bawah section lain), sementara margin `margin-left: 27.0217pt` dipertahankan presisi sesuai spesifikasi tanpa pergeseran visual.
-- **Ekstraksi Teks URL Profil Nyata (Layout 2):**
-  - `src/utils/formatUrl.ts`: Helper `formatDisplayUrl` membersihkan protokol dan prefix URL (misal: `https://linkedin.com/in/username` → `linkedin.com/in/username`) saat label berupa teks generik ("Linkedin", "Portfolio"), sehingga layer teks PDF memuat alamat URL asli yang dapat diekstrak oleh parser ATS tanpa menghilangkan fungsionalitas tautan klik (*hyperlink*).
+- **Preservasi Display Label Tautan Profil (Layout 2):**
+  - Tautan kontak header menampilkan teks label Display pilihan pengguna (`link.label || link.url`), dengan atribut `title={link.url}` dan hyperlink `/URI` aktif agar tetap 100% terbaca dan dapat diekstrak oleh parser ATS tanpa memaksa tampilan teks visual menjadi URL panjang.
 - **Verifikasi:** `npm run build` ✓ (bundle sukses), `npm run lint` ✓ (0 error). Audit PDF riil membuktikan zero Type 3 fonts, deteksi teks bullet 100% akurat, dan alamat URL profil terekstrak bersih.
 
 ### 1.35.0 — Modularisasi Arsitektur Layout (Layout Registry `src/layouts/*`)
