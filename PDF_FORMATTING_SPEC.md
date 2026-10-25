@@ -18,12 +18,12 @@ Output PDF Cevee menggunakan media cetak native browser (`window.print()` + CSS 
 | Properti | Nilai | Keterangan / Kode CSS |
 |---|---|---|
 | **Ukuran Kertas** | `210mm × 297mm` (A4 Portrait) | `@page { size: 210mm 297mm; margin: 0; }` |
-| **Padding Atas (Top Margin)** | `10mm` (~37.8px pada 96 DPI) | `.a4-page-sheet { padding-top: 10mm; }` |
+| **Padding Atas (Top Margin)** | `7mm` (~26.5px pada 96 DPI) | `.a4-page-sheet[data-layout="standard-ats-v1"] { padding-top: 7mm; }` (legacy/default: `10mm`) |
 | **Padding Samping (Left / Right)** | `13mm` (~49.1px pada 96 DPI) | `.a4-page-sheet { padding-left: 13mm; padding-right: 13mm; }` |
-| **Padding Bawah (Bottom Margin)** | `12mm` (~45.4px pada 96 DPI) | `.a4-page-sheet { padding-bottom: 12mm; }` |
+| **Padding Bawah (Bottom Margin)** | `7mm` (~26.5px pada 96 DPI) | `.a4-page-sheet[data-layout="standard-ats-v1"] { padding-bottom: 7mm; }` (legacy/default: `12mm`) |
 | **Lebar Konten Efektif (Printable Width)** | `184mm` (~695.4px pada 96 DPI) | `210mm - (2 × 13mm) = 184mm` |
-| **Tinggi Konten Efektif (Printable Height)** | `275mm` (~1039.4px pada 96 DPI) | `297mm - 10mm - 12mm = 275mm` |
-| **Batas Aman Paginasi (Threshold)** | `1020px` | `PAGE_CONTENT_MAX_HEIGHT_PX = 1020` di `PaginatedResumeView.tsx` |
+| **Tinggi Konten Efektif (Printable Height)** | `283mm` (~1069.6px pada 96 DPI) | `297mm - 7mm - 7mm = 283mm` |
+| **Batas Aman Paginasi (Threshold)** | `1050px` | `maxPageHeightPx: 1050` pada `standardAtsV1Plugin` |
 | **Jarak Antar Halaman di Layar (Preview)** | `48px` | `marginBottom: '48px'` (hanya di preview layar) |
 | **Warna Latar Lembar** | `#ffffff` (Putih) | `background: white !important;` |
 | **Color Adjustment Mode** | `exact` | `-webkit-print-color-adjust: exact; print-color-adjust: exact;` |
@@ -160,7 +160,7 @@ Cevee menyediakan 2 varian preset layout untuk header:
   - **Lokasi:** Font size `8pt` (~10.67px), Font weight `400` (`font-normal`), warna `text-slate-700`
 - **Poin Pencapaian (Bulleted List):**
   - Jarak ke baris atas (bullet pertama): `mt-0.5` (~2px)
-  - Jarak ke item berikutnya (bullet terakhir): `mb-2` (~8px)
+  - Jarak ke item berikutnya (bullet terakhir): `mb-1.5` (~6px)
   - Tata letak & bullet: lihat [Bagian 4](#4-aturan-bulleted-list--daftar-poin).
 
 #### Kasus B: Promosi / Multi-Posisi dalam Satu Perusahaan
@@ -172,7 +172,7 @@ Cevee menyediakan 2 varian preset layout untuk header:
   - Margin Atas: posisi pertama `mt-0.5` (~2px), posisi berikutnya `mt-1.5` (~6px)
   - Role: `font-semibold text-slate-900 text-[7.75pt]`
   - Periode: `font-semibold text-slate-800 text-[7.75pt]`
-- **Poin Pencapaian:** Mengikuti aturan bullet list; margin bawah `mb-2` hanya pada butir terakhir dari posisi terakhir.
+- **Poin Pencapaian:** Mengikuti aturan bullet list; margin bawah `mb-1.5` hanya pada butir terakhir dari posisi terakhir.
 
 ---
 
@@ -188,7 +188,7 @@ Cevee menyediakan 2 varian preset layout untuk header:
   - **Periode:** Font size `7.75pt`, Font weight `600` (`font-semibold`), warna `text-slate-800`
 - **Poin Pencapaian (Bulleted List):**
   - Jarak atas: `mt-0.5` (~2px)
-  - Jarak bawah item: `mb-2` (~8px)
+  - Jarak bawah item: `mb-1.5` (~6px)
 
 ---
 

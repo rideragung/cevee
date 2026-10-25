@@ -252,7 +252,7 @@ export const buildSingleColumnBlocks = (
                   type: 'item-bullet',
                   height: estimateContentPartHeight(part),
                   render: () => (
-                    <div className={`${bIdx === 0 ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLastBulletOfItem && !isLastItem ? 'mb-2' : ''}`}>
+                    <div className={`${bIdx === 0 ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLastBulletOfItem && !isLastItem ? 'mb-1.5' : ''}`}>
                       {renderContentPart(part, CONTENT_PART_CLASSES)}
                     </div>
                   ),
@@ -263,8 +263,8 @@ export const buildSingleColumnBlocks = (
                 list.push({
                   id: `item-${section.id}-${item.id}-pos-${pos.id || posIdx}-spacer`,
                   type: 'item-bullet',
-                  height: 8,
-                  render: () => <div className={isLastItem ? '' : 'mb-2'} />,
+                  height: 6,
+                  render: () => <div className={isLastItem ? '' : 'mb-1.5'} />,
                 });
               }
             });
@@ -299,7 +299,7 @@ export const buildSingleColumnBlocks = (
               type: 'item-bullet',
               height: estimateContentPartHeight(part),
               render: () => (
-                <div className={`${bIdx === 0 ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLastBulletOfItem && !isLastItem ? 'mb-2' : ''}`}>
+                <div className={`${bIdx === 0 ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLastBulletOfItem && !isLastItem ? 'mb-1.5' : ''}`}>
                   {renderContentPart(part, CONTENT_PART_CLASSES)}
                 </div>
               ),
@@ -310,8 +310,8 @@ export const buildSingleColumnBlocks = (
             list.push({
               id: `item-${section.id}-${item.id}-spacer`,
               type: 'item-bullet',
-              height: 8,
-              render: () => <div className={isLastItem ? '' : 'mb-2'} />,
+              height: 6,
+              render: () => <div className={isLastItem ? '' : 'mb-1.5'} />,
             });
           }
         });
@@ -379,7 +379,7 @@ export const buildSingleColumnBlocks = (
               type: 'item-bullet',
               height: estimateContentPartHeight(part),
               render: () => (
-                <div className={`${bIdx === 0 ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLastBulletOfItem && !isLastItem ? 'mb-2' : ''}`}>
+                <div className={`${bIdx === 0 ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLastBulletOfItem && !isLastItem ? 'mb-1.5' : ''}`}>
                   {renderContentPart(part, CONTENT_PART_CLASSES)}
                 </div>
               ),
@@ -390,8 +390,8 @@ export const buildSingleColumnBlocks = (
             list.push({
               id: `item-${section.id}-${item.id}-spacer`,
               type: 'item-bullet',
-              height: 8,
-              render: () => <div className={isLastItem ? '' : 'mb-2'} />,
+              height: 6,
+              render: () => <div className={isLastItem ? '' : 'mb-1.5'} />,
             });
           }
         });

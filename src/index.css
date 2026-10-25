@@ -206,6 +206,13 @@
   border-bottom: 0.5px solid #1e293b;
 }
 
+/* Desktop canvas keeps the exact print geometry for standard-ats-v1; mobile keeps its px padding */
+@media screen and (min-width: 901px) {
+  .resume-a4-page[data-layout="standard-ats-v1"] {
+    padding: 7mm 13mm 7mm 13mm;
+  }
+}
+
 /* Mobile / tablet: let the A4 canvas reflow to the viewport instead of
    forcing a fixed 210mm sheet that overflows small screens. Print and PDF
    output are unaffected (they render through .a4-page-sheet / print CSS). */
@@ -264,6 +271,10 @@
   font-synthesis: none !important;
   overflow: hidden;
   position: relative;
+}
+
+.a4-page-sheet[data-layout="standard-ats-v1"] {
+  padding: 7mm 13mm 7mm 13mm !important;
 }
 
 /* Universal Bullet List Styling for Canvas, Preview, and Print */
@@ -486,6 +497,10 @@
     background: white !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
     font-synthesis: none !important;
+  }
+
+  .a4-page-sheet[data-layout="standard-ats-v1"] {
+    padding: 7mm 13mm 7mm 13mm !important;
   }
 
   /* Force pure vector rendering, true font embedding (no Type 3 faux-bold), & no raster filters in print */

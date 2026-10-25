@@ -20,7 +20,8 @@ export const standardAtsV1Plugin: LayoutPlugin = {
   isDefault: true,
   geometry: {
     contentWidth: '184mm',
-    maxPageHeightPx: 1020,
+    maxPageHeightPx: 1050,
+    sheetPadding: '7mm 13mm 7mm 13mm',
     fontFamily:
       "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     fontSize: '7.75pt',

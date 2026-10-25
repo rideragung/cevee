@@ -510,7 +510,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
             sortByPeriodDesc(data.items || []).map((item) => {
               if (item.positions && item.positions.length > 1) {
                 return (
-                  <div key={item.id} className="avoid-break mb-2 last:mb-0">
+                  <div key={item.id} className="avoid-break mb-1.5 last:mb-0">
                     {/* Line 1: Company Name & Location */}
                     <div className="flex justify-between items-baseline leading-snug">
                       <span className="font-bold text-slate-900 text-[8pt]">{item.company}</span>
@@ -539,7 +539,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
               }
 
               return (
-                <div key={item.id} className="avoid-break mb-2 last:mb-0">
+                <div key={item.id} className="avoid-break mb-1.5 last:mb-0">
                   {/* Line 1: Role & Period */}
                   <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
                     <span>{item.role}</span>
