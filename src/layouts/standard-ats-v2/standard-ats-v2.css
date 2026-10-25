@@ -162,6 +162,11 @@
   text-align: justify !important;
 }
 
+.ref-edu-para,
+.ref-edu-para p {
+  padding-left: 4.8039pt !important;
+}
+
 .ref-part {
   margin: 0 !important;
 }

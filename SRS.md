@@ -814,7 +814,7 @@ export interface ResumeDocument {
 - **Pembaruan:** Menambahkan opsi pengisian "Final Thesis" pada section Education di seluruh layout ATS (V1, V2, Modern-Photo).
 - **Embedded Hyperlink:** Judul skripsi/tugas akhir langsung di-embed dengan URL naskah (`thesisUrl`) sebagai tautan interaktif murni tanpa ikon tambahan, dapat diklik langsung di kanvas editor dan pratinjau PDF.
 - **Konsistensi Label GPA:** Layout ATS V1, Modern Photo, dan kanvas editor kini memuat label tebal `GPA: ` seragam persis seperti ATS V2.
-- **Tata Letak & Justify:** Baris thesis dirender dengan label tebal `Final Thesis:` dan teks rata kanan-kiri (*text-justify*).
+- **Tata Letak & Justify:** Baris thesis dirender dengan label tebal `Final Thesis:` dan teks rata kanan-kiri (*text-justify*). Pada Layout 3 (ATS V2), seluruh baris turunan pendidikan (Related Coursework, Final Thesis, dan deskripsi) diberi indentasi presisi `padding-left: 4.8039pt` (`.ref-edu-para`) sehingga sejajar 1:1 dengan Degree dan Institution (`.ref-row`).
 - **Skema Data:** Menambahkan field opsional `thesisTitle?: string` dan `thesisUrl?: string` pada `EducationItem` dan `ParsedEducationItemRaw`.
 
 ### 1.29.0 — Document Link & Related Coursework in Education Section & All Layouts

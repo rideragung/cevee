@@ -211,7 +211,7 @@ feedback only.
   - **Baris Final Thesis (Line 4):**
     - Ditampilkan jika `thesisTitle` terisi, sebelum deskripsi umum dengan label tebal dan perataan rata kanan-kiri (*justify*).
     - Judul langsung meng-embed tautan `thesisUrl` sebagai hyperlink murni tanpa ikon tambahan (`<a href={item.thesisUrl} ... className="underline">{item.thesisTitle}</a>`). Jika URL kosong, judul ditampilkan sebagai teks biasa.
-    - Tipografi: Calibrated ATS font size `7.75pt` (V1 & Modern-Photo) / `8.41pt` (V2), line-height `1.48` / `12.61pt`.
+    - Tipografi & Presisi Indentasi Layout 3 (ATS V2): Seluruh baris turunan pendidikan (Related Coursework, Final Thesis, dan deskripsi/catatan) diberi kelas `.ref-edu-para` (`padding-left: 4.8039pt !important;`) sehingga terindentasi presisi 1:1 sejajar dengan baris Degree dan Institution (`.ref-row`). Calibrated ATS font size `7.75pt` (V1 & Modern-Photo) / `8.41pt` (V2), line-height `1.48` / `12.61pt`.
 
 ## Resume Creation Modal: OnboardingStepper & TaskSteps (2026-10-22)
 

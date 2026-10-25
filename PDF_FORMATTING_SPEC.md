@@ -209,14 +209,15 @@ Cevee menyediakan 2 varian preset layout untuk header:
 - **Baris 3 (Related Coursework):**
   - Ditampilkan jika `relatedCoursework` terisi, berada tepat sebelum deskripsi/thesis dengan perataan teks rata kanan-kiri (*justify*):
     `<div className="mt-0.5 text-slate-800 text-justify text-[7.75pt] leading-[1.48]"><span className="font-bold text-slate-900">Related Coursework: </span>[Daftar Mata Kuliah]</div>`
-  - V2 Preset: `<div className="ref-part"><div className="ref-para text-justify"><span className="font-bold">Related Coursework: </span>[Daftar Mata Kuliah]</div></div>`
+  - V2 Preset: `<div className="ref-part"><div className="ref-para ref-edu-para text-justify"><span className="font-bold">Related Coursework: </span>[Daftar Mata Kuliah]</div></div>` (indented `4.8039pt` to align with `.ref-row` Degree & Institution).
 - **Baris 4 (Final Thesis):**
   - Ditampilkan jika `thesisTitle` terisi, dengan label tebal `Final Thesis: ` dan teks rata kanan-kiri (*justify*).
   - Tautan dokumen di-embed langsung pada teks judul skripsi menggunakan elemen `<a>` (`underline`, hover warna primer, tanpa ikon eksternal). Jika `thesisUrl` kosong, judul ditampilkan sebagai teks biasa.
   - V1 & Modern Photo: `<div className="mt-0.5 text-slate-800 text-justify text-[7.75pt] leading-[1.48]"><span className="font-bold text-slate-900">Final Thesis: </span>[Judul Skripsi]</div>`
-  - V2 Preset: `<div className="ref-part"><div className="ref-para text-justify"><span className="font-bold">Final Thesis: </span>[Judul Skripsi]</div></div>`
+  - V2 Preset: `<div className="ref-part"><div className="ref-para ref-edu-para text-justify"><span className="font-bold">Final Thesis: </span>[Judul Skripsi]</div></div>` (indented `4.8039pt` to align with `.ref-row` Degree & Institution).
 - **Baris 5 (Deskripsi / Catatan Pendidikan):**
-  - Format paragraf / bullet: `text-[7.75pt] leading-[1.48] text-slate-800 text-justify`
+  - Format paragraf / bullet: `text-[7.75pt] leading-[1.48] text-slate-800 text-justify`.
+  - V2 Preset: paragraf deskripsi diberi kelas `ref-edu-para` (`padding-left: 4.8039pt`) sehingga terindentasi presisi sejajar dengan Degree dan Institution.
   - Jarak atas: `mt-0.5` (~2px)
   - Jarak bawah: `mb-1.5` (~6px)
 

@@ -29,6 +29,12 @@ const REF_CONTENT_PART_CLASSES = {
   paragraph: 'ref-para',
 } as const;
 
+const REF_EDU_CONTENT_PART_CLASSES = {
+  list: 'ref-bullet-list',
+  orderedList: 'ref-ordered-list',
+  paragraph: 'ref-para ref-edu-para',
+} as const;
+
 const estimateStandardAtsV2CustomItemHeight = (
   item: CustomSectionItem,
   sectionTitle: string,
@@ -355,7 +361,7 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
           height: 69.66,
           render: () => (
             <div className="text-slate-400 space-y-0.5">
-              <div className="flex justify-between items-baseline leading-snug">
+              <div className="ref-row">
                 <span className="font-bold text-slate-400 inline-flex items-center gap-1">
                   <span>Bachelor of Computer Science</span>
                   <span className="font-normal text-slate-400">•</span>
@@ -364,19 +370,19 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
                 </span>
                 <span className="font-semibold text-slate-400 text-[8.41pt]">May 2022 - Present</span>
               </div>
-              <div className="flex justify-between items-baseline leading-snug text-[8.41pt]">
+              <div className="ref-row ref-row-plain">
                 <span>Name of the Educational Institution</span>
                 <span className="font-medium text-slate-400">GPA: 4.0 of 4.0</span>
               </div>
-              <div className="text-slate-400 text-justify text-[8.41pt] leading-[12.61pt]">
+              <div className="ref-para ref-edu-para text-justify text-slate-400 text-[8.41pt] leading-[12.61pt]">
                 <span className="font-bold text-slate-400">Related Coursework: </span>
                 Data Structures, Algorithms, Software Engineering, Database Systems
               </div>
-              <div className="text-slate-400 text-justify text-[8.41pt] leading-[12.61pt]">
+              <div className="ref-para ref-edu-para text-justify text-slate-400 text-[8.41pt] leading-[12.61pt]">
                 <span className="font-bold text-slate-400">Final Thesis: </span>
                 <span className="underline">Design and Implementation of Distributed Real-Time Systems</span>
               </div>
-              <div className="text-slate-400 text-[8.41pt] leading-[12.61pt]">
+              <div className="ref-para ref-edu-para text-slate-400 text-[8.41pt] leading-[12.61pt]">
                 E.g., info about scholarships, student activity, etc.
               </div>
             </div>
@@ -454,7 +460,7 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
               height: lines * 16.8135,
               render: () => (
                 <div className="ref-part">
-                  <div className="ref-para text-justify">
+                  <div className="ref-para ref-edu-para text-justify">
                     <span className="font-bold">Related Coursework: </span>
                     <span>{item.relatedCoursework}</span>
                   </div>
@@ -472,7 +478,7 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
               height: lines * 16.8135,
               render: () => (
                 <div className="ref-part">
-                  <div className="ref-para text-justify">
+                  <div className="ref-para ref-edu-para text-justify">
                     <span className="font-bold">Final Thesis: </span>
                     {item.thesisUrl ? (
                       <a
@@ -499,7 +505,7 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
               type: 'item-bullet',
               height: estimateStandardAtsV2ContentPartHeight(part),
               render: () => (
-                <div className="ref-part">{renderContentPart(part, REF_CONTENT_PART_CLASSES)}</div>
+                <div className="ref-part">{renderContentPart(part, REF_EDU_CONTENT_PART_CLASSES)}</div>
               ),
             });
           });
