@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
 import { EducationItem } from '../../types/resume';
-import { IconPlus as Plus, IconTrash as Trash2 } from '@tabler/icons-react';
+import { IconPlus as Plus, IconTrash as Trash2, IconExternalLink as ExternalLink } from '@tabler/icons-react';
 import { DatePicker } from '../DatePicker';
 import { RichTextEditor } from '../RichTextEditor';
 import { sortByPeriodDesc } from '../../utils/periodSort';
@@ -41,6 +41,11 @@ const normalizeEduItem = (it: EducationItem): EducationItem => {
     startDate,
     endDate: current && endDate.toLowerCase() === 'present' ? '' : endDate,
     current,
+    url: it.url || '',
+    urlLabel: it.urlLabel || '',
+    relatedCoursework: it.relatedCoursework || '',
+    thesisTitle: it.thesisTitle || '',
+    thesisUrl: it.thesisUrl || '',
   };
 };
 
@@ -104,6 +109,12 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
       endDate: '',
       current: false,
       gpa: '',
+      url: '',
+      urlLabel: '',
+      relatedCoursework: '',
+      thesisTitle: '',
+      thesisUrl: '',
+      description: '',
     };
     setItems([...items, newItem]);
   };
@@ -165,13 +176,13 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                   <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-2">
                       <label className="mb-1 block text-[11px] font-semibold text-foreground">
-                        Degree or major <span className="text-destructive">*</span>
+                        Degree <span className="text-destructive">*</span>
                       </label>
                       <input
                         type="text"
                         value={item.degree}
                         onChange={(e) => handleUpdateField(item.id, 'degree', e.target.value)}
-                        aria-label="Degree or major"
+                        aria-label="Degree"
                         placeholder="e.g. Bachelor of Information Systems"
                         className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                       />
@@ -179,13 +190,13 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
 
                     <div>
                       <label className="mb-1 block text-[11px] font-semibold text-foreground">
-                        GPA or grade <span className="font-normal text-muted-foreground">(optional)</span>
+                        GPA
                       </label>
                       <input
                         type="text"
                         value={item.gpa || ''}
                         onChange={(e) => handleUpdateField(item.id, 'gpa', e.target.value)}
-                        aria-label="GPA or grade"
+                        aria-label="GPA"
                         placeholder="e.g. GPA: 4.0 of 4.0"
                         className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                       />
@@ -224,14 +235,14 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="sm:col-span-2">
                     <label className="mb-1 block text-[11px] font-semibold text-foreground">
-                      Institution or school <span className="text-destructive">*</span>
+                      Institution <span className="text-destructive">*</span>
                     </label>
                     <input
                       type="text"
                       value={item.institution}
                       onChange={(e) => handleUpdateField(item.id, 'institution', e.target.value)}
-                      aria-label="Institution or school"
-                      placeholder="e.g., State University / Institute of Technology"
+                      aria-label="Institution"
+                      placeholder="e.g. State University / Institute of Technology"
                       className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
                     />
                   </div>
@@ -243,29 +254,106 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                     <DatePicker
                       value={item.startDate || ''}
                       onChange={(val) => handleUpdateField(item.id, 'startDate', val)}
-                      ariaLabel="Education start date"
+                      ariaLabel="Start date"
                       placeholder="Select start date"
                     />
                   </div>
 
                   <div>
                     <label className="mb-1 block text-[11px] font-semibold text-foreground">
-                      End date or graduation {!item.current && <span className="text-destructive">*</span>}
+                      Graduation date {!item.current && <span className="text-destructive">*</span>}
                     </label>
                     <DatePicker
                       value={item.current ? 'Present' : (item.endDate || '')}
                       disabled={item.current || false}
                       onChange={(val) => handleUpdateField(item.id, 'endDate', val)}
-                      ariaLabel="Education end date or graduation"
+                      ariaLabel="Graduation date"
                       placeholder="Select graduation date"
                     />
                   </div>
                 </div>
 
-                {/* Row 3: Description (full width, rich text) */}
+                {/* Row 3: Document Link & Label */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                      Document link
+                    </label>
+                    <input
+                      type="text"
+                      value={item.url || ''}
+                      onChange={(e) => handleUpdateField(item.id, 'url', e.target.value)}
+                      aria-label="Document link"
+                      placeholder="https://... (transcript, diploma, certificate)"
+                      className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                      Link label
+                    </label>
+                    <input
+                      type="text"
+                      value={item.urlLabel || ''}
+                      onChange={(e) => handleUpdateField(item.id, 'urlLabel', e.target.value)}
+                      aria-label="Link label"
+                      placeholder="e.g. Transcripts"
+                      className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 4: Related Coursework */}
                 <div>
                   <label className="mb-1 block text-[11px] font-semibold text-foreground">
-                    Description <span className="font-normal text-muted-foreground">(optional)</span>
+                    Related coursework
+                  </label>
+                  <input
+                    type="text"
+                    value={item.relatedCoursework || ''}
+                    onChange={(e) => handleUpdateField(item.id, 'relatedCoursework', e.target.value)}
+                    aria-label="Related coursework"
+                    placeholder="e.g. Data Structures, Algorithms, Software Engineering, Database Systems"
+                    className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                  />
+                </div>
+
+                {/* Row 5: Final Thesis */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                      Final thesis
+                    </label>
+                    <input
+                      type="text"
+                      value={item.thesisTitle || ''}
+                      onChange={(e) => handleUpdateField(item.id, 'thesisTitle', e.target.value)}
+                      aria-label="Final thesis"
+                      placeholder="e.g. Design and Implementation of Distributed Systems"
+                      className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                      Thesis link
+                    </label>
+                    <input
+                      type="text"
+                      value={item.thesisUrl || ''}
+                      onChange={(e) => handleUpdateField(item.id, 'thesisUrl', e.target.value)}
+                      aria-label="Thesis link"
+                      placeholder="https://... (repository or publication)"
+                      className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 6: Description (full width, rich text) */}
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-foreground">
+                    Description
                   </label>
                   <RichTextEditor
                     initialContent={item.description || ''}
@@ -317,7 +405,28 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
           role="button"
           tabIndex={0}
           onClick={() => {
-            setItems(data.items.length > 0 && !isPlaceholder ? sortByPeriodDesc((data.items || []).map(normalizeEduItem)) : [{ id: `edu-${Date.now()}`, degree: '', institution: '', period: '', gpa: '', startDate: '', endDate: '', current: false }]);
+            setItems(
+              data.items.length > 0 && !isPlaceholder
+                ? sortByPeriodDesc((data.items || []).map(normalizeEduItem))
+                : [
+                    {
+                      id: `edu-${Date.now()}`,
+                      degree: '',
+                      institution: '',
+                      period: '',
+                      gpa: '',
+                      startDate: '',
+                      endDate: '',
+                      current: false,
+                      url: '',
+                      urlLabel: '',
+                      relatedCoursework: '',
+                      thesisTitle: '',
+                      thesisUrl: '',
+                      description: '',
+                    },
+                  ]
+            );
             setIsEditing(true);
           }}
           onKeyDown={(event) => {
@@ -334,12 +443,25 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
           {isPlaceholder ? (
             <div className="avoid-break text-slate-400 select-none space-y-0.5">
               <div className="flex justify-between items-baseline leading-snug">
-                <span className="font-bold text-slate-400">Bachelor of Computer Science</span>
+                <span className="font-bold text-slate-400 inline-flex items-center gap-1">
+                  <span>Bachelor of Computer Science</span>
+                  <span className="font-normal text-slate-400">•</span>
+                  <span className="text-[7.75pt] underline font-normal">(Transcript)</span>
+                  <ExternalLink size={10} className="inline opacity-70 flex-shrink-0 text-slate-400" />
+                </span>
                 <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
               </div>
               <div className="flex justify-between items-baseline text-slate-400 leading-snug text-[8pt]">
                 <span>Name of the Educational Institution</span>
                 <span className="font-medium text-slate-400">GPA: 4.0 of 4.0</span>
+              </div>
+              <div className="text-slate-400 text-justify text-[7.75pt] leading-snug">
+                <span className="font-bold text-slate-400">Related Coursework: </span>
+                Data Structures, Algorithms, Software Engineering, Database Systems
+              </div>
+              <div className="text-slate-400 text-justify text-[7.75pt] leading-snug">
+                <span className="font-bold text-slate-400">Final Thesis: </span>
+                <span className="underline">Design and Implementation of Distributed Real-Time Systems</span>
               </div>
               <div className="text-slate-400 text-[7.75pt] leading-snug">
                 E.g., info about scholarships, student activity, etc.
@@ -348,19 +470,73 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
           ) : (
             sortByPeriodDesc(data.items || []).map((item) => (
               <div key={item.id} className="avoid-break">
-                {/* Line 1: Degree & Period */}
+                {/* Line 1: Degree + Link & Period */}
                 <div className="flex justify-between items-baseline font-bold text-slate-900 leading-snug">
-                  <span>{item.degree}</span>
+                  <span className="inline-flex items-baseline flex-wrap gap-x-1">
+                    <span>{item.degree}</span>
+                    {item.url && (
+                      <>
+                        {item.urlLabel && <span className="font-normal text-slate-500">•</span>}
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-0.5 text-[7.75pt] font-semibold text-slate-800 hover:text-blue-700 underline group/link"
+                          title={item.url}
+                          aria-label={item.urlLabel || 'Education document link'}
+                        >
+                          {item.urlLabel && <span>{item.urlLabel}</span>}
+                          <ExternalLink size={10} className="inline opacity-80 group-hover/link:opacity-100 flex-shrink-0 text-slate-700" />
+                        </a>
+                      </>
+                    )}
+                  </span>
                   <span className="text-[7.75pt] font-semibold text-slate-800">{item.period}</span>
                 </div>
 
                 {/* Line 2: Institution & GPA */}
                 <div className="flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]">
                   <span>{item.institution}</span>
-                  {item.gpa && <span className="font-medium text-slate-800">{item.gpa}</span>}
+                  {item.gpa && (
+                    <span className="font-medium text-slate-800">
+                      <span className="font-bold text-slate-900">GPA: </span>
+                      {item.gpa.replace(/^\s*GPA\s*:\s*/i, '')}
+                    </span>
+                  )}
                 </div>
 
-                {/* Line 3: Description */}
+                {/* Line 3: Related Coursework */}
+                {item.relatedCoursework && (
+                  <div className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
+                    <span className="font-bold text-slate-900">Related Coursework: </span>
+                    <span>{item.relatedCoursework}</span>
+                  </div>
+                )}
+
+                {/* Line 4: Final Thesis */}
+                {item.thesisTitle && (
+                  <div className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
+                    <span className="font-bold text-slate-900">Final Thesis: </span>
+                    {item.thesisUrl ? (
+                      <a
+                        href={item.thesisUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-slate-800 hover:text-blue-700 underline"
+                        title={item.thesisUrl}
+                        aria-label="Final thesis link"
+                      >
+                        {item.thesisTitle}
+                      </a>
+                    ) : (
+                      <span>{item.thesisTitle}</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Line 5: Description */}
                 {item.description && (
                   <div
                     className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]"

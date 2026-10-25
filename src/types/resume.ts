@@ -66,6 +66,11 @@ export interface EducationItem {
   endDate?: string;
   current?: boolean;
   gpa?: string;
+  url?: string;
+  urlLabel?: string;
+  relatedCoursework?: string;
+  thesisTitle?: string;
+  thesisUrl?: string;
   description?: string;
 }
 

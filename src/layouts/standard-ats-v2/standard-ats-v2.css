@@ -170,37 +170,38 @@
   height: 12.6101pt !important;
 }
 
-/* Reference bullets: 27.0217pt text indent, painted 3.0024pt dot @ (17.7143, 5.3164) */
+/* Reference bullets: standard text bullet • (U+2022) with 27.0217pt margin-left indent */
 .a4-page-sheet[data-layout="standard-ats-v2"] .ref-bullet-list,
 .a4-measure-container[data-layout="standard-ats-v2"] .ref-bullet-list {
-  list-style: none !important;
   margin: 0 !important;
   padding: 0 !important;
 }
 
 .a4-page-sheet[data-layout="standard-ats-v2"] .ref-bullet-list li,
 .a4-measure-container[data-layout="standard-ats-v2"] .ref-bullet-list li {
-  list-style: none !important;
-  display: block !important;
-  position: relative;
+  list-style-type: disc !important;
+  display: list-item !important;
+  /* position: relative; */
   margin: 0 !important;
-  padding: 0 0 0 27.0217pt !important;
+  margin-left: 27.0217pt !important;
+  padding: 0 !important;
   font-size: 8.40675pt !important;
   line-height: 12.61013pt !important;
   text-align: justify !important;
   color: #212529 !important;
 }
 
+.a4-page-sheet[data-layout="standard-ats-v2"] .ref-bullet-list li::marker,
+.a4-measure-container[data-layout="standard-ats-v2"] .ref-bullet-list li::marker {
+  content: '•  ' !important;
+  font-size: 8.40675pt !important;
+  line-height: 12.61013pt !important;
+  color: #212529 !important;
+}
+
 .a4-page-sheet[data-layout="standard-ats-v2"] .ref-bullet-list li::before,
 .a4-measure-container[data-layout="standard-ats-v2"] .ref-bullet-list li::before {
-  content: '' !important;
-  position: absolute;
-  left: 17.7143pt;
-  top: 5.3164pt;
-  width: 3.0024pt;
-  height: 3.0024pt;
-  border-radius: 50%;
-  background: #212529;
+  content: none !important;
 }
 
 /* Reference ordered list: 27.0217pt margin-left, real numbers, no before dot */

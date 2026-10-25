@@ -209,7 +209,7 @@ Sistem mendukung beragam tipe struktur section:
    - **Tautan Teks & Ikon Terpadu:** Teks nama proyek dan ikon eksternal (`ExternalLink`) dibungkus bersama dalam satu elemen `<a>` interaktif (`target="_blank"`), sehingga pengguna dapat mengklik langsung nama proyek maupun ikonnya untuk membuka tautan portofolio/demo di tab baru.
    - Ikon eksternal dan tautan tampil konsisten 1:1 pada kanvas editor, modal preview A4, dan dokumen cetak PDF.
    - Dilengkapi pencegahan propagasi (`e.stopPropagation()`) pada kanvas editor agar klik pada nama proyek langsung membuka tautan tanpa memicu mode edit section.
-5. **Education Section:** Gelar, institusi, tahun, nilai (GPA), dan checkbox `I currently study here` (`current: boolean`) yang otomatis mengunci tanggal selesai ke `Present`.
+5. **Education Section:** Gelar, institusi, tahun, nilai (GPA), checkbox `I currently study here` (`current: boolean`), tautan dokumen lampiran (transkrip nilai, ijazah, atau sertifikasi kelulusan dengan label opsional, default ikon eksternal di samping gelar/degree), kolom input `Related Coursework` (rata kanan-kiri), serta kolom input `Final Thesis` yang menampilkan judul tugas akhir/skripsi dengan tautan langsung ter-embed ke judulnya (*hyperlink* interaktif).
 6. **Certifications Section & Single-Line Credential Hyperlink:**
    - Setiap butir sertifikasi dirender pada **satu baris tunggal**:
      - **Sisi Kiri:** `[Title] (Credential ID: [ID]) by [Organization]`. Bagian judul dan ID dicetak tebal (`font-bold`), kata penghubung `by` normal, dan nama institusi penerbit dicetak tebal.
@@ -457,6 +457,11 @@ export interface EducationItem {
   endDate?: string;
   current?: boolean;
   gpa?: string;
+  url?: string;
+  urlLabel?: string;
+  relatedCoursework?: string;
+  thesisTitle?: string;
+  thesisUrl?: string;
   description?: string;
 }
 
@@ -714,6 +719,22 @@ export interface ResumeDocument {
   - `AddSectionBar`: Normalisasi tombol custom menjadi `Add custom section`.
 - **Refinement Modal Konfirmasi:** Teks konfirmasi destruktif pada `ResumeDashboard` dan `Navbar` disederhanakan menjadi pesan universal yang akurat untuk akun lokal maupun cloud (`...permanently deleted.`).
 
+### 1.36.0 — Remediasi Font Type 3, Normalisasi Spasi Nama, Penegakan Unicode Bullet List, & Teks URL Profil (Layout 1 & 2)
+- **Eliminasi 100% Font Type 3:**
+  - `src/App.tsx`: Rutin `printResume` kini memanggil `document.fonts.load()` untuk seluruh bobot Inter (`400`, `500`, `600`, `700`) dan Arimo, lalu menunggu `await document.fonts.ready` serta dua siklus `requestAnimationFrame` sebelum mengeksekusi `window.print()`.
+  - `src/main.tsx`: Pemuatan awal (*early preloading*) font diinisialisasi saat booting aplikasi agar file WOFF2 langsung siap di cache browser.
+  - `src/index.css`: Penambahan `font-synthesis: none !important;` pada `.a4-page-sheet`, `.resume-a4-page`, dan `@media print` untuk memblokir faux-bolding procedural yang menyebabkan Skia/Chromium mengonversi teks tebal/semibold menjadi objek Type 3.
+  - Hasil audit verifikasi PyMuPDF pada berkas PDF: `Type 3 Font Count: 0`. Seluruh font (`Inter-Bold`, `Inter-Regular`, `Inter-SemiBold`, `Inter-Medium`, `LiberationSans-Bold`, `LiberationSans-Regular`) disematkan sebagai format native `Type0` (CID TrueType) dengan pemetaan Unicode bersih.
+- **Normalisasi Spasi Nama Lengkap & Preservasi 1 Baris Kontak (Layout 1):**
+  - `src/layouts/standard-ats-v1/header.tsx` & `src/layouts/modern-photo/header.tsx`: Menghapus kelas `tracking-tight` (-0.025em) pada `<h1>` nama lengkap kandidat, digantikan dengan `tracking-normal` dan `letterSpacing: 'normal'`. Nama diekstrak konsisten dengan karakter spasi ASCII standar (`0x20`) di semua mesin ATS tanpa kerning jitter.
+  - Preservasi tracking bawaan Inter (`-0.011em`) pada body/kontak sheet serta penggabungan teks relokasi `(Willing to relocate)` ke dalam span lokasi, menjamin baris kontak padat (lokasi, relokasi, email, no. telp, dan 3+ tautan portofolio/Behance/LinkedIn) muat presisi dalam 1 baris tunggal tanpa pembungkusan (*wrap*) yang tidak diinginkan.
+- **Karakter Teks Bullet Unicode Asli (U+2022) & Preservasi Layout (Layout 1 & 2):**
+  - `src/index.css` & `src/layouts/standard-ats-v2/standard-ats-v2.css`: Aturan bullet list Layout 1 dan Layout 2 diperkuat dengan pseudo-elemen `li::marker { content: '•  ' !important; }`. Titik peluru kini diekspor sebagai karakter teks Unicode `•` (`\u2022`) riil di layer teks PDF (terbaca di pdftotext, PyMuPDF, dan saat disalin ke Notepad), bukan sekadar lingkaran grafis `path`/vektor.
+  - Pada Layout 2 (`standard-ats-v2`), `position: relative` pada `li` dihilangkan untuk menjaga urutan teks linier alami dalam stream PDF (menghindari teks bullet tergeser ke bawah section lain), sementara margin `margin-left: 27.0217pt` dipertahankan presisi sesuai spesifikasi tanpa pergeseran visual.
+- **Ekstraksi Teks URL Profil Nyata (Layout 2):**
+  - `src/utils/formatUrl.ts`: Helper `formatDisplayUrl` membersihkan protokol dan prefix URL (misal: `https://linkedin.com/in/username` → `linkedin.com/in/username`) saat label berupa teks generik ("Linkedin", "Portfolio"), sehingga layer teks PDF memuat alamat URL asli yang dapat diekstrak oleh parser ATS tanpa menghilangkan fungsionalitas tautan klik (*hyperlink*).
+- **Verifikasi:** `npm run build` ✓ (bundle sukses), `npm run lint` ✓ (0 error). Audit PDF riil membuktikan zero Type 3 fonts, deteksi teks bullet 100% akurat, dan alamat URL profil terekstrak bersih.
+
 ### 1.35.0 — Modularisasi Arsitektur Layout (Layout Registry `src/layouts/*`)
 - **Arsitektur Plugin Layout:** Seluruh mesin render & paginasi tiga preset diekstraksi dari monolit `PaginatedResumeView.tsx` menjadi registry plugin modular per layout:
   - `src/layouts/registry.ts` — peta `LAYOUT_PLUGINS` + `getLayoutPlugin()`; core bersama `core/types.ts`, `core/content.tsx`, `core/packing.ts`; blok bersama `shared/single-column-blocks.tsx` + `shared/MiniPreview.tsx`.
@@ -788,6 +809,19 @@ export interface ResumeDocument {
 ### 1.29.0 — PasswordStrength Component on Sign Up Page
 - **Pembaruan:** Halaman registrasi / sign up (`AuthPage`) kini dilengkapi komponen resmi `PasswordStrength` dari Pillow Light.
 - **Fitur Evaluasi:** Meter kekuatan password berbasis 4 segmen warna dinamis (`Empty`, `Weak`, `Fair`, `Good`, `Strong`), deteksi pola umum/tebakan populer (`Commonly guessed`), serta checklist kriteria keamanan (minimal 8 karakter, huruf besar & kecil, angka, dan karakter khusus) yang terupdate secara real-time.
+
+### 1.30.0 — Final Thesis Field & Embedded Hyperlink in Education Section
+- **Pembaruan:** Menambahkan opsi pengisian "Final Thesis" pada section Education di seluruh layout ATS (V1, V2, Modern-Photo).
+- **Embedded Hyperlink:** Judul skripsi/tugas akhir langsung di-embed dengan URL naskah (`thesisUrl`) sebagai tautan interaktif murni tanpa ikon tambahan, dapat diklik langsung di kanvas editor dan pratinjau PDF.
+- **Konsistensi Label GPA:** Layout ATS V1, Modern Photo, dan kanvas editor kini memuat label tebal `GPA: ` seragam persis seperti ATS V2.
+- **Tata Letak & Justify:** Baris thesis dirender dengan label tebal `Final Thesis:` dan teks rata kanan-kiri (*text-justify*).
+- **Skema Data:** Menambahkan field opsional `thesisTitle?: string` dan `thesisUrl?: string` pada `EducationItem` dan `ParsedEducationItemRaw`.
+
+### 1.29.0 — Document Link & Related Coursework in Education Section & All Layouts
+- **Pembaruan:** Menambahkan opsi pencantuman tautan dokumen (transkrip nilai, ijazah/sertifikat kelulusan) di samping nama gelar/degree dan input Related Coursework dengan perataan teks rata kanan-kiri (*text-justify*) pada section Education.
+- **Form Editor:** Field Document link (URL) dengan opsi Link label kustom (default ikon eksternal di samping nama gelar), serta field Related coursework untuk mendaftar mata kuliah relevan.
+- **Integrasi Layout:** Seluruh preset layout (`standard-ats-v1`, `standard-ats-v2`, `modern-photo`, dan pratinjau kanvas editor) merender tautan dokumen di samping nama gelar dan baris `Related Coursework:` berformat tebal dan rata kanan-kiri sebelum deskripsi.
+- **Skema Data:** Menambahkan field opsional `url?: string`, `urlLabel?: string`, dan `relatedCoursework?: string` pada `EducationItem` dan `ParsedEducationItemRaw`.
 
 ### 1.28.0 — OnboardingStepper & TaskSteps Redesign for Resume Creation
 - **Pembaruan:** Redesain modal pembuatan resume (`LayoutSelectModal`) mengadopsi komponen resmi Pillow Light:

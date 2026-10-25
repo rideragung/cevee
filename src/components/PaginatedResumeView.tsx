@@ -90,6 +90,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
           fontSize: geometry.fontSize,
           lineHeight: geometry.lineHeight,
           color: geometry.color,
+          fontSynthesis: 'none',
           zIndex: -999,
         }}
       >

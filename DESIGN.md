@@ -187,6 +187,32 @@ feedback only.
     - Saat tidak dicentang: Picker tanggal selesai kembali aktif untuk memilih bulan/tahun kelulusan spesifik.
   - Sort reverse-chronological: Utilitas `sortByPeriodDesc` memetakan `current: true` sebagai tanggal teratas (`HUGE` timestamp), memastikan pendidikan yang sedang ditempuh selalu berada di urutan teratas resume secara konsisten.
 
+## Education Section Document Link, Related Coursework & Final Thesis Pattern (2026-10-25)
+
+- **Form Editor `EducationSection`:**
+  - **Baris Document Link (Grid 2 Kolom):**
+    - Input `Document link`: Kolom URL untuk tautan transkrip nilai, ijazah, atau sertifikat kelulusan (Google Drive, cloud credential, atau portal kampus).
+    - Input `Link label`: Kolom teks label opsional (misal: "Transcripts"). Jika dikosongkan, di layout hanya akan menampilkan ikon eksternal `ExternalLink` di samping nama gelar tanpa simbol pemisah bullet.
+  - **Baris Related Coursework:**
+    - Input `Related coursework`: Kolom teks untuk mendaftar mata kuliah yang relevan dengan target posisi (misal: "Data Structures, Algorithms, Software Engineering, Database Systems").
+  - **Baris Final Thesis (Grid 2 Kolom):**
+    - Input `Final thesis`: Kolom teks untuk judul skripsi atau tugas akhir (misal: "Design and Implementation of Distributed Systems").
+    - Input `Thesis link`: Kolom URL untuk tautan naskah skripsi, publikasi ilmiah, repositori kode, atau Google Drive dokumen skripsi.
+- **Visual Rendering di Seluruh Layout:**
+  - **Baris Gelar / Degree (Line 1):**
+    - Tautan diletakkan di samping nama gelar dengan ikon `ExternalLink` berukuran proporsional (`10px` / `10.72pt`).
+    - Jika ada label kustom: `Gelar • [Label ↗]`
+    - Jika tanpa label: `Gelar [↗]`
+    - Menggunakan atribut `target="_blank" rel="noreferrer"` serta `e.stopPropagation()` pada kanvas editor agar klik langsung membuka tautan tanpa memicu edit mode.
+  - **Baris Institusi (Line 2):**
+    - Bersih menampilkan nama institusi dan GPA/IPK dengan awalan label `GPA: ` tebal (`font-bold text-slate-900`) di seluruh layout (V1, Modern Photo, V2) dan kanvas editor.
+  - **Baris Related Coursework (Line 3):**
+    - Ditampilkan sebelum deskripsi umum dengan label tebal dan perataan rata kanan-kiri (*justify*): `<div className="text-justify"><span className="font-bold">Related Coursework: </span>[Daftar Mata Kuliah]</div>`.
+  - **Baris Final Thesis (Line 4):**
+    - Ditampilkan jika `thesisTitle` terisi, sebelum deskripsi umum dengan label tebal dan perataan rata kanan-kiri (*justify*).
+    - Judul langsung meng-embed tautan `thesisUrl` sebagai hyperlink murni tanpa ikon tambahan (`<a href={item.thesisUrl} ... className="underline">{item.thesisTitle}</a>`). Jika URL kosong, judul ditampilkan sebagai teks biasa.
+    - Tipografi: Calibrated ATS font size `7.75pt` (V1 & Modern-Photo) / `8.41pt` (V2), line-height `1.48` / `12.61pt`.
+
 ## Resume Creation Modal: OnboardingStepper & TaskSteps (2026-10-22)
 
 - Redesain modal pembuatan resume (`LayoutSelectModal`) dengan adopsi komponen resmi **Pillow Light**:
@@ -240,6 +266,15 @@ feedback only.
     - Deskripsi: `Choose an ATS-friendly layout, import an existing PDF, or start with a clean template.` (Konkret, tanpa kata pengisi, menjelaskan opsi yang akan didapat).
     - Tombol Aksi Utama: `Create resume` dengan ikon `Plus`, shadow `shadow-pillow-primary`.
     - Eliminasi AI Slop: Seluruh butir teks centang pajangan dihilangkan agar layout tidak redundan dan fokus 100% pada call-to-action utama tanpa artefak dot separator yang berantakan saat wrap.
+
+## Review status (2026-10-25)
+
+PDF Export & Typographic Layer Audit:
+- **Zero Type 3 Fonts:** Preloading all Inter weights (`400`, `500`, `600`, `700`) via `document.fonts.load` + `await document.fonts.ready` before `window.print()` prevents Chromium synthetic bolding and eliminates Type 3 procedural font output (`/CharProcs`). All fonts embed cleanly as CID TrueType (Type0/CIDFontType2).
+- **Font Synthesis Guard:** Explicit `font-synthesis: none !important;` on `.a4-page-sheet`, `.resume-a4-page`, and `@media print` ensures browser engine never fakes bold outlines.
+- **Normal Letter-Spacing on Candidate Name & Calibrated Contact Density:** Candidate `h1` updated from `tracking-tight` (-0.025em) to `tracking-normal` / `letter-spacing: normal` to guarantee consistent ASCII `0x20` word space in ATS text extraction. Rest of header and body preserves calibrated Inter tracking (`-0.011em`) and relocation text merged into location span, ensuring dense contact information (location, relocation, email, phone, and 3+ portfolio links) fits cleanly in a single line on the 184mm A4 canvas.
+- **True Unicode Text Bullets (Layout 1, 2, 3):** Universal and reference bullet lists (`ul li::marker`) enforce `content: '•  ' !important;`, ensuring bullet dots are emitted as Unicode `U+2022` text characters in the PDF text layer rather than visual-only graphic circle paths. Layout 2 (`standard-ats-v2`) preserves exact `27.0217pt` text indent without `position: relative` stacking order displacement.
+- **ATS-Friendly Profile URLs as Plain Text:** `formatDisplayUrl` automatically renders clean destination URLs (e.g. `linkedin.com/in/username`, `behance.net/username`) instead of generic labels ("Linkedin", "Portfolio") in Layout 2 header text, so ATS text extractors (pdftotext, copy-paste) capture the actual profile URLs while preserving live hyperlinks.
 
 ## Review status (2026-10-20)
 

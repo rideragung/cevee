@@ -491,6 +491,11 @@ export function App() {
             endDate: '',
             current: false,
             gpa: '',
+            url: '',
+            urlLabel: '',
+            relatedCoursework: '',
+            thesisTitle: '',
+            thesisUrl: '',
             description: '',
           },
         ],
@@ -728,7 +733,7 @@ export function App() {
   };
 
   // Core print routine for a specific resume
-  const printResume = (resume: ResumeDocument) => {
+  const printResume = async (resume: ResumeDocument) => {
     const originalTitle = document.title;
     const cleanFullName = (resume.content.header.fullName || 'Candidate')
       .replace(/[/\\:*?"<>|]/g, '')
@@ -742,48 +747,74 @@ export function App() {
     document.title = `CV_${cleanFullName}_${cleanTitle}`;
     setIsPreviewOpen(false);
 
-    setTimeout(() => {
-      // Isolate print view: temporarily hide any foreign elements outside #root and any fixed widgets
-      const hiddenElements: { el: HTMLElement; prevDisplay: string; prevVisibility: string }[] = [];
+    // Preload & await all required fonts so Chromium embeds native CID TrueType instead of Type 3 faux-bold
+    try {
+      if (typeof document !== 'undefined' && 'fonts' in document) {
+        await Promise.all([
+          document.fonts.load('400 12px Inter'),
+          document.fonts.load('500 12px Inter'),
+          document.fonts.load('600 12px Inter'),
+          document.fonts.load('700 12px Inter'),
+          document.fonts.load('400 12px Arimo'),
+          document.fonts.load('700 12px Arimo'),
+          document.fonts.load('400 12px "Liberation Sans"'),
+          document.fonts.load('700 12px "Liberation Sans"'),
+        ]);
+        await document.fonts.ready;
+      }
+    } catch {
+      // Proceed even if font API rejects
+    }
 
-      Array.from(document.body.children).forEach((child) => {
-        if (child.id !== 'root' && child instanceof HTMLElement) {
-          hiddenElements.push({
-            el: child,
-            prevDisplay: child.style.display,
-            prevVisibility: child.style.visibility,
-          });
-          child.style.setProperty('display', 'none', 'important');
-          child.style.setProperty('visibility', 'hidden', 'important');
-        }
-      });
-
-      document.querySelectorAll('body *').forEach((node) => {
-        if (node instanceof HTMLElement && !node.closest('.print-only-area')) {
-          const comp = window.getComputedStyle(node);
-          if (comp.position === 'fixed') {
-            hiddenElements.push({
-              el: node,
-              prevDisplay: node.style.display,
-              prevVisibility: node.style.visibility,
-            });
-            node.style.setProperty('display', 'none', 'important');
-            node.style.setProperty('visibility', 'hidden', 'important');
-          }
-        }
-      });
-
-      window.print();
-
-      // Restore elements after print
-      setTimeout(() => {
-        hiddenElements.forEach(({ el, prevDisplay, prevVisibility }) => {
-          el.style.display = prevDisplay;
-          el.style.visibility = prevVisibility;
+    // Two animation frames to guarantee layout & paint pass with decoded fonts
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(resolve, 150);
         });
-        document.title = originalTitle;
-      }, 500);
-    }, 200);
+      });
+    });
+
+    // Isolate print view: temporarily hide any foreign elements outside #root and any fixed widgets
+    const hiddenElements: { el: HTMLElement; prevDisplay: string; prevVisibility: string }[] = [];
+
+    Array.from(document.body.children).forEach((child) => {
+      if (child.id !== 'root' && child instanceof HTMLElement) {
+        hiddenElements.push({
+          el: child,
+          prevDisplay: child.style.display,
+          prevVisibility: child.style.visibility,
+        });
+        child.style.setProperty('display', 'none', 'important');
+        child.style.setProperty('visibility', 'hidden', 'important');
+      }
+    });
+
+    document.querySelectorAll('body *').forEach((node) => {
+      if (node instanceof HTMLElement && !node.closest('.print-only-area')) {
+        const comp = window.getComputedStyle(node);
+        if (comp.position === 'fixed') {
+          hiddenElements.push({
+            el: node,
+            prevDisplay: node.style.display,
+            prevVisibility: node.style.visibility,
+          });
+          node.style.setProperty('display', 'none', 'important');
+          node.style.setProperty('visibility', 'hidden', 'important');
+        }
+      }
+    });
+
+    window.print();
+
+    // Restore elements after print
+    setTimeout(() => {
+      hiddenElements.forEach(({ el, prevDisplay, prevVisibility }) => {
+        el.style.display = prevDisplay;
+        el.style.visibility = prevVisibility;
+      });
+      document.title = originalTitle;
+    }, 500);
   };
 
   // Print the resume that was just activated, but only once it is actually

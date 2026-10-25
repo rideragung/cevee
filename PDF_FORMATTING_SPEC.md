@@ -59,7 +59,7 @@ Cevee menyediakan 2 varian preset layout untuk header:
 - **Nama Lengkap (`<h1>`):**
   - Font Size: `17pt` (~22.67px)
   - Font Weight: `700` (`font-bold`)
-  - Letter Spacing: `tracking-tight` (-0.025em / ~-0.56px)
+  - Letter Spacing: `normal` (`tracking-normal` / `letter-spacing: normal`)
   - Line Height: `leading-tight` (1.25)
   - Margin Bawah: `mb-0.5` (~2px)
   - Warna: `text-slate-900` (`#0f172a`)
@@ -92,7 +92,7 @@ Cevee menyediakan 2 varian preset layout untuk header:
   - Border Radius: `rounded-sm` (2px)
   - Kompresi Gambar: HTML5 Canvas center-crop `300 × 400 px` target ~25–40 KB.
 - **Blok Teks Kanan (Rata Kiri):**
-  - Nama Lengkap (`<h1>`): `text-[17pt] font-bold tracking-tight mb-0.5 leading-tight text-slate-900`
+  - Nama Lengkap (`<h1>`): `text-[17pt] font-bold tracking-normal mb-0.5 leading-tight text-slate-900` (`letterSpacing: normal`)
   - Roles: `text-[8.5pt] font-normal leading-tight mb-1 text-slate-800`
   - Kontak & Tautan: `text-[8.5pt] flex flex-wrap items-center justify-start gap-x-1 leading-tight text-slate-700`
 
@@ -194,16 +194,29 @@ Cevee menyediakan 2 varian preset layout untuk header:
 
 ### 3.7 Education Section
 
-- **Baris 1 (Gelar & Periode):**
+- **Baris 1 (Gelar, Tautan Dokumen & Periode):**
   - Tata Letak: `flex justify-between items-baseline font-bold text-slate-900 leading-snug`
   - **Gelar (Degree):** Font size `7.75pt`, Font weight `700` (`font-bold`), warna `text-slate-900`
+  - **Tautan Dokumen (Transkrip/Ijazah):**
+    - Berada langsung di samping nama gelar (degree) dalam elemen `<a>` (`target="_blank" rel="noreferrer"`).
+    - Tampilan: jika ada label kustom (`urlLabel`), ditampilkan format `Gelar • [urlLabel ↗]`; jika tanpa label, ditampilkan ikon `ExternalLink` (`10px` / `10.72pt`) langsung di samping nama gelar.
+    - Interaktivitas: `e.stopPropagation()` pada kanvas editor untuk membuka dokumen tanpa memicu edit mode.
   - **Periode:** Font size `7.75pt`, Font weight `600` (`font-semibold`), warna `text-slate-800`
 - **Baris 2 (Institusi & Nilai/IPK):**
   - Tata Letak: `flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]`
   - **Nama Institusi:** Font size `8pt`, Font weight `400` (`font-normal`), warna `text-slate-800`
-  - **GPA / IPK:** Font size `8pt`, Font weight `500` (`font-medium`), warna `text-slate-800`
-- **Deskripsi / Catatan Pendidikan:**
-  - Format paragraf / bullet: `text-[7.75pt] leading-[1.48] text-slate-800`
+  - **GPA / IPK:** Selalu memuat label **GPA: ** tebal (`font-bold text-slate-900`) diikuti nilai IPK (`font-medium text-slate-800`), konsisten di seluruh layout (V1, Modern Photo, V2) dan kanvas editor.
+- **Baris 3 (Related Coursework):**
+  - Ditampilkan jika `relatedCoursework` terisi, berada tepat sebelum deskripsi/thesis dengan perataan teks rata kanan-kiri (*justify*):
+    `<div className="mt-0.5 text-slate-800 text-justify text-[7.75pt] leading-[1.48]"><span className="font-bold text-slate-900">Related Coursework: </span>[Daftar Mata Kuliah]</div>`
+  - V2 Preset: `<div className="ref-part"><div className="ref-para text-justify"><span className="font-bold">Related Coursework: </span>[Daftar Mata Kuliah]</div></div>`
+- **Baris 4 (Final Thesis):**
+  - Ditampilkan jika `thesisTitle` terisi, dengan label tebal `Final Thesis: ` dan teks rata kanan-kiri (*justify*).
+  - Tautan dokumen di-embed langsung pada teks judul skripsi menggunakan elemen `<a>` (`underline`, hover warna primer, tanpa ikon eksternal). Jika `thesisUrl` kosong, judul ditampilkan sebagai teks biasa.
+  - V1 & Modern Photo: `<div className="mt-0.5 text-slate-800 text-justify text-[7.75pt] leading-[1.48]"><span className="font-bold text-slate-900">Final Thesis: </span>[Judul Skripsi]</div>`
+  - V2 Preset: `<div className="ref-part"><div className="ref-para text-justify"><span className="font-bold">Final Thesis: </span>[Judul Skripsi]</div></div>`
+- **Baris 5 (Deskripsi / Catatan Pendidikan):**
+  - Format paragraf / bullet: `text-[7.75pt] leading-[1.48] text-slate-800 text-justify`
   - Jarak atas: `mt-0.5` (~2px)
   - Jarak bawah: `mb-1.5` (~6px)
 
@@ -269,6 +282,40 @@ Cevee menggunakan aturan CSS murni berprioritas tinggi (`!important`) untuk menj
   font-size: 7.75pt !important;
   line-height: 1.48 !important;
 }
+
+/* Penegakan Karakter Teks Bullet Asli (Unicode U+2022) pada Layer Teks PDF (Layout 1 & 3) */
+.a4-page-sheet li::marker,
+.resume-a4-page li::marker,
+.a4-measure-container li::marker,
+.resume-bullet-list li::marker,
+.ProseMirror li::marker {
+  content: '•  ' !important;
+  font-family: inherit !important;
+  font-size: 7.75pt !important;
+  line-height: 1.48 !important;
+  color: inherit !important;
+}
+
+/* Penegakan Karakter Teks Bullet Asli (Unicode U+2022) pada Layout 2 (Standard ATS V2) */
+.a4-page-sheet[data-layout="standard-ats-v2"] .ref-bullet-list li,
+.a4-measure-container[data-layout="standard-ats-v2"] .ref-bullet-list li {
+  list-style-type: disc !important;
+  display: list-item !important;
+  margin: 0 !important;
+  margin-left: 27.0217pt !important;
+  padding: 0 !important;
+}
+.a4-page-sheet[data-layout="standard-ats-v2"] .ref-bullet-list li::marker,
+.a4-measure-container[data-layout="standard-ats-v2"] .ref-bullet-list li::marker {
+  content: '•  ' !important;
+  font-size: 8.40675pt !important;
+  line-height: 12.61013pt !important;
+  color: #212529 !important;
+}
+.a4-page-sheet[data-layout="standard-ats-v2"] .ref-bullet-list li::before,
+.a4-measure-container[data-layout="standard-ats-v2"] .ref-bullet-list li::before {
+  content: none !important;
+}
 ```
 
 ### Mekanisme Split-Bullet (Paginasi Lintas Halaman)
@@ -284,7 +331,7 @@ Ketika sebuah item pekerjaan memiliki banyak poin pencapaian, engine pemecah mem
 
 | Elemen Antarmuka | Ukuran Font (pt / px) | Bobot (Weight) | Tracking (Letter Spacing) | Line Height (Leading) | Margin Bawah |
 |---|---|---|---|---|---|
-| **Nama Kandidat (`h1`)** | `17pt` (~22.67px) | `700` (Bold) | `tracking-tight` (-0.025em) | `1.25` (`leading-tight`) | `mb-0.5` (~2px) |
+| **Nama Kandidat (`h1`)** | `17pt` (~22.67px) | `700` (Bold) | `normal` (`tracking-normal`) | `1.25` (`leading-tight`) | `mb-0.5` (~2px) |
 | **Headline / Roles** | `8.5pt` (~11.33px) | `400` (Normal) | normal | `1.25` (`leading-tight`) | `mb-1` (~4px) |
 | **Baris Kontak & Tautan** | `8.5pt` (~11.33px) | `400` (Normal) | normal | `1.25` (`leading-tight`) | `0` |
 | **Judul Section (`h2`)** | `8.5pt` (~11.33px) | `700` (Bold) | `tracking-wider` (+0.05em) | `1.0` (Uppercase) | `mb-1.5` (~6px) |
@@ -327,3 +374,5 @@ Paginasi Cevee diatur secara deterministik oleh komponen `PaginatedResumeView.ts
    - Semua elemen UI aplikasi (`navbar`, modal, tombol, tools editor, container ukur) disembunyikan menggunakan `display: none !important`.
    - Ekstensi pihak ketiga (audio player, reader mode, translasi) ditekan penuh melalui selektor `body > *:not(#root) { display: none !important; left: -99999px !important; }`.
    - Seluruh filter grafis, bayangan (`box-shadow`), teks bayangan (`text-shadow`), dan efek raster dinonaktifkan sehingga file PDF hasil unduh adalah teks biner vektor yang 100% terbaca oleh ATS (*Applicant Tracking Systems*).
+   - Penegakan `font-synthesis: none !important;` dan preloading seluruh bobot font (`400`, `500`, `600`, `700`) via `document.fonts.load` + `await document.fonts.ready` sebelum `window.print()` untuk menjamin Chromium menyematkan font native TrueType (CID Type0) dan mengeliminasi 100% font procedural Type 3.
+   - Penegakan `letter-spacing: normal` khusus pada `h1` (nama lengkap) untuk menjamin pemisahan kata (spasi ASCII 0x20) tanpa kerning jitter di semua parser ATS, sementara baris kontak dan teks body tetap mempertahankan tracking terkalibrasi Inter (`-0.011em`) agar informasi kontak padat muat dalam 1 baris utuh pada lebar efektif 184mm.

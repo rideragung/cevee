@@ -198,6 +198,7 @@
   color: #111827;
   font-size: 7.75pt;
   line-height: 1.48;
+  font-synthesis: none !important;
 }
 
 /* Resume Section Divider Line (sleek 0.5px hairline) */
@@ -260,6 +261,7 @@
   color: #111827;
   font-size: 7.75pt;
   line-height: 1.48;
+  font-synthesis: none !important;
   overflow: hidden;
   position: relative;
 }
@@ -290,6 +292,19 @@
   padding-left: 0.1rem !important;
   font-size: 7.75pt !important;
   line-height: 1.48 !important;
+}
+
+/* Force bullet point to be embedded as an actual Unicode text glyph (U+2022) in PDF text stream */
+.resume-a4-page ul li::marker,
+.a4-page-sheet ul li::marker,
+.a4-measure-container ul li::marker,
+.resume-bullet-list li::marker,
+.ProseMirror ul li::marker {
+  content: '•  ' !important;
+  font-family: inherit !important;
+  font-size: 7.75pt !important;
+  line-height: 1.48 !important;
+  color: inherit !important;
 }
 
 /* Universal Numbered/Ordered List Styling for Canvas, Preview, and Print */
@@ -470,9 +485,10 @@
     box-sizing: border-box !important;
     background: white !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+    font-synthesis: none !important;
   }
 
-  /* Force pure vector rendering & no raster filters in print */
+  /* Force pure vector rendering, true font embedding (no Type 3 faux-bold), & no raster filters in print */
   .print-only-area *,
   .a4-page-sheet * {
     box-shadow: none !important;
@@ -480,6 +496,7 @@
     filter: none !important;
     transform: none !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+    font-synthesis: none !important;
   }
 
   .a4-page-sheet a {

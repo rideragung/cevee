@@ -153,6 +153,7 @@ const ResumeContentThumbnailInner: React.FC<ResumeContentThumbnailProps> = ({
           fontSize: geometry.fontSize,
           lineHeight: geometry.lineHeight,
           color: geometry.color,
+          fontSynthesis: 'none',
           zIndex: -999,
         }}
       >

@@ -31,7 +31,7 @@ Cevee is a browser-based resume builder that renders a real A4 page while you ed
 
 ### Content
 
-- **Sections for every case.** Summary, Work Experience, Education, Projects, and Skills are built in; add Certifications, Languages, Publications, Awards, Volunteering, References, or a custom section.
+- **Sections for every case.** Summary, Work Experience, Education (with document links for transcripts/certificates, related coursework, and linked final thesis), Projects, and Skills are built in; add Certifications, Languages, Publications, Awards, Volunteering, References, or a custom section.
 - **Multiple resumes.** Create, duplicate, rename, and delete as many versions as you have applications, with quick preview available from the card menu or the list view.
 - **Mobile editing.** The editor reflows down to 320 px: the A4 canvas scrolls, controls become tappable, and the preview fits the screen.
 

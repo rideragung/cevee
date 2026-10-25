@@ -52,6 +52,11 @@ const PROMPT_SCHEMA_GUIDE = `Target JSON format:
       "endDate": "End Year",
       "current": false,
       "gpa": "3.85 / 4.00",
+      "url": "https://transcript-or-certificate-url.com",
+      "urlLabel": "Transcript",
+      "relatedCoursework": "Data Structures, Algorithms, Database Systems",
+      "thesisTitle": "Design and Implementation of Distributed Real-Time Systems",
+      "thesisUrl": "https://repository.university.edu/thesis/123",
       "description": "Additional activities or honors"
     }
   ],

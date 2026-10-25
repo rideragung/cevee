@@ -132,6 +132,11 @@ export function adaptParsedResumeToDocument(
     endDate: edu.endDate || '',
     current: Boolean(edu.current),
     gpa: edu.gpa || '',
+    url: edu.url || '',
+    urlLabel: edu.urlLabel || '',
+    relatedCoursework: edu.relatedCoursework || '',
+    thesisTitle: edu.thesisTitle || '',
+    thesisUrl: edu.thesisUrl || '',
     description: edu.description || '',
   }));
 

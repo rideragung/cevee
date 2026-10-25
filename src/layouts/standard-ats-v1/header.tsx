@@ -32,9 +32,10 @@ export const renderStandardAtsV1Header = (header: HeaderData): ReactNode => {
   return (
     <div className="resume-header text-center mb-0 pb-0.5">
       <h1
-        className={`text-[17pt] font-bold tracking-tight mb-0.5 leading-tight ${
+        className={`text-[17pt] font-bold tracking-normal mb-0.5 leading-tight ${
           header.isPlaceholder ? 'text-slate-400' : 'text-slate-900'
         }`}
+        style={{ letterSpacing: 'normal' }}
       >
         {header.fullName || 'Your Name'}
       </h1>
@@ -48,8 +49,10 @@ export const renderStandardAtsV1Header = (header: HeaderData): ReactNode => {
           header.isPlaceholder ? 'text-slate-400' : 'text-slate-700'
         }`}
       >
-        <span>{header.location || 'City, State/Country'}</span>
-        {isRelocating && ' (Willing to relocate)'}
+        <span>
+          {header.location || 'City, State/Country'}
+          {isRelocating && ' (Willing to relocate)'}
+        </span>
 
         <span>•</span>
         <a

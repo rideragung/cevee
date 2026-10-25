@@ -14,6 +14,7 @@ import { IconExternalLink as ExternalLink } from '@tabler/icons-react';
 import { getWhatsAppUrl } from '../../utils/whatsApp';
 import { sortByPeriodDesc } from '../../utils/periodSort';
 import { sanitizeHtml } from '../../utils/sanitize';
+import { formatDisplayUrl } from '../../utils/formatUrl';
 import { parseContentParts, renderContentPart, stripHtml } from '../core/content';
 import type { ContentBlock } from '../core/types';
 import {
@@ -88,7 +89,7 @@ const renderStandardAtsV2Header = (header: HeaderData): ReactNode => {
           <React.Fragment key={link.id || idx}>
             <span className="ref-sep"> • </span>
             <a href={link.url || '#'} target="_blank" rel="noreferrer" className="ref-link">
-              {link.label}
+              {formatDisplayUrl(link.url, link.label)}
             </a>
           </React.Fragment>
         ))}
@@ -345,16 +346,29 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
         list.push({
           id: `item-${section.id}-placeholder`,
           type: 'item',
-          height: 44.44,
+          height: 69.66,
           render: () => (
             <div className="text-slate-400 space-y-0.5">
               <div className="flex justify-between items-baseline leading-snug">
-                <span className="font-bold text-slate-400">Bachelor of Computer Science</span>
+                <span className="font-bold text-slate-400 inline-flex items-center gap-1">
+                  <span>Bachelor of Computer Science</span>
+                  <span className="font-normal text-slate-400">•</span>
+                  <span className="text-[7.75pt] underline font-normal">(Transcript)</span>
+                  <ExternalLink size={11} className="inline opacity-70 flex-shrink-0 text-slate-400" />
+                </span>
                 <span className="font-semibold text-slate-400 text-[8.41pt]">May 2022 - Present</span>
               </div>
               <div className="flex justify-between items-baseline leading-snug text-[8.41pt]">
                 <span>Name of the Educational Institution</span>
                 <span className="font-medium text-slate-400">GPA: 4.0 of 4.0</span>
+              </div>
+              <div className="text-slate-400 text-justify text-[8.41pt] leading-[12.61pt]">
+                <span className="font-bold text-slate-400">Related Coursework: </span>
+                Data Structures, Algorithms, Software Engineering, Database Systems
+              </div>
+              <div className="text-slate-400 text-justify text-[8.41pt] leading-[12.61pt]">
+                <span className="font-bold text-slate-400">Final Thesis: </span>
+                <span className="underline">Design and Implementation of Distributed Real-Time Systems</span>
               </div>
               <div className="text-slate-400 text-[8.41pt] leading-[12.61pt]">
                 E.g., info about scholarships, student activity, etc.
@@ -373,7 +387,43 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
             render: () => (
               <>
                 <div className="ref-row">
-                  <span>{item.degree}</span>
+                  <span>
+                    <span>{item.degree}</span>
+                    {item.url && (
+                      <>
+                        {item.urlLabel ? (
+                          <>
+                            <span className="ref-sep"> • </span>
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="ref-mail hover:underline inline-flex items-center gap-0.5"
+                              title={item.url}
+                              aria-label={item.urlLabel}
+                            >
+                              <span>{item.urlLabel}</span>
+                              <ExternalLink size={10.72} className="ref-ext-icon" />
+                            </a>
+                          </>
+                        ) : (
+                          <>
+                            {' '}
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="ref-mail hover:underline inline-flex items-center"
+                              title={item.url}
+                              aria-label="Education document link"
+                            >
+                              <ExternalLink size={10.72} className="ref-ext-icon" />
+                            </a>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </span>
                   <span>{item.period}</span>
                 </div>
                 <div className="ref-row ref-row-plain">
@@ -388,6 +438,54 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
               </>
             ),
           });
+
+          if (item.relatedCoursework) {
+            const cwText = `Related Coursework: ${item.relatedCoursework}`;
+            const lines = Math.max(1, Math.ceil(cwText.length / 134));
+            list.push({
+              id: `item-${section.id}-${item.id}-coursework`,
+              type: 'item-bullet',
+              height: lines * 16.8135,
+              render: () => (
+                <div className="ref-part">
+                  <div className="ref-para text-justify">
+                    <span className="font-bold">Related Coursework: </span>
+                    <span>{item.relatedCoursework}</span>
+                  </div>
+                </div>
+              ),
+            });
+          }
+
+          if (item.thesisTitle) {
+            const thText = `Final Thesis: ${item.thesisTitle}`;
+            const lines = Math.max(1, Math.ceil(thText.length / 134));
+            list.push({
+              id: `item-${section.id}-${item.id}-thesis`,
+              type: 'item-bullet',
+              height: lines * 16.8135,
+              render: () => (
+                <div className="ref-part">
+                  <div className="ref-para text-justify">
+                    <span className="font-bold">Final Thesis: </span>
+                    {item.thesisUrl ? (
+                      <a
+                        href={item.thesisUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ref-mail hover:underline"
+                        title={item.thesisUrl}
+                      >
+                        {item.thesisTitle}
+                      </a>
+                    ) : (
+                      <span>{item.thesisTitle}</span>
+                    )}
+                  </div>
+                </div>
+              ),
+            });
+          }
 
           descBlocks.forEach((part, bIdx: number) => {
             list.push({

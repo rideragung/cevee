@@ -401,16 +401,29 @@ export const buildSingleColumnBlocks = (
         list.push({
           id: `item-${section.id}-placeholder`,
           type: 'item',
-          height: 40,
+          height: 68,
           render: () => (
             <div className="mb-1.5 text-slate-400 space-y-0.5">
               <div className="flex justify-between items-baseline leading-snug">
-                <span className="font-bold text-slate-400">Bachelor of Computer Science</span>
+                <span className="font-bold text-slate-400 inline-flex items-center gap-1">
+                  <span>Bachelor of Computer Science</span>
+                  <span className="font-normal text-slate-400">•</span>
+                  <span className="text-[7.75pt] underline font-normal">(Transcript)</span>
+                  <ExternalLink size={10} className="inline opacity-70 flex-shrink-0 text-slate-400" />
+                </span>
                 <span className="font-semibold text-slate-400 text-[7.75pt]">May 2022 - Present</span>
               </div>
               <div className="flex justify-between items-baseline leading-snug text-[8pt]">
                 <span>Name of the Educational Institution</span>
                 <span className="font-medium text-slate-400">GPA: 4.0 of 4.0</span>
+              </div>
+              <div className="text-slate-400 text-justify text-[7.75pt] leading-snug">
+                <span className="font-bold text-slate-400">Related Coursework: </span>
+                Data Structures, Algorithms, Software Engineering, Database Systems
+              </div>
+              <div className="text-slate-400 text-justify text-[7.75pt] leading-snug">
+                <span className="font-bold text-slate-400">Final Thesis: </span>
+                <span className="underline">Design and Implementation of Distributed Real-Time Systems</span>
               </div>
               <div className="text-slate-400 text-[7.75pt] leading-snug">
                 E.g., info about scholarships, student activity, etc.
@@ -431,16 +444,86 @@ export const buildSingleColumnBlocks = (
             render: () => (
               <>
                 <div className="flex justify-between items-baseline font-bold leading-snug text-slate-900">
-                  <span>{item.degree}</span>
+                  <span className="inline-flex items-baseline flex-wrap gap-x-1">
+                    <span>{item.degree}</span>
+                    {item.url && (
+                      <>
+                        {item.urlLabel && <span className="font-normal text-slate-500">•</span>}
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-0.5 text-[7.75pt] font-semibold text-slate-800 hover:text-blue-700 underline group/link"
+                          title={item.url}
+                          aria-label={item.urlLabel || 'Education document link'}
+                        >
+                          {item.urlLabel && <span>{item.urlLabel}</span>}
+                          <ExternalLink
+                            size={10}
+                            className="inline opacity-80 group-hover/link:opacity-100 flex-shrink-0 text-slate-700"
+                          />
+                        </a>
+                      </>
+                    )}
+                  </span>
                   <span className="font-semibold text-[7.75pt] text-slate-800">{item.period}</span>
                 </div>
                 <div className="flex justify-between items-baseline leading-snug text-slate-800 text-[8pt]">
                   <span>{item.institution}</span>
-                  {item.gpa && <span className="font-medium text-slate-800">{item.gpa}</span>}
+                  {item.gpa && (
+                    <span className="font-medium text-slate-800">
+                      <span className="font-bold text-slate-900">GPA: </span>
+                      {item.gpa.replace(/^\s*GPA\s*:\s*/i, '')}
+                    </span>
+                  )}
                 </div>
               </>
             ),
           });
+
+          if (item.relatedCoursework) {
+            const cwLines = Math.max(1, Math.ceil((item.relatedCoursework.length + 20) / 95));
+            const hasNext = Boolean(item.thesisTitle || descBlocks.length > 0);
+            list.push({
+              id: `item-${section.id}-${item.id}-coursework`,
+              type: 'item-bullet',
+              height: cwLines * 14.5 + (hasNext ? 2 : 0),
+              render: () => (
+                <div className={`mt-0.5 text-slate-800 text-justify text-[7.75pt] leading-[1.48] ${!hasNext && !isLastItem ? 'mb-1.5' : ''}`}>
+                  <span className="font-bold text-slate-900">Related Coursework: </span>
+                  <span>{item.relatedCoursework}</span>
+                </div>
+              ),
+            });
+          }
+
+          if (item.thesisTitle) {
+            const thLines = Math.max(1, Math.ceil((item.thesisTitle.length + 15) / 95));
+            const hasDesc = descBlocks.length > 0;
+            list.push({
+              id: `item-${section.id}-${item.id}-thesis`,
+              type: 'item-bullet',
+              height: thLines * 14.5 + (hasDesc ? 2 : 0),
+              render: () => (
+                <div className={`mt-0.5 text-slate-800 text-justify text-[7.75pt] leading-[1.48] ${!hasDesc && !isLastItem ? 'mb-1.5' : ''}`}>
+                  <span className="font-bold text-slate-900">Final Thesis: </span>
+                  {item.thesisUrl ? (
+                    <a
+                      href={item.thesisUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-slate-800 hover:text-blue-700 underline"
+                      title={item.thesisUrl}
+                    >
+                      {item.thesisTitle}
+                    </a>
+                  ) : (
+                    <span>{item.thesisTitle}</span>
+                  )}
+                </div>
+              ),
+            });
+          }
 
           descBlocks.forEach((part, bIdx: number) => {
             const isLast = bIdx === descBlocks.length - 1;
@@ -449,14 +532,14 @@ export const buildSingleColumnBlocks = (
               type: 'item-bullet',
               height: estimateContentPartHeight(part),
               render: () => (
-                <div className={`${bIdx === 0 ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLast && !isLastItem ? 'mb-1.5' : ''}`}>
+                <div className={`${bIdx === 0 && !item.relatedCoursework && !item.thesisTitle ? 'mt-0.5' : part.kind === 'list' ? 'mt-[0.12rem]' : ''} ${isLast && !isLastItem ? 'mb-1.5' : ''}`}>
                   {renderContentPart(part, CONTENT_PART_CLASSES)}
                 </div>
               ),
             });
           });
 
-          if (descBlocks.length === 0) {
+          if (descBlocks.length === 0 && !item.relatedCoursework && !item.thesisTitle) {
             list.push({
               id: `item-${section.id}-${item.id}-spacer`,
               type: 'item-bullet',
