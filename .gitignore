@@ -38,3 +38,7 @@ opencode.json
 # Vercel CLI
 .vercel
 .env*
+
+# Agent Skills (managed via local Skills Vault)
+.agents/skills/
+
