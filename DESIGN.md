@@ -271,12 +271,13 @@ feedback only.
 
 - Pemisahan tegas antara **bahasa aplikasi web** (tetap English US) dan **bahasa dokumen resume** (`en` / `id` per `ResumeDocument`):
   - **Editor Navbar (`Navbar.tsx`):**
-    - Trigger menggunakan `Button` `variant="secondary"` `size="sm"` (`h-8 gap-1.5 px-2 sm:px-2.5 text-xs font-medium`) dengan ikon fungsional `IconLanguage`, kode aktif (`EN` / `ID`), panah `ChevronDown`, serta hit-area guard vertikal (`after:absolute after:-inset-y-1.5 after:-inset-x-0.5`).
+    - Trigger menggunakan `Button` `variant="secondary"` `size="sm"` (`h-8 gap-1.5 px-2 sm:px-2.5 text-xs font-medium`) dengan ikon fungsional `IconLanguage`, kode aktif (`EN` / `ID`), panah `ChevronDown`, tooltip verba `"Change resume language"`, serta hit-area guard vertikal (`after:absolute after:-inset-y-1.5 after:-inset-x-0.5`).
+    - UX Writing dropdown disederhanakan agar ramah pengguna dan bebas repetisi teknis: satu kalimat penjelas yang langsung menjawab keraguan utama pengguna (*"Updates section titles and dates without changing what you wrote."*) diikuti dua item satu baris bersih (`English` · `EN`, `Bahasa Indonesia` · `ID`).
     - Penataan tiga zona navbar (`Left`, `Center`, `Right`) menggunakan `justify-between` dengan `shrink-0` pada sisi kiri dan kanan serta `min-w-0` pada pemilih judul di tengah agar tombol tidak pernah bertabrakan di atas lebar kanvas `210mm` maupun layar mobile `320px-390px`.
     - Tetap menjaga satu CTA primer (`Download PDF`) per layar.
   - **Modal Pembuatan Resume (`LayoutSelectModal.tsx` Step 2):**
-    - Pemilih `Resume language` ditempatkan dalam grid 2 kolom (`sm:grid-cols-[minmax(0,1fr)_14.5rem]`) sejajar horizontal dengan input `Resume title` (`flex h-4 items-center` pada kedua baris label sehingga koordinat Y kontrol input identik presisi).
-    - Menggunakan segmented radio group 2 opsi (`English` | `Indonesia`) di dalam permukaan `rounded-[0.875rem] border border-border bg-muted/60 p-0.5` dengan pil aktif `rounded-[0.75rem] bg-card shadow-2xs`, menjaga Step 2 bebas scroll vertikal berlebih.
+    - Pemilih `Resume language` ditempatkan dalam grid 2 kolom (`sm:grid-cols-[minmax(0,1fr)_16rem]`) sejajar horizontal dengan input `Resume title` (`flex h-4 items-center` pada kedua baris label sehingga koordinat Y kontrol input identik presisi).
+    - Menggunakan segmented radio group 2 opsi (`English` | `Bahasa Indonesia`) di dalam permukaan `rounded-[0.875rem] border border-border bg-muted/60 p-0.5` dengan pil aktif `rounded-[0.75rem] bg-card shadow-2xs` dan helper text natural (*"Used for section titles and dates on your resume."*), menjaga Step 2 bebas scroll vertikal berlebih.
   - **Dashboard Metadata (`ResumeDashboard.tsx`):**
     - Menampilkan lencana `Badge variant="outline"` (`EN` / `ID`) berdampingan dengan lencana layout pada kartu resume sehingga pengguna dapat langsung mengenali versi bahasa tiap CV.
 

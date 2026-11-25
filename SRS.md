@@ -331,8 +331,8 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
   - Antarmuka aplikasi web Cevee (navbar, tombol, modal dialog, form label editor, dan dashboard) tetap menggunakan standar `English (US)`.
   - Setiap dokumen resume memiliki pengaturan bahasa mandiri (`content.language?: 'en' | 'id'`, default `'en'`) yang tersimpan di dalam kolom JSONB `content` Supabase dan `localStorage` tanpa memerlukan migrasi tabel SQL.
 - **FR-14.2 (Kontrol Pemilihan & Pergantian Bahasa Resume):**
-  - **Saat Pembuatan CV Baru (`LayoutSelectModal` Step 2):** Menyediakan kontrol radio tersegmentasi `Resume language` (`English` | `Indonesia`) sejajar di samping input `Resume title`, berlaku untuk pembuatan template kosong (*Blank template*) maupun ekstraksi PDF (*Scan & import from PDF*).
-  - **Di Dalam Kanvas Editor (`Navbar`):** Menyediakan menu dropdown `Resume language` (`EN` / `ID`) pada bilah atas editor (tampil baik di desktop maupun mobile) untuk mengganti bahasa resume kapan saja secara reaktif.
+  - **Saat Pembuatan CV Baru (`LayoutSelectModal` Step 2):** Menyediakan kontrol radio tersegmentasi `Resume language` (`English` | `Bahasa Indonesia`) sejajar di samping input `Resume title` dengan teks bantu ramah pengguna (*"Used for section titles and dates on your resume."*), berlaku untuk pembuatan template kosong (*Blank template*) maupun ekstraksi PDF (*Scan & import from PDF*).
+  - **Di Dalam Kanvas Editor (`Navbar`):** Menyediakan menu dropdown `Resume language` (`EN` / `ID`) pada bilah atas editor (tampil baik di desktop maupun mobile) dengan penjelasan ringkas yang menjawab keraguan pengguna (*"Updates section titles and dates without changing what you wrote."*) untuk mengganti bahasa resume kapan saja secara reaktif.
   - **Indikator Dashboard (`ResumeDashboard`):** Kartu resume menampilkan lencana kode bahasa (`EN` / `ID`) di samping nama layout agar pengguna yang memiliki CV multi-bahasa dapat membedakan dokumen secara instan.
 - **FR-14.3 (Cakupan Lokalisasi Deterministik & Preservasi Konten Pengguna):**
   - Mengganti bahasa resume (`switchResumeLanguage` di `src/utils/resumeLocale.ts`) hanya memperbarui elemen struktural/template tanpa menimpa kalimat yang telah diketik pengguna:
@@ -683,7 +683,7 @@ export interface ResumeDocument {
   - Seluruh antarmuka web tetap berbahasa Inggris (`English US`), sementara konten struktural dokumen A4 mengikuti bahasa resume masing-masing.
 - **Kontrol Pengubah Bahasa di Editor & Pembuatan CV (`Navbar.tsx`, `LayoutSelectModal.tsx`, `ResumeDashboard.tsx`):**
   - Menambahkan dropdown `Resume language` (`EN` / `ID`) pada `Navbar` editor (desktop & mobile) tanpa tumpang tindih layout (`shrink-0` tiga zona sejajar).
-  - Menambahkan pemilih radio tersegmentasi `Resume language` (`English` | `Indonesia`) di Step 2 `LayoutSelectModal` (sejajar vertikal presisi dengan input `Resume title`) untuk alur template kosong maupun import PDF AI.
+  - Menambahkan pemilih radio tersegmentasi `Resume language` (`English` | `Bahasa Indonesia`) di Step 2 `LayoutSelectModal` (sejajar vertikal presisi dengan input `Resume title`) untuk alur template kosong maupun import PDF AI.
   - Menambahkan lencana kode bahasa (`EN` / `ID`) pada kartu dan daftar resume di `ResumeDashboard`.
 - **Lokalisasi Penuh Seluruh Preset Layout, Tanggal, dan Label `IPK:`:**
   - Mengonversi judul section standar, status relokasi (`(Bersedia relokasi)` / `| Bersedia relokasi`), label pendidikan (`GPA:` ↔ `IPK:`, `Related Coursework:` ↔ `Mata Kuliah Relevan:`, `Final Thesis:` ↔ `Tugas Akhir:`), label sertifikasi (`Credential ID:` ↔ `ID Kredensial:`, `by` ↔ `oleh`), periode tanggal (`May`/`Aug`/`Oct`/`Dec` ↔ `Mei`/`Agu`/`Okt`/`Des`, `Present` ↔ `Sekarang`), serta teks placeholder A4 secara identik 1:1 di kanvas editor, `ResumeContentThumbnail`, `PaginatedResumeView`, dan cetak PDF (`standard-ats-v1`, `modern-photo`, `standard-ats-v2`).

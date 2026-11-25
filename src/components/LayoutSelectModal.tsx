@@ -389,7 +389,7 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
               </div>
 
               {/* Resume Title + Resume Language Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_14.5rem] gap-3.5 items-start">
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_16rem] gap-3.5 items-start">
                 <div className="space-y-1.5">
                   <label
                     htmlFor="resume-custom-title"
@@ -442,13 +442,13 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
                               : 'font-medium text-muted-foreground [@media(hover:hover)]:hover:text-foreground',
                           )}
                         >
-                          <span>{opt.id === 'id' ? 'Indonesia' : opt.label}</span>
+                          <span>{opt.label}</span>
                         </button>
                       );
                     })}
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Sets section headings, GPA / IPK, and dates.
+                    Used for section titles and dates on your resume.
                   </p>
                 </div>
               </div>

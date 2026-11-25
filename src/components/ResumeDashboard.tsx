@@ -702,8 +702,8 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                             className="text-[10px] font-semibold py-0.5 px-1.5 text-muted-foreground"
                             title={
                               normalizeResumeLanguage(resume.content.language) === 'id'
-                                ? 'Resume language: Bahasa Indonesia'
-                                : 'Resume language: English'
+                                ? 'Bahasa Indonesia resume'
+                                : 'English resume'
                             }
                           >
                             {normalizeResumeLanguage(resume.content.language).toUpperCase()}

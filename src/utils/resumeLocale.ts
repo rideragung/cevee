@@ -16,7 +16,6 @@ export interface ResumeLanguageOption {
   id: ResumeLanguage;
   label: string;
   shortLabel: string;
-  description: string;
 }
 
 export const RESUME_LANGUAGE_OPTIONS: readonly ResumeLanguageOption[] = [
@@ -24,13 +23,11 @@ export const RESUME_LANGUAGE_OPTIONS: readonly ResumeLanguageOption[] = [
     id: 'en',
     label: 'English',
     shortLabel: 'EN',
-    description: 'Headings, GPA, and dates in English',
   },
   {
     id: 'id',
     label: 'Bahasa Indonesia',
     shortLabel: 'ID',
-    description: 'Headings, IPK, and dates in Indonesian',
   },
 ];
 
@@ -440,7 +437,7 @@ const RESUME_LOCALES: Record<ResumeLanguage, ResumeLocaleStrings> = {
     placeholderDegree: 'Sarjana Ilmu Komputer',
     placeholderTranscript: '(Transkrip)',
     placeholderInstitution: 'Nama Institusi Pendidikan',
-    placeholderGpa: 'IPK: 4.00 dari 4.00',
+    placeholderGpa: 'IPK: 4.00 / 4.00',
     placeholderCoursework:
       'Struktur Data, Algoritma, Rekayasa Perangkat Lunak, Sistem Basis Data',
     placeholderThesis: 'Perancangan dan Implementasi Sistem Real-Time Terdistribusi',
@@ -450,8 +447,8 @@ const RESUME_LOCALES: Record<ResumeLanguage, ResumeLocaleStrings> = {
     placeholderCertPeriod: 'Jan 2025 - Jan 2028',
     placeholderLanguages: [
       { name: 'Bahasa Indonesia', proficiency: 'Penutur asli' },
-      { name: 'Bahasa Inggris', proficiency: 'Kemahiran kerja profesional' },
-      { name: 'Bahasa Jepang', proficiency: 'Kemahiran kerja menengah' },
+      { name: 'Bahasa Inggris', proficiency: 'Kemahiran profesional' },
+      { name: 'Bahasa Jepang', proficiency: 'Menengah' },
     ],
     placeholderPubTitle: 'Judul Publikasi (Penerbit)',
     placeholderPubPeriod: 'Mei 2022',

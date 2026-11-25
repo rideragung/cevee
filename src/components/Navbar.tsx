@@ -254,8 +254,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     variant="secondary"
                     size="sm"
                     className="relative h-8 gap-1.5 px-2 sm:px-2.5 text-xs font-medium flex-shrink-0 after:absolute after:-inset-y-1.5 after:-inset-x-0.5 after:content-['']"
-                    title={`Resume language: ${activeLangOption.label}`}
-                    aria-label={`Resume language: ${activeLangOption.label}`}
+                    title="Change resume language"
+                    aria-label={`Change resume language, currently ${activeLangOption.label}`}
                   >
                     <LanguageIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
                     <span className="font-semibold">{activeLangOption.shortLabel}</span>
@@ -266,8 +266,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <DropdownMenuLabel className="pb-0.5 text-xs font-semibold text-foreground">
                     Resume language
                   </DropdownMenuLabel>
-                  <p className="px-2 pb-1.5 text-[11px] leading-snug text-muted-foreground">
-                    Changes headings, labels (GPA / IPK), and dates in this resume only.
+                  <p className="px-2 pb-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                    Updates section titles and dates without changing what you wrote.
                   </p>
                   <DropdownMenuSeparator />
                   {RESUME_LANGUAGE_OPTIONS.map((opt) => {
@@ -280,20 +280,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                             onChangeResumeLanguage(opt.id);
                           }
                         }}
-                        className="flex items-center justify-between gap-2 text-xs cursor-pointer py-2"
+                        className="flex items-center justify-between gap-2 text-xs cursor-pointer"
                       >
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 font-medium text-foreground">
-                            <span>{opt.label}</span>
-                            <span className="text-[10px] font-semibold text-muted-foreground">
-                              ({opt.shortLabel})
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            {opt.description}
-                          </p>
-                        </div>
-                        {isSelected && <Check className="size-3.5 text-primary shrink-0" />}
+                        <span className="font-medium text-foreground">{opt.label}</span>
+                        <span className="inline-flex items-center gap-1.5 shrink-0">
+                          <span className="text-[11px] text-muted-foreground">
+                            {opt.shortLabel}
+                          </span>
+                          {isSelected && <Check className="size-3.5 text-primary" />}
+                        </span>
                       </DropdownMenuItem>
                     );
                   })}
