@@ -5,6 +5,8 @@ import {
   IconChevronRight as ChevronRight,
   IconX as X,
 } from '@tabler/icons-react';
+import { ResumeLanguage } from '../types/resume';
+import { MONTH_TOKEN_TO_INDEX, getShortMonths } from '../utils/resumeLocale';
 
 interface DatePickerProps {
   value: string;
@@ -13,27 +15,8 @@ interface DatePickerProps {
   disabled?: boolean;
   className?: string;
   ariaLabel?: string;
+  resumeLanguage?: ResumeLanguage;
 }
-
-const MONTHS_SHORT = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-];
-
-const MONTHS_FULL: Record<string, number> = {
-  january: 0, jan: 0,
-  february: 1, feb: 1,
-  march: 2, mar: 2,
-  april: 3, apr: 3,
-  may: 4,
-  june: 5, jun: 5,
-  july: 6, jul: 6,
-  august: 7, aug: 7,
-  september: 8, sept: 8, sep: 8,
-  october: 9, oct: 9,
-  november: 10, nov: 10,
-  december: 11, dec: 11
-};
 
 export const DatePicker: React.FC<DatePickerProps> = ({
   value,
@@ -42,7 +25,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   disabled = false,
   className = '',
   ariaLabel,
+  resumeLanguage = 'en',
 }) => {
+  const monthsShort = getShortMonths(resumeLanguage);
   const [isOpen, setIsOpen] = useState(false);
   const [align, setAlign] = useState<'left' | 'right'>('left');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -73,8 +58,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     let parsedMonth: number | null = null;
 
     for (const w of words) {
-      if (MONTHS_FULL[w] !== undefined) {
-        parsedMonth = MONTHS_FULL[w];
+      if (MONTH_TOKEN_TO_INDEX[w] !== undefined) {
+        parsedMonth = MONTH_TOKEN_TO_INDEX[w];
         break;
       }
     }
@@ -109,7 +94,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   }, [isOpen]);
 
   const handleSelectMonth = (monthIndex: number) => {
-    const formatted = `${MONTHS_SHORT[monthIndex]} ${viewYear}`;
+    const formatted = `${monthsShort[monthIndex]} ${viewYear}`;
     onChange(formatted);
     setIsOpen(false);
   };
@@ -117,7 +102,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const handleCurrentMonth = () => {
     const now = new Date();
     setViewYear(now.getFullYear());
-    onChange(`${MONTHS_SHORT[now.getMonth()]} ${now.getFullYear()}`);
+    onChange(`${monthsShort[now.getMonth()]} ${now.getFullYear()}`);
     setIsOpen(false);
   };
 
@@ -214,7 +199,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
           {/* Month Grid (4 columns x 3 rows) */}
           <div className="grid grid-cols-4 gap-1.5 py-1">
-            {MONTHS_SHORT.map((month, idx) => {
+            {monthsShort.map((month, idx) => {
               const isSelected = parsed.year === viewYear && parsed.month === idx;
 
               return (

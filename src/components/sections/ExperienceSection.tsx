@@ -1,16 +1,28 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
-import { ExperienceItem, ExperiencePosition } from '../../types/resume';
+import {
+  ExperienceItem,
+  ExperiencePosition,
+  ResumeLanguage,
+  ResumeSectionPresetKey,
+} from '../../types/resume';
 import { IconPlus as Plus, IconTrash as Trash2, IconTrendingUp as TrendingUp } from '@tabler/icons-react';
 import { RichTextEditor } from '../RichTextEditor';
 import { DatePicker } from '../DatePicker';
 import { sortByPeriodDesc } from '../../utils/periodSort';
 import { sanitizeHtml } from '../../utils/sanitize';
+import {
+  detectSectionPresetKey,
+  formatComputedPeriod,
+  getResumeLocale,
+} from '../../utils/resumeLocale';
 
 interface ExperienceSectionProps {
   title: string;
+  presetKey?: ResumeSectionPresetKey;
   isPlaceholder?: boolean;
   data: { items: ExperienceItem[] };
+  resumeLanguage?: ResumeLanguage;
   onRename: (title: string) => void;
   onUpdateData: (data: { items: ExperienceItem[] }, isPlaceholder?: boolean) => void;
   onMoveUp: () => void;
@@ -20,7 +32,7 @@ interface ExperienceSectionProps {
   isLast: boolean;
 }
 
-const normalizeItem = (item: ExperienceItem): ExperienceItem => {
+const normalizeItem = (item: ExperienceItem, defaultBulletPrompt: string): ExperienceItem => {
   if (item.positions && item.positions.length > 0) {
     return item;
   }
@@ -34,7 +46,7 @@ const normalizeItem = (item: ExperienceItem): ExperienceItem => {
         startDate: item.startDate || '',
         endDate: item.endDate || '',
         current: item.current || false,
-        bullets: item.bullets || '<ul><li>Describe your responsibilities and achievements...</li></ul>',
+        bullets: item.bullets || defaultBulletPrompt,
       },
     ],
   };
@@ -42,8 +54,10 @@ const normalizeItem = (item: ExperienceItem): ExperienceItem => {
 
 export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
   title,
+  presetKey,
   isPlaceholder = false,
   data,
+  resumeLanguage = 'en',
   onRename,
   onUpdateData,
   onMoveUp,
@@ -52,26 +66,20 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
   isFirst,
   isLast,
 }) => {
+  const locale = getResumeLocale(resumeLanguage);
   const [isEditing, setIsEditing] = useState(false);
   const [items, setItems] = useState<ExperienceItem[]>(() =>
-    sortByPeriodDesc((data.items || []).map(normalizeItem))
+    sortByPeriodDesc((data.items || []).map((it) => normalizeItem(it, locale.defaultBulletPrompt)))
   );
-  const isOrgVol = title.toUpperCase().includes('ORGANIZATIONAL') || title.toUpperCase().includes('VOLUNTEER');
+  const isOrgVol =
+    detectSectionPresetKey({ type: 'experience', title, presetKey }) === 'volunteering';
 
   const computePeriod = (item: {
     startDate?: string;
     endDate?: string;
     current?: boolean;
     period?: string;
-  }) => {
-    if (item.current) {
-      return item.startDate ? `${item.startDate} - Present` : 'Present';
-    }
-    if (item.startDate && item.endDate) {
-      return `${item.startDate} - ${item.endDate}`;
-    }
-    return item.startDate || item.endDate || item.period || '';
-  };
+  }) => formatComputedPeriod(item, resumeLanguage);
 
   const handleSave = () => {
     const updated = items.map((it) => {
@@ -127,7 +135,9 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
   };
 
   const handleCancel = () => {
-    setItems(sortByPeriodDesc((data.items || []).map(normalizeItem)));
+    setItems(
+      sortByPeriodDesc((data.items || []).map((it) => normalizeItem(it, locale.defaultBulletPrompt)))
+    );
     setIsEditing(false);
   };
 
@@ -142,7 +152,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
       startDate: '',
       endDate: '',
       current: false,
-      bullets: '<ul><li>Describe your responsibilities and achievements...</li></ul>',
+      bullets: locale.defaultBulletPrompt,
       positions: [
         {
           id: `pos-${newId}-0`,
@@ -151,7 +161,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
           startDate: '',
           endDate: '',
           current: false,
-          bullets: '<ul><li>Describe your responsibilities and achievements...</li></ul>',
+          bullets: locale.defaultBulletPrompt,
         },
       ],
     };
@@ -182,7 +192,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
             startDate: it.startDate || '',
             endDate: it.endDate || '',
             current: it.current || false,
-            bullets: it.bullets || '<ul><li>Describe your responsibilities and achievements...</li></ul>',
+            bullets: it.bullets || locale.defaultBulletPrompt,
           },
         ];
         const newPos: ExperiencePosition = {
@@ -192,7 +202,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
           startDate: '',
           endDate: '',
           current: false,
-          bullets: '<ul><li>Describe your responsibilities and achievements for this role...</li></ul>',
+          bullets: locale.defaultRoleBulletPrompt,
         };
         return {
           ...it,
@@ -244,7 +254,11 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
           onMoveDown={onMoveDown}
           onDelete={onDelete}
           onToggleEdit={() => {
-            setItems(sortByPeriodDesc((data.items || []).map(normalizeItem)));
+            setItems(
+              sortByPeriodDesc(
+                (data.items || []).map((it) => normalizeItem(it, locale.defaultBulletPrompt))
+              )
+            );
             setIsEditing(true);
           }}
           isFirst={isFirst}
@@ -394,6 +408,7 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                               onChange={(val) => handleUpdatePositionField(item.id, pos.id, 'startDate', val)}
                               ariaLabel="Position start date"
                               placeholder="Select start date"
+                              resumeLanguage={resumeLanguage}
                             />
                           </div>
 
@@ -402,11 +417,12 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
                               End date
                             </label>
                             <DatePicker
-                              value={pos.current ? 'Present' : (pos.endDate || '')}
+                              value={pos.current ? locale.present : (pos.endDate || '')}
                               disabled={pos.current || false}
                               onChange={(val) => handleUpdatePositionField(item.id, pos.id, 'endDate', val)}
                               ariaLabel="Position end date"
                               placeholder="Select end date"
+                              resumeLanguage={resumeLanguage}
                             />
                           </div>
                         </div>
@@ -478,7 +494,11 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
           role="button"
           tabIndex={0}
           onClick={() => {
-            setItems(sortByPeriodDesc((data.items || []).map(normalizeItem)));
+            setItems(
+              sortByPeriodDesc(
+                (data.items || []).map((it) => normalizeItem(it, locale.defaultBulletPrompt))
+              )
+            );
             setIsEditing(true);
           }}
           onKeyDown={(event) => {
@@ -495,15 +515,15 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
           {isPlaceholder ? (
             <div className="avoid-break text-slate-400 select-none">
               <div className="flex justify-between items-baseline font-bold leading-snug">
-                <span className="text-slate-400">Position</span>
-                <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
+                <span className="text-slate-400">{locale.placeholderPosition}</span>
+                <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderPeriod}</span>
               </div>
               <div className="flex justify-between items-baseline text-slate-400 leading-snug text-[8pt]">
-                <span className="font-semibold text-slate-400">Company Name</span>
-                <span className="text-slate-400">City, State/Country</span>
+                <span className="font-semibold text-slate-400">{locale.placeholderCompany}</span>
+                <span className="text-slate-400">{locale.placeholderLocation}</span>
               </div>
               <div className="text-slate-400 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
-                State your tasks and accomplishments including name of the project and position of responsibility held.
+                {locale.placeholderExpDesc}
               </div>
             </div>
           ) : (

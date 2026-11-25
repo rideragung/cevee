@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
-import { ProjectItem } from '../../types/resume';
+import { ProjectItem, ResumeLanguage } from '../../types/resume';
 import { IconPlus as Plus, IconTrash as Trash2, IconExternalLink as ExternalLink } from '@tabler/icons-react';
 import { RichTextEditor } from '../RichTextEditor';
 import { DatePicker } from '../DatePicker';
 import { sortByPeriodDesc } from '../../utils/periodSort';
 import { sanitizeHtml } from '../../utils/sanitize';
+import { getResumeLocale } from '../../utils/resumeLocale';
 
 interface ProjectsSectionProps {
   title: string;
   isPlaceholder?: boolean;
   data: { items: ProjectItem[] };
+  resumeLanguage?: ResumeLanguage;
   onRename: (title: string) => void;
   onUpdateData: (data: { items: ProjectItem[] }, isPlaceholder?: boolean) => void;
   onMoveUp: () => void;
@@ -43,6 +45,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   title,
   isPlaceholder = false,
   data,
+  resumeLanguage = 'en',
   onRename,
   onUpdateData,
   onMoveUp,
@@ -51,6 +54,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   isFirst,
   isLast,
 }) => {
+  const locale = getResumeLocale(resumeLanguage);
   const [isEditing, setIsEditing] = useState(false);
   const [items, setItems] = useState<ProjectItem[]>(() =>
     sortByPeriodDesc((data.items || []).map(normalizeProjItem))
@@ -84,7 +88,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
       period: '',
       startDate: '',
       endDate: '',
-      bullets: '<ul><li>Describe project goals, technical highlights, and key results...</li></ul>',
+      bullets: locale.defaultProjectBulletPrompt,
     };
     setItems([...items, newItem]);
   };
@@ -186,6 +190,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                       }}
                       ariaLabel="Project start date"
                       placeholder="Select start date"
+                      resumeLanguage={resumeLanguage}
                     />
                   </div>
 
@@ -202,6 +207,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                       }}
                       ariaLabel="Project end date"
                       placeholder="Select end date"
+                      resumeLanguage={resumeLanguage}
                     />
                   </div>
                 </div>
@@ -279,12 +285,12 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
             <div className="avoid-break text-slate-400 select-none">
               <div className="flex justify-between items-baseline leading-snug">
                 <span className="font-bold text-slate-400">
-                  Project Name (<span className="underline">project link</span>)
+                  {locale.placeholderProjectName} (<span className="underline">{locale.placeholderProjectLink}</span>)
                 </span>
-                <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
+                <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderPeriod}</span>
               </div>
               <div className="text-slate-400 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
-                State your tasks and accomplishments including name of the project and position of responsibility held.
+                {locale.placeholderProjectDesc}
               </div>
             </div>
           ) : (

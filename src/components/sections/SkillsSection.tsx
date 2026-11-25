@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
-import { SkillCategory } from '../../types/resume';
+import { ResumeLanguage, SkillCategory } from '../../types/resume';
 import { IconPlus as Plus, IconTrash as Trash2 } from '@tabler/icons-react';
+import { getResumeLocale } from '../../utils/resumeLocale';
 
 interface SkillsSectionProps {
   title: string;
   isPlaceholder?: boolean;
   data: { categories: SkillCategory[] };
+  resumeLanguage?: ResumeLanguage;
   onRename: (title: string) => void;
   onUpdateData: (data: { categories: SkillCategory[] }, isPlaceholder?: boolean) => void;
   onMoveUp: () => void;
@@ -20,6 +22,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
   title,
   isPlaceholder = false,
   data,
+  resumeLanguage = 'en',
   onRename,
   onUpdateData,
   onMoveUp,
@@ -30,6 +33,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [categories, setCategories] = useState<SkillCategory[]>(data.categories);
+  const locale = getResumeLocale(resumeLanguage);
 
   const handleSave = () => {
     const hasContent = categories.some((c) => c.category.trim() || c.items.trim());
@@ -197,8 +201,8 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
         >
           {isPlaceholder ? (
             <div className="leading-[1.48] text-slate-400 select-none">
-              <span className="font-bold text-slate-400">Skill Category: </span>
-              <span>Skill Name 1, Skill Name 2, Skill Name 3, Skill Name 4, Skill Name 5, etc</span>
+              <span className="font-bold text-slate-400">{locale.placeholderSkillCategory}</span>
+              <span>{locale.placeholderSkillItems}</span>
             </div>
           ) : (
             data.categories.map((cat) => (

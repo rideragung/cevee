@@ -9,9 +9,20 @@ import {
   CustomSectionItem,
   ContactLink,
   ResumeLayoutId,
+  ResumeLanguage,
 } from '../../types/resume';
 import { ParsedResumeRaw } from './types';
 import { DEFAULT_LAYOUT_ID } from '../../layouts/registry';
+import {
+  DEFAULT_RESUME_LANGUAGE,
+  SECTION_PRESET_TITLES,
+  formatComputedPeriod,
+  getResumeLocale,
+  isPresentToken,
+  localizeDateString,
+  normalizeResumeLanguage,
+  stripGpaPrefix,
+} from '../../utils/resumeLocale';
 
 function bulletsToHtml(bullets?: string[]): string {
   if (!bullets || bullets.length === 0) return '';
@@ -23,21 +34,24 @@ function bulletsToHtml(bullets?: string[]): string {
   return liElements ? `<ul>${liElements}</ul>` : '';
 }
 
-function formatPeriod(start?: string, end?: string, current?: boolean): string {
-  const s = start?.trim() || '';
-  let e = end?.trim() || '';
-  if (current) {
-    e = 'Present';
-  }
-  if (s && e) return `${s} - ${e}`;
-  return s || e || '';
+function formatPeriod(
+  lang: ResumeLanguage,
+  start?: string,
+  end?: string,
+  current?: boolean
+): string {
+  return formatComputedPeriod({ startDate: start, endDate: end, current }, lang);
 }
 
 export function adaptParsedResumeToDocument(
   parsed: ParsedResumeRaw,
   layoutId: ResumeLayoutId = DEFAULT_LAYOUT_ID,
-  customTitle?: string
+  customTitle?: string,
+  language: ResumeLanguage = DEFAULT_RESUME_LANGUAGE
 ): ResumeDocument {
+  const normalizedLang = normalizeResumeLanguage(language);
+  const locale = getResumeLocale(normalizedLang);
+  const titles = SECTION_PRESET_TITLES;
   const timestamp = Date.now();
   const id = `resume-${timestamp}`;
   const nowIso = new Date().toISOString();
@@ -50,7 +64,7 @@ export function adaptParsedResumeToDocument(
     url: lnk.url.startsWith('http') ? lnk.url : `https://${lnk.url}`,
   }));
 
-  const fullName = rawHeader.fullName?.trim() || 'Your Name';
+  const fullName = rawHeader.fullName?.trim() || locale.placeholderName;
   const isHeaderPlaceholder = !rawHeader.fullName;
 
   const header: HeaderData = {
@@ -58,11 +72,11 @@ export function adaptParsedResumeToDocument(
     isPlaceholder: isHeaderPlaceholder,
     roles: (rawHeader.roles || []).slice(0, 4),
     headline: rawHeader.roles?.[0] || '',
-    location: rawHeader.location?.trim() || 'City, Country',
+    location: rawHeader.location?.trim() || locale.placeholderLocation,
     willingToRelocate: false,
     relocationStatus: '',
-    email: rawHeader.email?.trim() || 'email@example.com',
-    phone: rawHeader.phone?.trim() || '+62 812 3456 7890',
+    email: rawHeader.email?.trim() || locale.placeholderEmail,
+    phone: rawHeader.phone?.trim() || locale.placeholderPhone,
     links: links.length > 0 ? links : [
       { id: `l-${timestamp}-1`, label: 'linkedin.com/in/profile', url: 'https://linkedin.com' },
     ],
@@ -78,7 +92,8 @@ export function adaptParsedResumeToDocument(
   sections.push({
     id: `sec-summary-${timestamp}`,
     type: 'summary',
-    title: 'SUMMARY',
+    presetKey: 'summary',
+    title: titles.summary[normalizedLang],
     showTitle: false,
     isPlaceholder: !summaryHtml,
     data: { html: summaryHtml },
@@ -87,27 +102,31 @@ export function adaptParsedResumeToDocument(
   // Work Experience
   const expItems: ExperienceItem[] = (parsed.workExperience || []).map((exp, idx) => {
     const itemId = `exp-${timestamp}-${idx + 1}`;
-    const period = formatPeriod(exp.startDate, exp.endDate, exp.current);
+    const isCurrent = Boolean(exp.current) || isPresentToken(exp.endDate);
+    const startDate = localizeDateString(exp.startDate, normalizedLang);
+    const endDate = isCurrent ? '' : localizeDateString(exp.endDate, normalizedLang);
+    const period = formatPeriod(normalizedLang, startDate, endDate, isCurrent);
     const bulletsHtml = bulletsToHtml(exp.bullets);
+    const fallbackRole = normalizedLang === 'id' ? 'Posisi Pekerjaan' : 'Job Role';
 
     return {
       id: itemId,
-      role: exp.role || 'Job Role',
-      company: exp.company || 'Company Name',
+      role: exp.role || fallbackRole,
+      company: exp.company || locale.placeholderCompany,
       location: exp.location || '',
       period,
-      startDate: exp.startDate || '',
-      endDate: exp.endDate || '',
-      current: Boolean(exp.current),
+      startDate,
+      endDate,
+      current: isCurrent,
       bullets: bulletsHtml,
       positions: [
         {
           id: `pos-${itemId}-0`,
-          role: exp.role || 'Job Role',
+          role: exp.role || fallbackRole,
           period,
-          startDate: exp.startDate || '',
-          endDate: exp.endDate || '',
-          current: Boolean(exp.current),
+          startDate,
+          endDate,
+          current: isCurrent,
           bullets: bulletsHtml,
         },
       ],
@@ -117,52 +136,66 @@ export function adaptParsedResumeToDocument(
   sections.push({
     id: `sec-exp-${timestamp}`,
     type: 'experience',
-    title: 'WORK EXPERIENCE',
+    presetKey: 'experience',
+    title: titles.experience[normalizedLang],
     isPlaceholder: expItems.length === 0,
     data: { items: expItems },
   });
 
   // Education
-  const eduItems: EducationItem[] = (parsed.education || []).map((edu, idx) => ({
-    id: `edu-${timestamp}-${idx + 1}`,
-    degree: edu.degree || 'Degree / Major',
-    institution: edu.institution || 'University / Institution',
-    period: formatPeriod(edu.startDate, edu.endDate, edu.current),
-    startDate: edu.startDate || '',
-    endDate: edu.endDate || '',
-    current: Boolean(edu.current),
-    gpa: edu.gpa || '',
-    url: edu.url || '',
-    urlLabel: edu.urlLabel || '',
-    relatedCoursework: edu.relatedCoursework || '',
-    thesisTitle: edu.thesisTitle || '',
-    thesisUrl: edu.thesisUrl || '',
-    description: edu.description || '',
-  }));
+  const eduItems: EducationItem[] = (parsed.education || []).map((edu, idx) => {
+    const isCurrent = Boolean(edu.current) || isPresentToken(edu.endDate);
+    const startDate = localizeDateString(edu.startDate, normalizedLang);
+    const endDate = isCurrent ? '' : localizeDateString(edu.endDate, normalizedLang);
+    return {
+      id: `edu-${timestamp}-${idx + 1}`,
+      degree: edu.degree || (normalizedLang === 'id' ? 'Gelar / Jurusan' : 'Degree / Major'),
+      institution:
+        edu.institution ||
+        (normalizedLang === 'id' ? 'Universitas / Institusi' : 'University / Institution'),
+      period: formatPeriod(normalizedLang, startDate, endDate, isCurrent),
+      startDate,
+      endDate,
+      current: isCurrent,
+      gpa: edu.gpa ? stripGpaPrefix(edu.gpa) : '',
+      url: edu.url || '',
+      urlLabel: edu.urlLabel || '',
+      relatedCoursework: edu.relatedCoursework || '',
+      thesisTitle: edu.thesisTitle || '',
+      thesisUrl: edu.thesisUrl || '',
+      description: edu.description || '',
+    };
+  });
 
   sections.push({
     id: `sec-edu-${timestamp}`,
     type: 'education',
-    title: 'EDUCATION',
+    presetKey: 'education',
+    title: titles.education[normalizedLang],
     isPlaceholder: eduItems.length === 0,
     data: { items: eduItems },
   });
 
   // Projects
-  const projItems: ProjectItem[] = (parsed.projects || []).map((proj, idx) => ({
-    id: `proj-${timestamp}-${idx + 1}`,
-    name: proj.name || 'Project Name',
-    url: proj.url || '',
-    period: formatPeriod(proj.startDate, proj.endDate),
-    startDate: proj.startDate || '',
-    endDate: proj.endDate || '',
-    bullets: bulletsToHtml(proj.bullets),
-  }));
+  const projItems: ProjectItem[] = (parsed.projects || []).map((proj, idx) => {
+    const startDate = localizeDateString(proj.startDate, normalizedLang);
+    const endDate = localizeDateString(proj.endDate, normalizedLang);
+    return {
+      id: `proj-${timestamp}-${idx + 1}`,
+      name: proj.name || locale.placeholderProjectName,
+      url: proj.url || '',
+      period: formatPeriod(normalizedLang, startDate, endDate),
+      startDate,
+      endDate,
+      bullets: bulletsToHtml(proj.bullets),
+    };
+  });
 
   sections.push({
     id: `sec-proj-${timestamp}`,
     type: 'projects',
-    title: 'PROJECTS',
+    presetKey: 'projects',
+    title: titles.projects[normalizedLang],
     isPlaceholder: projItems.length === 0,
     data: { items: projItems },
   });
@@ -170,14 +203,15 @@ export function adaptParsedResumeToDocument(
   // Skills
   const skillCategories: SkillCategory[] = (parsed.skills || []).map((sk, idx) => ({
     id: `sk-${timestamp}-${idx + 1}`,
-    category: sk.category || 'Skills',
+    category: sk.category || (normalizedLang === 'id' ? 'Keahlian' : 'Skills'),
     items: sk.items || '',
   }));
 
   sections.push({
     id: `sec-skills-${timestamp}`,
     type: 'skills',
-    title: 'SKILLS',
+    presetKey: 'skills',
+    title: titles.skills[normalizedLang],
     isPlaceholder: skillCategories.length === 0,
     data: { categories: skillCategories },
   });
@@ -188,26 +222,30 @@ export function adaptParsedResumeToDocument(
   if (parsed.volunteering && parsed.volunteering.length > 0) {
     const orgItems: ExperienceItem[] = parsed.volunteering.map((v, idx) => {
       const vId = `vol-${timestamp}-${idx + 1}`;
-      const period = formatPeriod(v.startDate, v.endDate, v.current);
+      const isCurrent = Boolean(v.current) || isPresentToken(v.endDate);
+      const startDate = localizeDateString(v.startDate, normalizedLang);
+      const endDate = isCurrent ? '' : localizeDateString(v.endDate, normalizedLang);
+      const period = formatPeriod(normalizedLang, startDate, endDate, isCurrent);
       const bulletsHtml = bulletsToHtml(v.bullets);
+      const fallbackRole = normalizedLang === 'id' ? 'Anggota / Peran' : 'Member / Role';
       return {
         id: vId,
-        role: v.role || 'Member / Role',
-        company: v.company || 'Organization Name',
+        role: v.role || fallbackRole,
+        company: v.company || (normalizedLang === 'id' ? 'Nama Organisasi' : 'Organization Name'),
         location: v.location || '',
         period,
-        startDate: v.startDate || '',
-        endDate: v.endDate || '',
-        current: Boolean(v.current),
+        startDate,
+        endDate,
+        current: isCurrent,
         bullets: bulletsHtml,
         positions: [
           {
             id: `pos-${vId}-0`,
-            role: v.role || 'Member / Role',
+            role: v.role || fallbackRole,
             period,
-            startDate: v.startDate || '',
-            endDate: v.endDate || '',
-            current: Boolean(v.current),
+            startDate,
+            endDate,
+            current: isCurrent,
             bullets: bulletsHtml,
           },
         ],
@@ -217,7 +255,8 @@ export function adaptParsedResumeToDocument(
     sections.push({
       id: `sec-vol-${timestamp}`,
       type: 'experience',
-      title: 'ORGANIZATIONAL & VOLUNTEERING EXPERIENCE',
+      presetKey: 'volunteering',
+      title: titles.volunteering[normalizedLang],
       isPlaceholder: false,
       data: { items: orgItems },
     });
@@ -226,12 +265,15 @@ export function adaptParsedResumeToDocument(
   // Certifications
   if (parsed.certifications && parsed.certifications.length > 0) {
     const certItems: CustomSectionItem[] = parsed.certifications.map((c, idx) => {
-      const issue = c.issueDate || '';
-      const expiry = c.expiryDate || '';
-      const period = issue && expiry ? `${issue} - ${expiry}` : issue || expiry || c.period || '';
+      const issue = localizeDateString(c.issueDate, normalizedLang);
+      const expiry = localizeDateString(c.expiryDate, normalizedLang);
+      const period =
+        issue && expiry
+          ? `${issue} - ${expiry}`
+          : issue || expiry || localizeDateString(c.period, normalizedLang);
       return {
         id: `cert-${timestamp}-${idx + 1}`,
-        title: c.title || 'Certification',
+        title: c.title || (normalizedLang === 'id' ? 'Sertifikasi' : 'Certification'),
         subtitle: c.subtitle || '',
         period,
         issueDate: issue,
@@ -245,7 +287,8 @@ export function adaptParsedResumeToDocument(
     sections.push({
       id: `sec-cert-${timestamp}`,
       type: 'custom_list',
-      title: 'CERTIFICATIONS',
+      presetKey: 'certifications',
+      title: titles.certifications[normalizedLang],
       isPlaceholder: false,
       data: { items: certItems },
     });
@@ -255,8 +298,8 @@ export function adaptParsedResumeToDocument(
   if (parsed.languages && parsed.languages.length > 0) {
     const langItems: CustomSectionItem[] = parsed.languages.map((l, idx) => ({
       id: `lang-${timestamp}-${idx + 1}`,
-      title: l.title || 'Language',
-      subtitle: l.subtitle || 'Proficiency',
+      title: l.title || (normalizedLang === 'id' ? 'Bahasa' : 'Language'),
+      subtitle: l.subtitle || (normalizedLang === 'id' ? 'Tingkat kemahiran' : 'Proficiency'),
       period: '',
       description: '',
     }));
@@ -264,7 +307,8 @@ export function adaptParsedResumeToDocument(
     sections.push({
       id: `sec-lang-${timestamp}`,
       type: 'custom_list',
-      title: 'LANGUAGES',
+      presetKey: 'languages',
+      title: titles.languages[normalizedLang],
       isPlaceholder: false,
       data: { items: langItems },
     });
@@ -274,16 +318,17 @@ export function adaptParsedResumeToDocument(
   if (parsed.awards && parsed.awards.length > 0) {
     const awardItems: CustomSectionItem[] = parsed.awards.map((a, idx) => ({
       id: `award-${timestamp}-${idx + 1}`,
-      title: a.title || 'Award Title',
+      title: a.title || (normalizedLang === 'id' ? 'Nama Penghargaan' : 'Award Title'),
       subtitle: a.subtitle || '',
-      period: a.period || '',
+      period: localizeDateString(a.period, normalizedLang),
       description: a.description || '',
     }));
 
     sections.push({
       id: `sec-award-${timestamp}`,
       type: 'custom_list',
-      title: 'AWARDS',
+      presetKey: 'awards',
+      title: titles.awards[normalizedLang],
       isPlaceholder: false,
       data: { items: awardItems },
     });
@@ -293,9 +338,9 @@ export function adaptParsedResumeToDocument(
   if (parsed.publications && parsed.publications.length > 0) {
     const pubItems: CustomSectionItem[] = parsed.publications.map((p, idx) => ({
       id: `pub-${timestamp}-${idx + 1}`,
-      title: p.title || 'Publication Title',
+      title: p.title || (normalizedLang === 'id' ? 'Judul Publikasi' : 'Publication Title'),
       subtitle: p.subtitle || '',
-      period: p.period || '',
+      period: localizeDateString(p.period, normalizedLang),
       credentialUrl: p.credentialUrl || '',
       description: p.description || '',
     }));
@@ -303,7 +348,8 @@ export function adaptParsedResumeToDocument(
     sections.push({
       id: `sec-pub-${timestamp}`,
       type: 'custom_list',
-      title: 'PUBLICATIONS',
+      presetKey: 'publications',
+      title: titles.publications[normalizedLang],
       isPlaceholder: false,
       data: { items: pubItems },
     });
@@ -313,8 +359,8 @@ export function adaptParsedResumeToDocument(
   if (parsed.references && parsed.references.length > 0) {
     const refItems: CustomSectionItem[] = parsed.references.map((r, idx) => ({
       id: `ref-${timestamp}-${idx + 1}`,
-      title: r.title || 'Referee Name',
-      subtitle: r.subtitle || 'Role & Company',
+      title: r.title || (normalizedLang === 'id' ? 'Nama Referensi' : 'Referee Name'),
+      subtitle: r.subtitle || (normalizedLang === 'id' ? 'Jabatan & Perusahaan' : 'Role & Company'),
       period: r.period || '',
       description: r.description || '',
     }));
@@ -322,7 +368,8 @@ export function adaptParsedResumeToDocument(
     sections.push({
       id: `sec-ref-${timestamp}`,
       type: 'custom_list',
-      title: 'REFERENCES',
+      presetKey: 'references',
+      title: titles.references[normalizedLang],
       isPlaceholder: false,
       data: { items: refItems },
     });
@@ -337,6 +384,7 @@ export function adaptParsedResumeToDocument(
     createdAt: nowIso,
     updatedAt: nowIso,
     content: {
+      language: normalizedLang,
       header,
       sections,
     },

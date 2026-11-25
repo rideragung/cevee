@@ -13,10 +13,15 @@ import {
   IconX as X,
   IconFileText as FileText,
   IconPencil as Pencil,
+  IconLanguage as LanguageIcon,
 } from '@tabler/icons-react';
-import { ResumeDocument, ResumeLayoutId } from '../types/resume';
+import { ResumeDocument, ResumeLanguage, ResumeLayoutId } from '../types/resume';
 import { RESUME_LAYOUTS, LayoutDefinition, getLayoutById } from '../data/layouts';
 import { DEFAULT_LAYOUT_ID, normalizeLayoutId } from '../layouts/registry';
+import {
+  DEFAULT_RESUME_LANGUAGE,
+  RESUME_LANGUAGE_OPTIONS,
+} from '../utils/resumeLocale';
 import { ResumeMiniPreview } from './ResumeMiniPreview';
 import { extractTextFromPdf } from '../lib/pdf/extractor';
 import { parseResumeWithGemini, formatResumeImportError } from '../lib/ai/geminiParser';
@@ -66,6 +71,7 @@ interface LayoutSelectModalProps {
     layoutId: ResumeLayoutId,
     importedResume?: ResumeDocument,
     customTitle?: string,
+    resumeLanguage?: ResumeLanguage,
   ) => void;
   onClose: () => void;
 }
@@ -80,6 +86,7 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedId, setSelectedId] = useState<ResumeLayoutId>(normalizeLayoutId(currentLayoutId));
   const [creationMethod, setCreationMethod] = useState<'blank' | 'import'>('blank');
+  const [resumeLanguage, setResumeLanguage] = useState<ResumeLanguage>(DEFAULT_RESUME_LANGUAGE);
   const [file, setFile] = useState<File | null>(null);
   const [customTitle, setCustomTitle] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -91,6 +98,7 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
       setSelectedId(normalizeLayoutId(currentLayoutId));
       setStep(1);
       setCreationMethod('blank');
+      setResumeLanguage(DEFAULT_RESUME_LANGUAGE);
       setFile(null);
       setCustomTitle('');
       setIsProcessing(false);
@@ -130,7 +138,7 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
   };
 
   const handleCreateBlank = () => {
-    onConfirm(selectedId, undefined, customTitle.trim() || undefined);
+    onConfirm(selectedId, undefined, customTitle.trim() || undefined, resumeLanguage);
   };
 
   const handleStartImport = async () => {
@@ -161,11 +169,12 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
         parsedData,
         selectedId,
         customTitle.trim() || undefined,
+        resumeLanguage,
       );
 
       // 4. Completed
       setProcessPercent(100);
-      onConfirm(selectedId, resumeDoc, customTitle.trim() || undefined);
+      onConfirm(selectedId, resumeDoc, customTitle.trim() || undefined, resumeLanguage);
     } catch (err: unknown) {
       console.error('Import Resume Error:', err);
       setErrorText(formatResumeImportError(err));
@@ -379,26 +388,69 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
                 )}
               </div>
 
-              {/* Resume Title Input */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="resume-custom-title"
-                  className="text-xs font-semibold text-foreground block"
-                >
-                  Resume title
-                </label>
-                <Input
-                  id="resume-custom-title"
-                  type="text"
-                  value={customTitle}
-                  disabled={isProcessing}
-                  onChange={(e) => setCustomTitle(e.target.value)}
-                  placeholder="e.g. Software Engineer Resume 2026"
-                  className="h-9 text-xs"
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Document name for your dashboard. You can change this anytime.
-                </p>
+              {/* Resume Title + Resume Language Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_14.5rem] gap-3.5 items-start">
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="resume-custom-title"
+                    className="flex h-4 items-center text-xs font-semibold text-foreground"
+                  >
+                    Resume title
+                  </label>
+                  <Input
+                    id="resume-custom-title"
+                    type="text"
+                    value={customTitle}
+                    disabled={isProcessing}
+                    onChange={(e) => setCustomTitle(e.target.value)}
+                    aria-label="Resume title"
+                    placeholder="e.g. Software Engineer Resume 2026"
+                    className="h-9 text-xs"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Document name for your dashboard. You can change this anytime.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <span
+                    id="resume-language-label"
+                    className="flex h-4 items-center gap-1.5 text-xs font-semibold text-foreground"
+                  >
+                    <LanguageIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                    <span>Resume language</span>
+                  </span>
+                  <div
+                    role="radiogroup"
+                    aria-labelledby="resume-language-label"
+                    className="grid h-9 grid-cols-2 gap-1 rounded-[0.875rem] border border-border bg-muted/60 p-0.5"
+                  >
+                    {RESUME_LANGUAGE_OPTIONS.map((opt) => {
+                      const active = resumeLanguage === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          disabled={isProcessing}
+                          onClick={() => setResumeLanguage(opt.id)}
+                          className={cn(
+                            'relative flex items-center justify-center rounded-[0.75rem] px-2 text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-[""]',
+                            active
+                              ? 'bg-card font-semibold text-foreground shadow-2xs'
+                              : 'font-medium text-muted-foreground [@media(hover:hover)]:hover:text-foreground',
+                          )}
+                        >
+                          <span>{opt.id === 'id' ? 'Indonesia' : opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Sets section headings, GPA / IPK, and dates.
+                  </p>
+                </div>
               </div>
 
               {/* Method Selection Cards */}

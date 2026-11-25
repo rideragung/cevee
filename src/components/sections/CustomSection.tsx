@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
-import { CustomSectionItem } from '../../types/resume';
+import {
+  CustomSectionItem,
+  ResumeLanguage,
+  ResumeSectionPresetKey,
+} from '../../types/resume';
 import { IconPlus as Plus, IconTrash as Trash2 } from '@tabler/icons-react';
 import { DatePicker } from '../DatePicker';
 import { sortByPeriodDesc } from '../../utils/periodSort';
+import {
+  detectSectionPresetKey,
+  getResumeLocale,
+  stripCredentialIdPrefix,
+} from '../../utils/resumeLocale';
 
 interface CustomSectionProps {
   title: string;
+  presetKey?: ResumeSectionPresetKey;
   isPlaceholder?: boolean;
   data: { items: CustomSectionItem[] };
+  resumeLanguage?: ResumeLanguage;
   onRename: (title: string) => void;
   onUpdateData: (data: { items: CustomSectionItem[] }, isPlaceholder?: boolean) => void;
   onMoveUp: () => void;
@@ -39,8 +50,10 @@ const splitCertPeriod = (item: CustomSectionItem): CustomSectionItem => {
 
 export const CustomSection: React.FC<CustomSectionProps> = ({
   title,
+  presetKey,
   isPlaceholder = false,
   data,
+  resumeLanguage = 'en',
   onRename,
   onUpdateData,
   onMoveUp,
@@ -49,12 +62,13 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
   isFirst,
   isLast,
 }) => {
-  const t = title.toUpperCase();
-  const isCert = t.includes('CERTIFICATION');
-  const isLang = t.includes('LANGUAGE');
-  const isPub = t.includes('PUBLICATION');
-  const isAward = t.includes('AWARD');
-  const isRef = t.includes('REFERENCE');
+  const locale = getResumeLocale(resumeLanguage);
+  const detectedPreset = detectSectionPresetKey({ type: 'custom_list', title, presetKey });
+  const isCert = detectedPreset === 'certifications';
+  const isLang = detectedPreset === 'languages';
+  const isPub = detectedPreset === 'publications';
+  const isAward = detectedPreset === 'awards';
+  const isRef = detectedPreset === 'references';
 
   const normalizeItems = (raw?: CustomSectionItem[]) =>
     sortByPeriodDesc(raw || []).map((it) => (isCert ? splitCertPeriod(it) : it));
@@ -244,6 +258,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                           onChange={(val) => handleCertDateChange(item.id, 'issueDate', val)}
                           ariaLabel="Issue date"
                           placeholder="Select issue date"
+                          resumeLanguage={resumeLanguage}
                         />
                       </div>
 
@@ -256,6 +271,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                           onChange={(val) => handleCertDateChange(item.id, 'expiryDate', val)}
                           ariaLabel="Expiry date"
                           placeholder="Select expiry date"
+                          resumeLanguage={resumeLanguage}
                         />
                       </div>
                     </>
@@ -281,6 +297,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                             onChange={(val) => handleUpdateField(item.id, 'period', val)}
                             ariaLabel="Date or year"
                             placeholder="Select date"
+                            resumeLanguage={resumeLanguage}
                           />
                         )}
                       </div>
@@ -302,7 +319,7 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                             value={
                               item.credentialId ||
                               (item.description && !item.description.includes('.')
-                                ? item.description.replace(/^Credential ID:\s*/i, '')
+                                ? stripCredentialIdPrefix(item.description)
                                 : '')
                             }
                             onChange={(e) => handleUpdateField(item.id, 'credentialId', e.target.value)}
@@ -418,30 +435,33 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                 {isCert && (
                   <div className="flex justify-between items-baseline leading-snug">
                     <div>
-                      <span className="font-bold text-slate-400">Learn Basic AI (Credential ID: 6RPNR3EJ9X2M)</span>
-                      <span className="font-normal text-slate-400"> by </span>
-                      <span className="font-bold text-slate-400">Dicoding Indonesia</span>
+                      <span className="font-bold text-slate-400">{locale.placeholderCertTitle}</span>
+                      <span className="font-normal text-slate-400">{locale.certByConnector}</span>
+                      <span className="font-bold text-slate-400">{locale.placeholderCertIssuer}</span>
                     </div>
-                    <span className="text-[7.75pt] font-bold text-slate-400">Jan 2025 – Jan 2028</span>
+                    <span className="text-[7.75pt] font-bold text-slate-400">{locale.placeholderCertPeriod}</span>
                   </div>
                 )}
 
                 {isLang && (
                   <div className="text-slate-400 text-[7.75pt] leading-snug">
-                    <span className="font-bold text-slate-400">Bahasa Indonesia</span> (Native proficiency) •{' '}
-                    <span className="font-bold text-slate-400">Vietnamese</span> (Full working proficiency) •{' '}
-                    <span className="font-bold text-slate-400">English</span> (Professional working proficiency)
+                    {locale.placeholderLanguages.map((langItem, lIdx) => (
+                      <React.Fragment key={langItem.name}>
+                        {lIdx > 0 && ' • '}
+                        <span className="font-bold text-slate-400">{langItem.name}</span> ({langItem.proficiency})
+                      </React.Fragment>
+                    ))}
                   </div>
                 )}
 
                 {isPub && (
                   <div>
                     <div className="flex justify-between items-baseline font-bold leading-snug">
-                      <span className="text-slate-400">Publication Title (Publisher)</span>
-                      <span className="text-[7.75pt] font-semibold text-slate-400">May 2022</span>
+                      <span className="text-slate-400">{locale.placeholderPubTitle}</span>
+                      <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderPubPeriod}</span>
                     </div>
                     <div className="text-slate-400 text-[7.75pt] leading-relaxed mt-0.5">
-                      Provide a brief overview of the research, emphasizing significant findings...
+                      {locale.placeholderPubDesc}
                     </div>
                   </div>
                 )}
@@ -449,18 +469,27 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                 {isAward && (
                   <div>
                     <div className="flex justify-between items-baseline font-bold leading-snug">
-                      <span className="text-slate-400">Title (Issuer)</span>
-                      <span className="text-[7.75pt] font-semibold text-slate-400">May 2022</span>
+                      <span className="text-slate-400">{locale.placeholderAwardTitle}</span>
+                      <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderAwardPeriod}</span>
                     </div>
                     <div className="text-slate-400 text-[7.75pt] leading-relaxed mt-0.5">
-                      Write a concise description of the award, highlighting key achievements...
+                      {locale.placeholderAwardDesc}
                     </div>
                   </div>
                 )}
 
                 {isRef && (
                   <div className="text-slate-400 text-[7.75pt] leading-snug">
-                    <span className="font-bold text-slate-400">Richard Hendricks</span> (Co-founder of Pipe Piper) • richard@piedpiper.com
+                    <span className="font-bold text-slate-400">{locale.placeholderRefName}</span> ({locale.placeholderRefRole}) • {locale.placeholderRefContact}
+                  </div>
+                )}
+
+                {!isCert && !isLang && !isPub && !isAward && !isRef && (
+                  <div>
+                    <div className="flex justify-between items-baseline font-bold leading-snug">
+                      <span className="text-slate-400">{locale.placeholderAwardTitle}</span>
+                      <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderAwardPeriod}</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -471,17 +500,17 @@ export const CustomSection: React.FC<CustomSectionProps> = ({
                   const rawDesc = item.description || '';
                   const isUrlDesc = rawDesc.startsWith('http') || rawDesc.includes('.com') || rawDesc.includes('.id') || rawDesc.includes('.org');
                   const credUrl = item.credentialUrl || (isUrlDesc ? rawDesc : '');
-                  const rawCredId = item.credentialId || (!isUrlDesc ? rawDesc.replace(/^Credential ID:\s*/i, '') : '');
+                  const rawCredId = item.credentialId || (!isUrlDesc ? stripCredentialIdPrefix(rawDesc) : '');
 
                   const certContent = (
                     <>
                       <span className="font-bold">{item.title}</span>
                       {rawCredId && (
-                        <span className="font-bold"> (Credential ID: {rawCredId})</span>
+                        <span className="font-bold"> ({locale.credentialIdLabel}: {rawCredId})</span>
                       )}
                       {item.subtitle && (
                         <>
-                          <span className="font-normal"> by </span>
+                          <span className="font-normal">{locale.certByConnector}</span>
                           <span className="font-bold">{item.subtitle}</span>
                         </>
                       )}

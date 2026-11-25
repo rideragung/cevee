@@ -8,6 +8,7 @@ export const initialResumes: ResumeDocument[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     content: {
+      language: 'en',
       header: {
         fullName: 'Your Name',
         isPlaceholder: true,
@@ -40,6 +41,7 @@ export const initialResumes: ResumeDocument[] = [
         {
           id: 'sec-summary',
           type: 'summary',
+          presetKey: 'summary',
           title: 'SUMMARY',
           showTitle: false,
           isPlaceholder: true,
@@ -48,6 +50,7 @@ export const initialResumes: ResumeDocument[] = [
         {
           id: 'sec-experience',
           type: 'experience',
+          presetKey: 'experience',
           title: 'WORK EXPERIENCE',
           isPlaceholder: true,
           data: { items: [] },
@@ -55,6 +58,7 @@ export const initialResumes: ResumeDocument[] = [
         {
           id: 'sec-education',
           type: 'education',
+          presetKey: 'education',
           title: 'EDUCATION',
           isPlaceholder: true,
           data: { items: [] },
@@ -62,6 +66,7 @@ export const initialResumes: ResumeDocument[] = [
         {
           id: 'sec-projects',
           type: 'projects',
+          presetKey: 'projects',
           title: 'PROJECTS',
           isPlaceholder: true,
           data: { items: [] },
@@ -69,6 +74,7 @@ export const initialResumes: ResumeDocument[] = [
         {
           id: 'sec-skills',
           type: 'skills',
+          presetKey: 'skills',
           title: 'SKILLS',
           isPlaceholder: true,
           data: { categories: [] },

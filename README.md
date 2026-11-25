@@ -32,6 +32,7 @@ Cevee is a browser-based resume builder that renders a real A4 page while you ed
 ### Content
 
 - **Sections for every case.** Summary, Work Experience, Education (with document links for transcripts/certificates, related coursework, and linked final thesis), Projects, and Skills are built in; add Certifications, Languages, Publications, Awards, Volunteering, References, or a custom section.
+- **Per-resume language (`EN` / `ID`).** Keep the web interface in English while setting each resume document to English or Bahasa Indonesia: standard section headings, `GPA:` / `IPK:`, coursework and thesis labels, certification labels, relocation text, and month/period strings (`Aug` / `Agu`, `Present` / `Sekarang`) update per resume.
 - **Multiple resumes.** Create, duplicate, rename, and delete as many versions as you have applications, with quick preview available from the card menu or the list view.
 - **Mobile editing.** The editor reflows down to 320 px: the A4 canvas scrolls, controls become tappable, and the preview fits the screen.
 
@@ -210,6 +211,7 @@ src/
 │   ├── imageCompressor.ts       # 3:4 profile photo compression
 │   ├── periodSort.ts            # Chronological sorting
 │   ├── relativeTime.ts          # Relative time labels ("2 hours ago")
+│   ├── resumeLocale.ts          # Per-resume EN/ID labels, headings, and date localization
 │   ├── sanitize.ts              # HTML sanitization with DOMPurify
 │   └── whatsApp.ts              # Phone normalization and WhatsApp links
 ├── App.tsx                      # Root controller and template dispatcher

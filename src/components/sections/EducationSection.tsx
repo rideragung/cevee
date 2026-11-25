@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
 import { SectionHeader } from '../SectionHeader';
-import { EducationItem } from '../../types/resume';
+import { EducationItem, ResumeLanguage } from '../../types/resume';
 import { IconPlus as Plus, IconTrash as Trash2, IconExternalLink as ExternalLink } from '@tabler/icons-react';
 import { DatePicker } from '../DatePicker';
 import { RichTextEditor } from '../RichTextEditor';
 import { sortByPeriodDesc } from '../../utils/periodSort';
 import { sanitizeHtml } from '../../utils/sanitize';
+import {
+  containsPresentToken,
+  formatComputedPeriod,
+  getResumeLocale,
+  isPresentToken,
+  stripGpaPrefix,
+} from '../../utils/resumeLocale';
 
 interface EducationSectionProps {
   title: string;
   isPlaceholder?: boolean;
   data: { items: EducationItem[] };
+  resumeLanguage?: ResumeLanguage;
   onRename: (title: string) => void;
   onUpdateData: (data: { items: EducationItem[] }, isPlaceholder?: boolean) => void;
   onMoveUp: () => void;
@@ -33,13 +41,13 @@ const normalizeEduItem = (it: EducationItem): EducationItem => {
       endDate = it.period.trim();
     }
   }
-  if (!current && (endDate.toLowerCase() === 'present' || it.period?.toLowerCase().includes('present'))) {
+  if (!current && (isPresentToken(endDate) || containsPresentToken(it.period))) {
     current = true;
   }
   return {
     ...it,
     startDate,
-    endDate: current && endDate.toLowerCase() === 'present' ? '' : endDate,
+    endDate: current && isPresentToken(endDate) ? '' : endDate,
     current,
     url: it.url || '',
     urlLabel: it.urlLabel || '',
@@ -53,6 +61,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
   title,
   isPlaceholder = false,
   data,
+  resumeLanguage = 'en',
   onRename,
   onUpdateData,
   onMoveUp,
@@ -61,6 +70,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
   isFirst,
   isLast,
 }) => {
+  const locale = getResumeLocale(resumeLanguage);
   const [isEditing, setIsEditing] = useState(false);
   const [items, setItems] = useState<EducationItem[]>(() =>
     sortByPeriodDesc((data.items || []).map(normalizeEduItem))
@@ -71,15 +81,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
     endDate?: string;
     current?: boolean;
     period?: string;
-  }) => {
-    if (item.current) {
-      return item.startDate ? `${item.startDate} - Present` : 'Present';
-    }
-    if (item.startDate && item.endDate) {
-      return `${item.startDate} - ${item.endDate}`;
-    }
-    return item.startDate || item.endDate || item.period || '';
-  };
+  }) => formatComputedPeriod(item, resumeLanguage);
 
   const handleSave = () => {
     const updated = items.map((it) => {
@@ -256,6 +258,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                       onChange={(val) => handleUpdateField(item.id, 'startDate', val)}
                       ariaLabel="Start date"
                       placeholder="Select start date"
+                      resumeLanguage={resumeLanguage}
                     />
                   </div>
 
@@ -264,11 +267,12 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                       Graduation date {!item.current && <span className="text-destructive">*</span>}
                     </label>
                     <DatePicker
-                      value={item.current ? 'Present' : (item.endDate || '')}
+                      value={item.current ? locale.present : (item.endDate || '')}
                       disabled={item.current || false}
                       onChange={(val) => handleUpdateField(item.id, 'endDate', val)}
                       ariaLabel="Graduation date"
                       placeholder="Select graduation date"
+                      resumeLanguage={resumeLanguage}
                     />
                   </div>
                 </div>
@@ -444,27 +448,27 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
             <div className="avoid-break text-slate-400 select-none space-y-0.5">
               <div className="flex justify-between items-baseline leading-snug">
                 <span className="font-bold text-slate-400 inline-flex items-center gap-1">
-                  <span>Bachelor of Computer Science</span>
+                  <span>{locale.placeholderDegree}</span>
                   <span className="font-normal text-slate-400">•</span>
-                  <span className="text-[7.75pt] underline font-normal">(Transcript)</span>
+                  <span className="text-[7.75pt] underline font-normal">{locale.placeholderTranscript}</span>
                   <ExternalLink size={10} className="inline opacity-70 flex-shrink-0 text-slate-400" />
                 </span>
-                <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
+                <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderPeriod}</span>
               </div>
               <div className="flex justify-between items-baseline text-slate-400 leading-snug text-[8pt]">
-                <span>Name of the Educational Institution</span>
-                <span className="font-medium text-slate-400">GPA: 4.0 of 4.0</span>
+                <span>{locale.placeholderInstitution}</span>
+                <span className="font-medium text-slate-400">{locale.placeholderGpa}</span>
               </div>
               <div className="text-slate-400 text-justify text-[7.75pt] leading-snug">
-                <span className="font-bold text-slate-400">Related Coursework: </span>
-                Data Structures, Algorithms, Software Engineering, Database Systems
+                <span className="font-bold text-slate-400">{locale.relatedCourseworkLabel}</span>
+                {locale.placeholderCoursework}
               </div>
               <div className="text-slate-400 text-justify text-[7.75pt] leading-snug">
-                <span className="font-bold text-slate-400">Final Thesis: </span>
-                <span className="underline">Design and Implementation of Distributed Real-Time Systems</span>
+                <span className="font-bold text-slate-400">{locale.finalThesisLabel}</span>
+                <span className="underline">{locale.placeholderThesis}</span>
               </div>
               <div className="text-slate-400 text-[7.75pt] leading-snug">
-                E.g., info about scholarships, student activity, etc.
+                {locale.placeholderEduNote}
               </div>
             </div>
           ) : (
@@ -500,8 +504,8 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                   <span>{item.institution}</span>
                   {item.gpa && (
                     <span className="font-medium text-slate-800">
-                      <span className="font-bold text-slate-900">GPA: </span>
-                      {item.gpa.replace(/^\s*GPA\s*:\s*/i, '')}
+                      <span className="font-bold text-slate-900">{locale.gpaLabel}</span>
+                      {stripGpaPrefix(item.gpa)}
                     </span>
                   )}
                 </div>
@@ -509,7 +513,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                 {/* Line 3: Related Coursework */}
                 {item.relatedCoursework && (
                   <div className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
-                    <span className="font-bold text-slate-900">Related Coursework: </span>
+                    <span className="font-bold text-slate-900">{locale.relatedCourseworkLabel}</span>
                     <span>{item.relatedCoursework}</span>
                   </div>
                 )}
@@ -517,7 +521,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
                 {/* Line 4: Final Thesis */}
                 {item.thesisTitle && (
                   <div className="text-slate-800 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
-                    <span className="font-bold text-slate-900">Final Thesis: </span>
+                    <span className="font-bold text-slate-900">{locale.finalThesisLabel}</span>
                     {item.thesisUrl ? (
                       <a
                         href={item.thesisUrl}

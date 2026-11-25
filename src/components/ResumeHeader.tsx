@@ -1,5 +1,5 @@
 ﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { HeaderData, ContactLink, ResumeLayoutId } from '../types/resume';
+import { HeaderData, ContactLink, ResumeLanguage, ResumeLayoutId } from '../types/resume';
 import {
   IconPencil as Pencil,
   IconPlus as Plus,
@@ -9,17 +9,27 @@ import {
 } from '@tabler/icons-react';
 import { compressProfilePhoto } from '../utils/imageCompressor';
 import { getWhatsAppUrl } from '../utils/whatsApp';
+import { getResumeLocale, isHeaderRelocating } from '../utils/resumeLocale';
+import { normalizeLayoutId } from '../layouts/registry';
 
 interface ResumeHeaderProps {
   data: HeaderData;
   onChange: (updated: HeaderData) => void;
   layoutId?: ResumeLayoutId | string;
+  resumeLanguage?: ResumeLanguage;
 }
 
-export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layoutId }) => {
+export const ResumeHeader: React.FC<ResumeHeaderProps> = ({
+  data,
+  onChange,
+  layoutId,
+  resumeLanguage = 'en',
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isPlaceholder = Boolean(data.isPlaceholder);
+  const locale = getResumeLocale(resumeLanguage);
+  const normalizedLayout = normalizeLayoutId(layoutId);
 
   const getCleanFormData = useCallback((): HeaderData => {
     if (data.isPlaceholder) {
@@ -85,12 +95,16 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
       formData.location.trim() ||
       formData.photoUrl
     );
+    const cleanedLinks = (formData.links || []).filter(
+      (l) => l.label.trim() || l.url.trim()
+    );
     const updated: HeaderData = {
       ...formData,
       roles: cleanedRoles,
       headline: cleanedRoles.join(' | '),
+      links: hasContent ? cleanedLinks : formData.links,
       willingToRelocate: formData.willingToRelocate ?? false,
-      relocationStatus: formData.willingToRelocate ? '(Willing to relocate)' : '',
+      relocationStatus: formData.willingToRelocate ? locale.relocateParen.trim() : '',
       isPlaceholder: hasContent ? false : isPlaceholder,
     };
     onChange(updated);
@@ -158,7 +172,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
   ).filter(Boolean);
   const displayedRoles = activeRoles.join(' | ');
 
-  const isRelocating = data.willingToRelocate ?? (data.relocationStatus && data.relocationStatus.includes('Willing'));
+  const isRelocating = isHeaderRelocating(data);
 
   if (isEditing) {
     return (
@@ -463,7 +477,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                 isPlaceholder ? 'text-slate-400' : 'text-slate-900'
               }`}
             >
-              {data.fullName || 'Your Name'}
+              {data.fullName || locale.placeholderName}
             </h1>
 
             {/* Optional Roles */}
@@ -479,15 +493,17 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                 isPlaceholder ? 'text-slate-400' : 'text-slate-700'
               }`}
             >
-              <span>{data.location || 'City, State/Country'}</span>
-              {isRelocating && ' (Willing to relocate)'}
+              <span>
+                {data.location || locale.placeholderLocation}
+                {isRelocating && locale.relocateParen}
+              </span>
 
               <span>•</span>
               <a
                 href={data.email ? `mailto:${data.email}` : '#'}
                 className={`underline hover:text-black ${isPlaceholder ? 'text-slate-400' : 'text-slate-800'}`}
               >
-                {data.email || 'email@address.com'}
+                {data.email || locale.placeholderEmail}
               </a>
 
               <span>•</span>
@@ -498,11 +514,13 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
                 className={`underline hover:text-black ${isPlaceholder ? 'text-slate-400' : 'text-slate-800'}`}
                 title="Contact via WhatsApp"
               >
-                {data.phone || '+65 1234 5678'}
+                {data.phone || locale.placeholderPhone}
               </a>
 
               {data.links &&
-                data.links.map((link) => (
+                data.links
+                  .filter((link) => link.label || link.url)
+                  .map((link) => (
                   <React.Fragment key={link.id}>
                     <span>•</span>
                     <a
@@ -547,7 +565,7 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
           isPlaceholder ? 'text-slate-400' : 'text-slate-900'
         }`}
       >
-        {data.fullName || 'Your Name'}
+        {data.fullName || locale.placeholderName}
       </h1>
 
       {/* Optional Roles (Joined with |) */}
@@ -563,15 +581,18 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
           isPlaceholder ? 'text-slate-400' : 'text-slate-700'
         }`}
       >
-        <span>{data.location || 'City, State/Country'}</span>
-        {isRelocating && ' (Willing to relocate)'}
+        <span>
+          {data.location || locale.placeholderLocation}
+          {isRelocating &&
+            (normalizedLayout === 'standard-ats-v2' ? locale.relocatePipe : locale.relocateParen)}
+        </span>
 
         <span>•</span>
         <a
           href={data.email ? `mailto:${data.email}` : '#'}
           className={`underline hover:text-black ${isPlaceholder ? 'text-slate-400' : 'text-slate-800'}`}
         >
-          {data.email || 'email@address.com'}
+          {data.email || locale.placeholderEmail}
         </a>
 
         <span>•</span>
@@ -582,11 +603,13 @@ export const ResumeHeader: React.FC<ResumeHeaderProps> = ({ data, onChange, layo
           className={`underline hover:text-black ${isPlaceholder ? 'text-slate-400' : 'text-slate-800'}`}
           title="Contact via WhatsApp"
         >
-          {data.phone || '+65 1234 5678'}
+          {data.phone || locale.placeholderPhone}
         </a>
 
         {data.links &&
-          data.links.map((link) => (
+          data.links
+            .filter((link) => link.label || link.url)
+            .map((link) => (
             <React.Fragment key={link.id}>
               <span>•</span>
               <a

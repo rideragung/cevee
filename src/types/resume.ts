@@ -132,9 +132,26 @@ export type SectionData =
   | CustomListSectionData
   | CustomTextSectionData;
 
+export type ResumeLanguage = 'en' | 'id';
+
+export type ResumeSectionPresetKey =
+  | 'summary'
+  | 'experience'
+  | 'education'
+  | 'projects'
+  | 'skills'
+  | 'certifications'
+  | 'languages'
+  | 'publications'
+  | 'awards'
+  | 'volunteering'
+  | 'references'
+  | 'custom';
+
 export interface BaseResumeSection {
   id: string;
   title: string;
+  presetKey?: ResumeSectionPresetKey;
   showTitle?: boolean;
   isPlaceholder?: boolean;
 }
@@ -184,6 +201,7 @@ export type ResumeSection =
   | CustomListResumeSection;
 
 export interface ResumeContent {
+  language?: ResumeLanguage;
   header: HeaderData;
   sections: ResumeSection[];
 }

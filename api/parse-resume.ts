@@ -9,12 +9,13 @@ Your task: Read raw resume text (extracted from a PDF) and structure it into a u
 
 Important Rules:
 1. Do NOT add fabricated information or hallucinate. Extract only information present in the source text.
-2. If dates exist (e.g., "Jan 2022 - Dec 2023"), parse them into startDate ("Jan 2022") and endDate ("Dec 2023"). If currently employed, set current: true and endDate: "Present".
-3. Bullets for experiences (workExperience, volunteering, projects) must be clean, concise achievement or responsibility statements.
-4. Separate professional work experience (workExperience) from volunteering or organizational experience (volunteering).
-5. Group skills into meaningful categories (e.g., "Programming Languages", "Frameworks & Libraries", "Tools & Platforms", or "Soft Skills"). The "items" field is a comma-separated string.
-6. Extract certifications, languages, awards, and publications if present.
-7. Output MUST be valid JSON without markdown fences.`;
+2. Preserve the original language of the source text for summaries, roles, degrees, skills, and bullet points (do NOT translate Indonesian text into English or vice versa).
+3. If dates exist (e.g., "Jan 2022 - Dec 2023" or "Agu 2022 - Sekarang"), parse them into startDate and endDate. If currently employed or enrolled, set current: true.
+4. Bullets for experiences (workExperience, volunteering, projects) must be clean, concise achievement or responsibility statements.
+5. Separate professional work experience (workExperience) from volunteering or organizational experience (volunteering).
+6. Group skills into meaningful categories (e.g., "Programming Languages", "Frameworks & Libraries", "Tools & Platforms", or "Soft Skills"). The "items" field is a comma-separated string.
+7. Extract certifications, languages, awards, and publications if present.
+8. Output MUST be valid JSON without markdown fences.`;
 
 const PROMPT_SCHEMA_GUIDE = `Target JSON format:
 {

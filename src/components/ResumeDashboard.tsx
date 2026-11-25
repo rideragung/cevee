@@ -28,6 +28,7 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { ResumeContentThumbnail } from './ResumeContentThumbnail';
 import { getLayoutById } from '../data/layouts';
 import { formatRelativeTime } from '../utils/relativeTime';
+import { normalizeResumeLanguage } from '../utils/resumeLocale';
 import { ResumeEmptyState } from './ResumeEmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -691,10 +692,21 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                           <p className="mt-0.5 truncate text-xs text-muted-foreground">{fullName}</p>
                         </div>
 
-                        <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                        <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
                           <Badge variant="secondary" className="gap-1.5 text-[11px] font-medium py-0.5 px-2">
                             <LayoutTemplate className="size-3 text-muted-foreground" />
                             {getLayoutById(resume.layoutId).name}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-semibold py-0.5 px-1.5 text-muted-foreground"
+                            title={
+                              normalizeResumeLanguage(resume.content.language) === 'id'
+                                ? 'Resume language: Bahasa Indonesia'
+                                : 'Resume language: English'
+                            }
+                          >
+                            {normalizeResumeLanguage(resume.content.language).toUpperCase()}
                           </Badge>
                           <span
                             className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
@@ -785,13 +797,14 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                               <p className="mt-0.5 truncate text-xs text-muted-foreground">{fullName}</p>
                               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground sm:hidden">
                                 <span>{getLayoutById(resume.layoutId).name}</span>
+                                <span>({normalizeResumeLanguage(resume.content.language).toUpperCase()})</span>
                                 <span>Updated {formatRelativeTime(resume.updatedAt)}</span>
                               </p>
                             </div>
                           </div>
 
                           <span className="hidden truncate text-xs text-muted-foreground sm:block">
-                            {getLayoutById(resume.layoutId).name}
+                            {getLayoutById(resume.layoutId).name} · {normalizeResumeLanguage(resume.content.language).toUpperCase()}
                           </span>
                           <span
                             className="hidden text-xs text-muted-foreground sm:block"

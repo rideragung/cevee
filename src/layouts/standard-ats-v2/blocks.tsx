@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import {
   ResumeDocument,
   HeaderData,
+  ResumeLanguage,
+  ResumeSection,
   SkillCategory,
   ExperienceItem,
   ExperiencePosition,
@@ -14,6 +16,14 @@ import { IconExternalLink as ExternalLink } from '@tabler/icons-react';
 import { getWhatsAppUrl } from '../../utils/whatsApp';
 import { sortByPeriodDesc } from '../../utils/periodSort';
 import { sanitizeHtml } from '../../utils/sanitize';
+import {
+  detectSectionPresetKey,
+  getResumeLocale,
+  isHeaderRelocating,
+  normalizeResumeLanguage,
+  stripCredentialIdPrefix,
+  stripGpaPrefix,
+} from '../../utils/resumeLocale';
 import { parseContentParts, renderContentPart, stripHtml } from '../core/content';
 import type { ContentBlock } from '../core/types';
 import {
@@ -37,12 +47,16 @@ const REF_EDU_CONTENT_PART_CLASSES = {
 
 const estimateStandardAtsV2CustomItemHeight = (
   item: CustomSectionItem,
-  sectionTitle: string,
+  section: Pick<ResumeSection, 'title' | 'type' | 'presetKey'>,
   isPlaceholder?: boolean
 ): number => {
   if (isPlaceholder) return 25.22;
-  const upper = (sectionTitle || '').toUpperCase();
-  if (upper.includes('CERTIFICATION') || upper.includes('LANGUAGE') || upper.includes('REFERENCE')) {
+  const presetKey = detectSectionPresetKey(section);
+  if (
+    presetKey === 'certifications' ||
+    presetKey === 'languages' ||
+    presetKey === 'references'
+  ) {
     return 16.8135;
   }
   const text = stripHtml(item?.description || '');
@@ -50,7 +64,8 @@ const estimateStandardAtsV2CustomItemHeight = (
   return 16.8135 + lines * 16.8135;
 };
 
-const renderStandardAtsV2Header = (header: HeaderData): ReactNode => {
+const renderStandardAtsV2Header = (header: HeaderData, language?: ResumeLanguage): ReactNode => {
+  const locale = getResumeLocale(language);
   const activeRoles = (
     header.roles && header.roles.length > 0
       ? header.roles
@@ -59,24 +74,23 @@ const renderStandardAtsV2Header = (header: HeaderData): ReactNode => {
         : []
   ).filter(Boolean);
   const displayedRoles = activeRoles.join(' | ');
-  const isRelocating =
-    header.willingToRelocate ?? (header.relocationStatus && header.relocationStatus.includes('Willing'));
+  const isRelocating = isHeaderRelocating(header);
   const usableLinks = (header.links || []).filter((l) => l.label || l.url);
   const placeholderClass = header.isPlaceholder ? ' text-slate-400' : '';
 
   return (
     <div className="ref-header">
-      <h1 className={`ref-name${placeholderClass}`}>{header.fullName || 'Your Name'}</h1>
+      <h1 className={`ref-name${placeholderClass}`}>{header.fullName || locale.placeholderName}</h1>
 
       {displayedRoles && <div className={`ref-roles${placeholderClass}`}>{displayedRoles}</div>}
 
       <div className={`ref-contact-row${placeholderClass}`}>
-        <span>{header.location || 'City, State/Country'}</span>
-        {isRelocating && ' | Willing to relocate'}
+        <span>{header.location || locale.placeholderLocation}</span>
+        {isRelocating && locale.relocatePipe}
 
         <span className="ref-sep"> • </span>
         <a href={header.email ? `mailto:${header.email}` : '#'} className="ref-mail">
-          {header.email || 'email@address.com'}
+          {header.email || locale.placeholderEmail}
         </a>
 
         <span className="ref-sep"> • </span>
@@ -87,7 +101,7 @@ const renderStandardAtsV2Header = (header: HeaderData): ReactNode => {
           className="ref-mail"
           title="Contact via WhatsApp"
         >
-          {header.phone || '+65 1234 5678'}
+          {header.phone || locale.placeholderPhone}
         </a>
 
         {usableLinks.map((link, idx) => (
@@ -112,14 +126,16 @@ const renderStandardAtsV2Header = (header: HeaderData): ReactNode => {
 
 export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[] => {
   const { header, sections } = resume.content;
+  const language = normalizeResumeLanguage(resume.content.language);
+  const locale = getResumeLocale(language);
   const list: ContentBlock[] = [];
 
   // 1. Header Block
   list.push({
     id: 'block-header',
     type: 'header',
-    height: estimateStandardAtsV2HeaderHeight(header),
-    render: () => renderStandardAtsV2Header(header),
+    height: estimateStandardAtsV2HeaderHeight(header, language),
+    render: () => renderStandardAtsV2Header(header, language),
   });
 
   // 2. Sections
@@ -150,7 +166,7 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
           <div className="">
             {section.isPlaceholder ? (
               <p className="text-slate-400">
-                Results-driven professional with proven experience delivering impactful solutions and collaborating across multidisciplinary teams. Skilled in problem-solving, project execution, and standardizing workflows that drive measurable business outcomes. Passionate about continuous learning and contributing to high-performing product environments.
+                {locale.placeholderSummary}
               </p>
             ) : (
               <div className="ref-para" dangerouslySetInnerHTML={{ __html: sanitizeHtml(summaryData.html) }} />
@@ -166,8 +182,8 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
           height: 37.83,
           render: () => (
             <div className="ref-skill-cat text-slate-400">
-              <span className="ref-skill-label">Skill Category: </span>
-              <span>Skill Name 1, Skill Name 2, Skill Name 3, Skill Name 4, Skill Name 5, etc</span>
+              <span className="ref-skill-label">{locale.placeholderSkillCategory}</span>
+              <span>{locale.placeholderSkillItems}</span>
             </div>
           ),
         });
@@ -198,15 +214,15 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
           render: () => (
             <div className="text-slate-400">
               <div className="flex justify-between items-baseline font-bold leading-snug">
-                <span className="text-slate-400">Position</span>
-                <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
+                <span className="text-slate-400">{locale.placeholderPosition}</span>
+                <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderPeriod}</span>
               </div>
               <div className="flex justify-between items-baseline leading-snug text-[8pt]">
-                <span className="font-semibold text-slate-400">Company Name</span>
-                <span className="text-slate-400">City, State/Country</span>
+                <span className="font-semibold text-slate-400">{locale.placeholderCompany}</span>
+                <span className="text-slate-400">{locale.placeholderLocation}</span>
               </div>
               <div className="text-slate-400 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
-                State your tasks and accomplishments including name of the project and position of responsibility held.
+                {locale.placeholderExpDesc}
               </div>
             </div>
           ),
@@ -300,14 +316,14 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
             <div className="text-slate-400">
               <div className="flex justify-between items-baseline leading-snug">
                 <span className="font-bold text-slate-400 inline-flex items-center gap-1">
-                  <span>Project Name</span>
-                  <span className="text-[7.75pt] underline">(project link)</span>
+                  <span>{locale.placeholderProjectName}</span>
+                  <span className="text-[7.75pt] underline">({locale.placeholderProjectLink})</span>
                   <ExternalLink size={11} className="inline opacity-70 flex-shrink-0 text-slate-400" />
                 </span>
-                <span className="font-semibold text-slate-400 text-[8.41pt]">May 2022 - Present</span>
+                <span className="font-semibold text-slate-400 text-[8.41pt]">{locale.placeholderPeriod}</span>
               </div>
               <div className="text-slate-400 mt-0.5 text-left text-[8.41pt] leading-[12.61pt]">
-                State your tasks and accomplishments including name of the project and position of responsibility held.
+                {locale.placeholderProjectDesc}
               </div>
             </div>
           ),
@@ -363,27 +379,27 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
             <div className="text-slate-400 space-y-0.5">
               <div className="ref-row">
                 <span className="font-bold text-slate-400 inline-flex items-center gap-1">
-                  <span>Bachelor of Computer Science</span>
+                  <span>{locale.placeholderDegree}</span>
                   <span className="font-normal text-slate-400">•</span>
-                  <span className="text-[7.75pt] underline font-normal">(Transcript)</span>
+                  <span className="text-[7.75pt] underline font-normal">{locale.placeholderTranscript}</span>
                   <ExternalLink size={11} className="inline opacity-70 flex-shrink-0 text-slate-400" />
                 </span>
-                <span className="font-semibold text-slate-400 text-[8.41pt]">May 2022 - Present</span>
+                <span className="font-semibold text-slate-400 text-[8.41pt]">{locale.placeholderPeriod}</span>
               </div>
               <div className="ref-row ref-row-plain">
-                <span>Name of the Educational Institution</span>
-                <span className="font-medium text-slate-400">GPA: 4.0 of 4.0</span>
+                <span>{locale.placeholderInstitution}</span>
+                <span className="font-medium text-slate-400">{locale.placeholderGpa}</span>
               </div>
               <div className="ref-para ref-edu-para text-justify text-slate-400 text-[8.41pt] leading-[12.61pt]">
-                <span className="font-bold text-slate-400">Related Coursework: </span>
-                Data Structures, Algorithms, Software Engineering, Database Systems
+                <span className="font-bold text-slate-400">{locale.relatedCourseworkLabel}</span>
+                {locale.placeholderCoursework}
               </div>
               <div className="ref-para ref-edu-para text-justify text-slate-400 text-[8.41pt] leading-[12.61pt]">
-                <span className="font-bold text-slate-400">Final Thesis: </span>
-                <span className="underline">Design and Implementation of Distributed Real-Time Systems</span>
+                <span className="font-bold text-slate-400">{locale.finalThesisLabel}</span>
+                <span className="underline">{locale.placeholderThesis}</span>
               </div>
               <div className="ref-para ref-edu-para text-slate-400 text-[8.41pt] leading-[12.61pt]">
-                E.g., info about scholarships, student activity, etc.
+                {locale.placeholderEduNote}
               </div>
             </div>
           ),
@@ -442,8 +458,8 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
                   <span>{item.institution}</span>
                   {item.gpa && (
                     <span>
-                      <span className="ref-gpa-label">GPA: </span>
-                      {item.gpa.replace(/^\s*GPA\s*:\s*/i, '')}
+                      <span className="ref-gpa-label">{locale.gpaLabel}</span>
+                      {stripGpaPrefix(item.gpa)}
                     </span>
                   )}
                 </div>
@@ -452,7 +468,7 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
           });
 
           if (item.relatedCoursework) {
-            const cwText = `Related Coursework: ${item.relatedCoursework}`;
+            const cwText = `${locale.relatedCourseworkLabel}${item.relatedCoursework}`;
             const lines = Math.max(1, Math.ceil(cwText.length / 134));
             list.push({
               id: `item-${section.id}-${item.id}-coursework`,
@@ -461,7 +477,7 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
               render: () => (
                 <div className="ref-part">
                   <div className="ref-para ref-edu-para text-justify">
-                    <span className="font-bold">Related Coursework: </span>
+                    <span className="font-bold">{locale.relatedCourseworkLabel}</span>
                     <span>{item.relatedCoursework}</span>
                   </div>
                 </div>
@@ -470,7 +486,7 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
           }
 
           if (item.thesisTitle) {
-            const thText = `Final Thesis: ${item.thesisTitle}`;
+            const thText = `${locale.finalThesisLabel}${item.thesisTitle}`;
             const lines = Math.max(1, Math.ceil(thText.length / 134));
             list.push({
               id: `item-${section.id}-${item.id}-thesis`,
@@ -479,7 +495,7 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
               render: () => (
                 <div className="ref-part">
                   <div className="ref-para ref-edu-para text-justify">
-                    <span className="font-bold">Final Thesis: </span>
+                    <span className="font-bold">{locale.finalThesisLabel}</span>
                     {item.thesisUrl ? (
                       <a
                         href={item.thesisUrl}
@@ -513,11 +529,12 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
       }
     } else {
       // Custom Section (Certifications, Languages, Publications, Awards, References, etc.)
-      const isCert = section.title.toUpperCase().includes('CERTIFICATION');
-      const isLang = section.title.toUpperCase().includes('LANGUAGE');
-      const isPub = section.title.toUpperCase().includes('PUBLICATION');
-      const isAward = section.title.toUpperCase().includes('AWARD');
-      const isRef = section.title.toUpperCase().includes('REFERENCE');
+      const presetKey = detectSectionPresetKey(section);
+      const isCert = presetKey === 'certifications';
+      const isLang = presetKey === 'languages';
+      const isPub = presetKey === 'publications';
+      const isAward = presetKey === 'awards';
+      const isRef = presetKey === 'references';
 
       if (section.isPlaceholder) {
         list.push({
@@ -529,45 +546,56 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
               {isCert && (
                 <div className="flex justify-between items-baseline leading-snug">
                   <div>
-                    <span className="font-bold text-slate-400">Learn Basic AI (Credential ID: 6RPNR3EJ9X2M)</span>
-                    <span className="font-normal text-slate-400"> by </span>
-                    <span className="font-bold text-slate-400">Dicoding Indonesia</span>
+                    <span className="font-bold text-slate-400">{locale.placeholderCertTitle}</span>
+                    <span className="font-normal text-slate-400">{locale.certByConnector}</span>
+                    <span className="font-bold text-slate-400">{locale.placeholderCertIssuer}</span>
                   </div>
-                  <span className="text-[7.75pt] font-bold text-slate-400">Jan 2025 – Jan 2028</span>
+                  <span className="text-[7.75pt] font-bold text-slate-400">{locale.placeholderCertPeriod}</span>
                 </div>
               )}
               {isLang && (
                 <div className="text-slate-400 text-[7.75pt] leading-snug">
-                  <span className="font-bold text-slate-400">Bahasa Indonesia</span> (Native proficiency) •{' '}
-                  <span className="font-bold text-slate-400">Vietnamese</span> (Full working proficiency) •{' '}
-                  <span className="font-bold text-slate-400">English</span> (Professional working proficiency)
+                  {locale.placeholderLanguages.map((langItem, lIdx) => (
+                    <React.Fragment key={langItem.name}>
+                      {lIdx > 0 && ' • '}
+                      <span className="font-bold text-slate-400">{langItem.name}</span> ({langItem.proficiency})
+                    </React.Fragment>
+                  ))}
                 </div>
               )}
               {isPub && (
                 <div>
                   <div className="flex justify-between items-baseline font-bold leading-snug">
-                    <span className="text-slate-400">Publication Title (Publisher)</span>
-                    <span className="text-[7.75pt] font-semibold text-slate-400">May 2022</span>
+                    <span className="text-slate-400">{locale.placeholderPubTitle}</span>
+                    <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderPubPeriod}</span>
                   </div>
                   <div className="text-slate-400 text-[7.75pt] leading-relaxed mt-0.5">
-                    Provide a brief overview of the research, emphasizing significant findings...
+                    {locale.placeholderPubDesc}
                   </div>
                 </div>
               )}
               {isAward && (
                 <div>
                   <div className="flex justify-between items-baseline font-bold leading-snug">
-                    <span className="text-slate-400">Title (Issuer)</span>
-                    <span className="text-[7.75pt] font-semibold text-slate-400">May 2022</span>
+                    <span className="text-slate-400">{locale.placeholderAwardTitle}</span>
+                    <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderAwardPeriod}</span>
                   </div>
                   <div className="text-slate-400 text-[7.75pt] leading-relaxed mt-0.5">
-                    Write a concise description of the award, highlighting key achievements...
+                    {locale.placeholderAwardDesc}
                   </div>
                 </div>
               )}
               {isRef && (
                 <div className="text-slate-400 text-[7.75pt] leading-snug">
-                  <span className="font-bold text-slate-400">Richard Hendricks</span> (Co-founder of Pipe Piper) • richard@piedpiper.com
+                  <span className="font-bold text-slate-400">{locale.placeholderRefName}</span> ({locale.placeholderRefRole}) • {locale.placeholderRefContact}
+                </div>
+              )}
+              {!isCert && !isLang && !isPub && !isAward && !isRef && (
+                <div>
+                  <div className="flex justify-between items-baseline font-bold leading-snug">
+                    <span className="text-slate-400">{locale.placeholderAwardTitle}</span>
+                    <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderAwardPeriod}</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -578,7 +606,7 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
           list.push({
             id: `item-${section.id}-${item.id}`,
             type: 'item',
-            height: estimateStandardAtsV2CustomItemHeight(item, section.title, false),
+            height: estimateStandardAtsV2CustomItemHeight(item, section, false),
             render: () => {
               if (isCert) {
                 const rawDesc = item.description || '';
@@ -589,15 +617,15 @@ export const buildStandardAtsV2Blocks = (resume: ResumeDocument): ContentBlock[]
                   rawDesc.includes('.org');
                 const credUrl = item.credentialUrl || (isUrlDesc ? rawDesc : '');
                 const rawCredId =
-                  item.credentialId || (!isUrlDesc ? rawDesc.replace(/^Credential ID:\s*/i, '') : '');
+                  item.credentialId || (!isUrlDesc ? stripCredentialIdPrefix(rawDesc) : '');
 
                 const certContent = (
                   <>
                     <span className="font-bold">{item.title}</span>
-                    {rawCredId && <span className="font-bold"> (Credential ID: {rawCredId})</span>}
+                    {rawCredId && <span className="font-bold"> ({locale.credentialIdLabel}: {rawCredId})</span>}
                     {item.subtitle && (
                       <>
-                        <span className="font-normal"> by </span>
+                        <span className="font-normal">{locale.certByConnector}</span>
                         <span className="font-bold">{item.subtitle}</span>
                       </>
                     )}

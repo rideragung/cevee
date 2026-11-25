@@ -24,7 +24,7 @@ export const PaginatedResumeView: React.FC<PaginatedResumeViewProps> = ({
   const allBlocks: ContentBlock[] = useMemo(
     () => plugin.buildBlocks(resume),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [plugin, header, sections]
+    [plugin, header, sections, resume.content.language]
   );
 
   // Initial deterministic pagination

@@ -9,6 +9,8 @@ import {
 } from '@tabler/icons-react';
 import { sanitizeHtml } from '../../utils/sanitize';
 import { normalizeLayoutId } from '../../layouts/registry';
+import { ResumeLanguage } from '../../types/resume';
+import { getResumeLocale } from '../../utils/resumeLocale';
 
 interface SummarySectionProps {
   title: string;
@@ -16,6 +18,7 @@ interface SummarySectionProps {
   isPlaceholder?: boolean;
   data: { html: string };
   layoutId?: string;
+  resumeLanguage?: ResumeLanguage;
   onRename: (title: string) => void;
   onUpdateData: (data: { html: string }, isPlaceholder?: boolean) => void;
   onMoveUp: () => void;
@@ -31,6 +34,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   isPlaceholder = false,
   data,
   layoutId,
+  resumeLanguage = 'en',
   onRename,
   onUpdateData,
   onMoveUp,
@@ -41,6 +45,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(data.html);
+  const locale = getResumeLocale(resumeLanguage);
   const normalizedLayout = normalizeLayoutId(layoutId);
   const topMarginClass = !showTitle
     ? normalizedLayout === 'modern-photo'
@@ -90,6 +95,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
             }}
             className="rounded p-1 text-muted-foreground transition [@media(hover:hover)]:hover:text-foreground"
             title="Edit summary"
+            aria-label="Edit summary"
           >
             <Pencil size={13} />
           </button>
@@ -99,6 +105,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
               onClick={onMoveUp}
               className="rounded p-1 text-muted-foreground transition [@media(hover:hover)]:hover:text-foreground"
               title="Move summary up"
+              aria-label="Move summary up"
             >
               <ArrowUp size={13} />
             </button>
@@ -109,6 +116,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
               onClick={onMoveDown}
               className="rounded p-1 text-muted-foreground transition [@media(hover:hover)]:hover:text-foreground"
               title="Move summary down"
+              aria-label="Move summary down"
             >
               <ArrowDown size={13} />
             </button>
@@ -118,6 +126,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
             onClick={onDelete}
             className="rounded p-1 text-destructive transition hover:text-destructive/80"
             title="Delete summary"
+            aria-label="Delete summary"
           >
             <Trash2 size={13} />
           </button>
@@ -187,7 +196,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         >
           {isPlaceholder ? (
             <p className="text-slate-400">
-              Results-driven professional with proven experience delivering impactful solutions and collaborating across multidisciplinary teams. Skilled in problem-solving, project execution, and standardizing workflows that drive measurable business outcomes. Passionate about continuous learning and contributing to high-performing product environments.
+              {locale.placeholderSummary}
             </p>
           ) : (
             <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(data.html) }} />

@@ -26,7 +26,7 @@ const ResumeContentThumbnailInner: React.FC<ResumeContentThumbnailProps> = ({
   const blocks: ContentBlock[] = useMemo(
     () => plugin.buildBlocks(resume),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [plugin, header, sections],
+    [plugin, header, sections, resume.content.language],
   );
 
   // Initial estimate pagination strictly for page 1

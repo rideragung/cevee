@@ -1,29 +1,32 @@
-import type { HeaderData } from '../../types/resume';
+import type { HeaderData, ResumeLanguage } from '../../types/resume';
 import type { ContentPart } from '../core/types';
 import { stripHtml } from '../core/content';
+import { getResumeLocale, isHeaderRelocating } from '../../utils/resumeLocale';
 
 // Reference preset geometry (pt): content box 541.0341pt x 826.1632pt = 1080.435px at 96 DPI;
 // 1080px keeps the measured page-1 fill and pushes the next item to page 2.
 export const REFERENCE_PAGE_CONTENT_MAX_HEIGHT_PX = 1080;
 
-export const estimateStandardAtsV2HeaderHeight = (header: HeaderData): number => {
+export const estimateStandardAtsV2HeaderHeight = (
+  header: HeaderData,
+  language?: ResumeLanguage
+): number => {
+  const locale = getResumeLocale(language);
   const usableLinks = (header.links || []).filter((l) => l.label || l.url);
   const rolesCount =
     header.roles && header.roles.length > 0
       ? header.roles.filter(Boolean).length
       : (header.headline || '').split('|').map((s) => s.trim()).filter(Boolean).length;
-  const isRelocating =
-    header.willingToRelocate ??
-    (header.relocationStatus && header.relocationStatus.includes('Willing'));
+  const isRelocating = isHeaderRelocating(header);
   const linksLen = usableLinks.reduce(
     (acc, l) => acc + ((l.label || l.url || '').length || 10) + 3,
     0
   );
   const totalContactLen =
-    (header.location?.length || 0) +
-    (isRelocating ? 24 : 0) +
-    (header.email?.length || 0) +
-    (header.phone?.length || 0) +
+    (header.location?.length || locale.placeholderLocation.length) +
+    (isRelocating ? locale.relocatePipe.length : 0) +
+    (header.email?.length || locale.placeholderEmail.length) +
+    (header.phone?.length || locale.placeholderPhone.length) +
     linksLen +
     6;
   const rowCount = Math.max(1, Math.ceil(totalContactLen / 115));

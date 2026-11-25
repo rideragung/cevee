@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import {
   ResumeDocument,
   HeaderData,
+  ResumeLanguage,
+  ResumeSection,
   SkillCategory,
   ExperienceItem,
   ExperiencePosition,
@@ -13,13 +15,20 @@ import {
 import { IconExternalLink as ExternalLink } from '@tabler/icons-react';
 import { sortByPeriodDesc } from '../../utils/periodSort';
 import { sanitizeHtml } from '../../utils/sanitize';
+import {
+  detectSectionPresetKey,
+  getResumeLocale,
+  normalizeResumeLanguage,
+  stripCredentialIdPrefix,
+  stripGpaPrefix,
+} from '../../utils/resumeLocale';
 import { parseContentParts, renderContentPart, stripHtml } from '../core/content';
 import type { ContentBlock, ContentPart } from '../core/types';
 import { normalizeLayoutId } from '../registry';
 
 export interface HeaderBlockSpec {
-  estimateHeight: (header: HeaderData) => number;
-  render: (header: HeaderData) => ReactNode;
+  estimateHeight: (header: HeaderData, language?: ResumeLanguage) => number;
+  render: (header: HeaderData, language?: ResumeLanguage) => ReactNode;
 }
 
 const CONTENT_PART_CLASSES = {
@@ -75,12 +84,16 @@ const estimateSkillsCategoryHeight = (category: string, items: string, isLast: b
 
 const estimateCustomItemHeight = (
   item: CustomSectionItem,
-  sectionTitle: string,
+  section: Pick<ResumeSection, 'title' | 'type' | 'presetKey'>,
   isPlaceholder?: boolean
 ): number => {
   if (isPlaceholder) return 24;
-  const upper = (sectionTitle || '').toUpperCase();
-  if (upper.includes('CERTIFICATION') || upper.includes('LANGUAGE') || upper.includes('REFERENCE')) {
+  const presetKey = detectSectionPresetKey(section);
+  if (
+    presetKey === 'certifications' ||
+    presetKey === 'languages' ||
+    presetKey === 'references'
+  ) {
     return 22; // 1 compact line
   }
   let height = 16;
@@ -96,14 +109,16 @@ export const buildSingleColumnBlocks = (
   headerSpec: HeaderBlockSpec
 ): ContentBlock[] => {
   const { header, sections } = resume.content;
+  const language = normalizeResumeLanguage(resume.content.language);
+  const locale = getResumeLocale(language);
   const list: ContentBlock[] = [];
 
   // 1. Header Block
   list.push({
     id: 'block-header',
     type: 'header',
-    height: headerSpec.estimateHeight(header),
-    render: () => headerSpec.render(header),
+    height: headerSpec.estimateHeight(header, language),
+    render: () => headerSpec.render(header, language),
   });
 
   // 2. Sections
@@ -139,7 +154,7 @@ export const buildSingleColumnBlocks = (
           <div className={topMarginClass}>
             {section.isPlaceholder ? (
               <p className="text-slate-400 text-justify text-[7.75pt] leading-[1.48]">
-                Results-driven professional with proven experience delivering impactful solutions and collaborating across multidisciplinary teams. Skilled in problem-solving, project execution, and standardizing workflows that drive measurable business outcomes. Passionate about continuous learning and contributing to high-performing product environments.
+                {locale.placeholderSummary}
               </p>
             ) : (
               <div
@@ -158,8 +173,8 @@ export const buildSingleColumnBlocks = (
           height: 36,
           render: () => (
             <div className="mb-2 leading-snug text-slate-400">
-              <span className="font-bold text-slate-400">Skill Category: </span>
-              <span>Skill Name 1, Skill Name 2, Skill Name 3, Skill Name 4, Skill Name 5, etc</span>
+              <span className="font-bold text-slate-400">{locale.placeholderSkillCategory}</span>
+              <span>{locale.placeholderSkillItems}</span>
             </div>
           ),
         });
@@ -191,15 +206,15 @@ export const buildSingleColumnBlocks = (
           render: () => (
             <div className="mb-2 text-slate-400">
               <div className="flex justify-between items-baseline font-bold leading-snug">
-                <span className="text-slate-400">Position</span>
-                <span className="text-[7.75pt] font-semibold text-slate-400">May 2022 - Present</span>
+                <span className="text-slate-400">{locale.placeholderPosition}</span>
+                <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderPeriod}</span>
               </div>
               <div className="flex justify-between items-baseline leading-snug text-[8pt]">
-                <span className="font-semibold text-slate-400">Company Name</span>
-                <span className="text-slate-400">City, State/Country</span>
+                <span className="font-semibold text-slate-400">{locale.placeholderCompany}</span>
+                <span className="text-slate-400">{locale.placeholderLocation}</span>
               </div>
               <div className="text-slate-400 text-justify mt-0.5 text-[7.75pt] leading-[1.48]">
-                State your tasks and accomplishments including name of the project and position of responsibility held.
+                {locale.placeholderExpDesc}
               </div>
             </div>
           ),
@@ -326,14 +341,14 @@ export const buildSingleColumnBlocks = (
             <div className="mb-2 text-slate-400">
               <div className="flex justify-between items-baseline leading-snug">
                 <span className="font-bold text-slate-400 inline-flex items-center gap-1">
-                  <span>Project Name</span>
-                  <span className="text-[7.75pt] underline">(project link)</span>
+                  <span>{locale.placeholderProjectName}</span>
+                  <span className="text-[7.75pt] underline">({locale.placeholderProjectLink})</span>
                   <ExternalLink size={11} className="inline opacity-70 flex-shrink-0 text-slate-400" />
                 </span>
-                <span className="font-semibold text-slate-400 text-[7.75pt]">May 2022 - Present</span>
+                <span className="font-semibold text-slate-400 text-[7.75pt]">{locale.placeholderPeriod}</span>
               </div>
               <div className="text-slate-400 mt-0.5 text-justify text-[7.75pt] leading-[1.48]">
-                State your tasks and accomplishments including name of the project and position of responsibility held.
+                {locale.placeholderProjectDesc}
               </div>
             </div>
           ),
@@ -406,27 +421,27 @@ export const buildSingleColumnBlocks = (
             <div className="mb-1.5 text-slate-400 space-y-0.5">
               <div className="flex justify-between items-baseline leading-snug">
                 <span className="font-bold text-slate-400 inline-flex items-center gap-1">
-                  <span>Bachelor of Computer Science</span>
+                  <span>{locale.placeholderDegree}</span>
                   <span className="font-normal text-slate-400">•</span>
-                  <span className="text-[7.75pt] underline font-normal">(Transcript)</span>
+                  <span className="text-[7.75pt] underline font-normal">{locale.placeholderTranscript}</span>
                   <ExternalLink size={10} className="inline opacity-70 flex-shrink-0 text-slate-400" />
                 </span>
-                <span className="font-semibold text-slate-400 text-[7.75pt]">May 2022 - Present</span>
+                <span className="font-semibold text-slate-400 text-[7.75pt]">{locale.placeholderPeriod}</span>
               </div>
               <div className="flex justify-between items-baseline leading-snug text-[8pt]">
-                <span>Name of the Educational Institution</span>
-                <span className="font-medium text-slate-400">GPA: 4.0 of 4.0</span>
+                <span>{locale.placeholderInstitution}</span>
+                <span className="font-medium text-slate-400">{locale.placeholderGpa}</span>
               </div>
               <div className="text-slate-400 text-justify text-[7.75pt] leading-snug">
-                <span className="font-bold text-slate-400">Related Coursework: </span>
-                Data Structures, Algorithms, Software Engineering, Database Systems
+                <span className="font-bold text-slate-400">{locale.relatedCourseworkLabel}</span>
+                {locale.placeholderCoursework}
               </div>
               <div className="text-slate-400 text-justify text-[7.75pt] leading-snug">
-                <span className="font-bold text-slate-400">Final Thesis: </span>
-                <span className="underline">Design and Implementation of Distributed Real-Time Systems</span>
+                <span className="font-bold text-slate-400">{locale.finalThesisLabel}</span>
+                <span className="underline">{locale.placeholderThesis}</span>
               </div>
               <div className="text-slate-400 text-[7.75pt] leading-snug">
-                E.g., info about scholarships, student activity, etc.
+                {locale.placeholderEduNote}
               </div>
             </div>
           ),
@@ -472,8 +487,8 @@ export const buildSingleColumnBlocks = (
                   <span>{item.institution}</span>
                   {item.gpa && (
                     <span className="font-medium text-slate-800">
-                      <span className="font-bold text-slate-900">GPA: </span>
-                      {item.gpa.replace(/^\s*GPA\s*:\s*/i, '')}
+                      <span className="font-bold text-slate-900">{locale.gpaLabel}</span>
+                      {stripGpaPrefix(item.gpa)}
                     </span>
                   )}
                 </div>
@@ -482,7 +497,10 @@ export const buildSingleColumnBlocks = (
           });
 
           if (item.relatedCoursework) {
-            const cwLines = Math.max(1, Math.ceil((item.relatedCoursework.length + 20) / 95));
+            const cwLines = Math.max(
+              1,
+              Math.ceil((item.relatedCoursework.length + locale.relatedCourseworkLabel.length) / 95)
+            );
             const hasNext = Boolean(item.thesisTitle || descBlocks.length > 0);
             list.push({
               id: `item-${section.id}-${item.id}-coursework`,
@@ -490,7 +508,7 @@ export const buildSingleColumnBlocks = (
               height: cwLines * 14.5 + (hasNext ? 2 : 0),
               render: () => (
                 <div className={`mt-0.5 text-slate-800 text-justify text-[7.75pt] leading-[1.48] ${!hasNext && !isLastItem ? 'mb-1.5' : ''}`}>
-                  <span className="font-bold text-slate-900">Related Coursework: </span>
+                  <span className="font-bold text-slate-900">{locale.relatedCourseworkLabel}</span>
                   <span>{item.relatedCoursework}</span>
                 </div>
               ),
@@ -498,7 +516,10 @@ export const buildSingleColumnBlocks = (
           }
 
           if (item.thesisTitle) {
-            const thLines = Math.max(1, Math.ceil((item.thesisTitle.length + 15) / 95));
+            const thLines = Math.max(
+              1,
+              Math.ceil((item.thesisTitle.length + locale.finalThesisLabel.length) / 95)
+            );
             const hasDesc = descBlocks.length > 0;
             list.push({
               id: `item-${section.id}-${item.id}-thesis`,
@@ -506,7 +527,7 @@ export const buildSingleColumnBlocks = (
               height: thLines * 14.5 + (hasDesc ? 2 : 0),
               render: () => (
                 <div className={`mt-0.5 text-slate-800 text-justify text-[7.75pt] leading-[1.48] ${!hasDesc && !isLastItem ? 'mb-1.5' : ''}`}>
-                  <span className="font-bold text-slate-900">Final Thesis: </span>
+                  <span className="font-bold text-slate-900">{locale.finalThesisLabel}</span>
                   {item.thesisUrl ? (
                     <a
                       href={item.thesisUrl}
@@ -551,11 +572,12 @@ export const buildSingleColumnBlocks = (
       }
     } else {
       // Custom Section (Certifications, Languages, Publications, Awards, References, etc.)
-      const isCert = section.title.toUpperCase().includes('CERTIFICATION');
-      const isLang = section.title.toUpperCase().includes('LANGUAGE');
-      const isPub = section.title.toUpperCase().includes('PUBLICATION');
-      const isAward = section.title.toUpperCase().includes('AWARD');
-      const isRef = section.title.toUpperCase().includes('REFERENCE');
+      const presetKey = detectSectionPresetKey(section);
+      const isCert = presetKey === 'certifications';
+      const isLang = presetKey === 'languages';
+      const isPub = presetKey === 'publications';
+      const isAward = presetKey === 'awards';
+      const isRef = presetKey === 'references';
 
       if (section.isPlaceholder) {
         list.push({
@@ -567,45 +589,56 @@ export const buildSingleColumnBlocks = (
               {isCert && (
                 <div className="flex justify-between items-baseline leading-snug">
                   <div>
-                    <span className="font-bold text-slate-400">Learn Basic AI (Credential ID: 6RPNR3EJ9X2M)</span>
-                    <span className="font-normal text-slate-400"> by </span>
-                    <span className="font-bold text-slate-400">Dicoding Indonesia</span>
+                    <span className="font-bold text-slate-400">{locale.placeholderCertTitle}</span>
+                    <span className="font-normal text-slate-400">{locale.certByConnector}</span>
+                    <span className="font-bold text-slate-400">{locale.placeholderCertIssuer}</span>
                   </div>
-                  <span className="text-[7.75pt] font-bold text-slate-400">Jan 2025 – Jan 2028</span>
+                  <span className="text-[7.75pt] font-bold text-slate-400">{locale.placeholderCertPeriod}</span>
                 </div>
               )}
               {isLang && (
                 <div className="text-slate-400 text-[7.75pt] leading-snug">
-                  <span className="font-bold text-slate-400">Bahasa Indonesia</span> (Native proficiency) •{' '}
-                  <span className="font-bold text-slate-400">Vietnamese</span> (Full working proficiency) •{' '}
-                  <span className="font-bold text-slate-400">English</span> (Professional working proficiency)
+                  {locale.placeholderLanguages.map((langItem, lIdx) => (
+                    <React.Fragment key={langItem.name}>
+                      {lIdx > 0 && ' • '}
+                      <span className="font-bold text-slate-400">{langItem.name}</span> ({langItem.proficiency})
+                    </React.Fragment>
+                  ))}
                 </div>
               )}
               {isPub && (
                 <div>
                   <div className="flex justify-between items-baseline font-bold leading-snug">
-                    <span className="text-slate-400">Publication Title (Publisher)</span>
-                    <span className="text-[7.75pt] font-semibold text-slate-400">May 2022</span>
+                    <span className="text-slate-400">{locale.placeholderPubTitle}</span>
+                    <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderPubPeriod}</span>
                   </div>
                   <div className="text-slate-400 text-[7.75pt] leading-relaxed mt-0.5">
-                    Provide a brief overview of the research, emphasizing significant findings...
+                    {locale.placeholderPubDesc}
                   </div>
                 </div>
               )}
               {isAward && (
                 <div>
                   <div className="flex justify-between items-baseline font-bold leading-snug">
-                    <span className="text-slate-400">Title (Issuer)</span>
-                    <span className="text-[7.75pt] font-semibold text-slate-400">May 2022</span>
+                    <span className="text-slate-400">{locale.placeholderAwardTitle}</span>
+                    <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderAwardPeriod}</span>
                   </div>
                   <div className="text-slate-400 text-[7.75pt] leading-relaxed mt-0.5">
-                    Write a concise description of the award, highlighting key achievements...
+                    {locale.placeholderAwardDesc}
                   </div>
                 </div>
               )}
               {isRef && (
                 <div className="text-slate-400 text-[7.75pt] leading-snug">
-                  <span className="font-bold text-slate-400">Richard Hendricks</span> (Co-founder of Pipe Piper) • richard@piedpiper.com
+                  <span className="font-bold text-slate-400">{locale.placeholderRefName}</span> ({locale.placeholderRefRole}) • {locale.placeholderRefContact}
+                </div>
+              )}
+              {!isCert && !isLang && !isPub && !isAward && !isRef && (
+                <div>
+                  <div className="flex justify-between items-baseline font-bold leading-snug">
+                    <span className="text-slate-400">{locale.placeholderAwardTitle}</span>
+                    <span className="text-[7.75pt] font-semibold text-slate-400">{locale.placeholderAwardPeriod}</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -617,7 +650,7 @@ export const buildSingleColumnBlocks = (
           list.push({
             id: `item-${section.id}-${item.id}`,
             type: 'item',
-            height: estimateCustomItemHeight(item, section.title, false),
+            height: estimateCustomItemHeight(item, section, false),
             render: () => {
               if (isCert) {
                 const rawDesc = item.description || '';
@@ -628,17 +661,17 @@ export const buildSingleColumnBlocks = (
                   rawDesc.includes('.org');
                 const credUrl = item.credentialUrl || (isUrlDesc ? rawDesc : '');
                 const rawCredId =
-                  item.credentialId || (!isUrlDesc ? rawDesc.replace(/^Credential ID:\s*/i, '') : '');
+                  item.credentialId || (!isUrlDesc ? stripCredentialIdPrefix(rawDesc) : '');
 
                 const certContent = (
                   <>
                     <span className="font-bold">{item.title}</span>
                     {rawCredId && (
-                      <span className="font-bold"> (Credential ID: {rawCredId})</span>
+                      <span className="font-bold"> ({locale.credentialIdLabel}: {rawCredId})</span>
                     )}
                     {item.subtitle && (
                       <>
-                        <span className="font-normal"> by </span>
+                        <span className="font-normal">{locale.certByConnector}</span>
                         <span className="font-bold">{item.subtitle}</span>
                       </>
                     )}

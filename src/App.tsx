@@ -4,11 +4,20 @@ import {
   ResumeDocument,
   HeaderData,
   SectionType,
+  ResumeLanguage,
   ResumeLayoutId,
+  ResumeSectionPresetKey,
   SectionData,
   ResumeSection,
   CustomSectionItem,
 } from './types/resume';
+import {
+  DEFAULT_RESUME_LANGUAGE,
+  buildDefaultHeader,
+  buildDefaultSections,
+  normalizeResumeLanguage,
+  switchResumeLanguage,
+} from './utils/resumeLocale';
 import { Navbar } from './components/Navbar';
 import { ResumeHeader } from './components/ResumeHeader';
 import { SummarySection } from './components/sections/SummarySection';
@@ -45,6 +54,7 @@ const IS_GUEST_KEY = 'cevee_is_guest_v3';
 const isResumeModified = (resume: ResumeDocument): boolean => {
   if (resume.id !== 'resume-sample-1') return true;
   if (resume.title !== 'Standard ATS Resume') return true;
+  if (resume.content?.language && resume.content.language !== 'en') return true;
   const header = resume.content?.header;
   if (header) {
     if (header.fullName && header.fullName !== 'Your Name') return true;
@@ -359,6 +369,11 @@ export function App() {
     }));
   };
 
+  // Per-resume language switch (headings, labels, dates, placeholders)
+  const handleChangeResumeLanguage = (nextLang: ResumeLanguage) => {
+    updateActiveResume((res) => switchResumeLanguage(res, nextLang));
+  };
+
   // Section title rename
   const handleRenameSection = (sectionId: string, newTitle: string) => {
     updateActiveResume((res) => ({
@@ -447,7 +462,11 @@ export function App() {
   };
 
   // Add section
-  const handleAddSection = (title: string, type: SectionType) => {
+  const handleAddSection = (
+    title: string,
+    type: SectionType,
+    presetKey?: ResumeSectionPresetKey,
+  ) => {
     const newSectionId = `sec-${Date.now()}`;
     let defaultData: SectionData;
 
@@ -537,6 +556,7 @@ export function App() {
           {
             id: newSectionId,
             type,
+            presetKey,
             title,
             isPlaceholder: true,
             data: defaultData,
@@ -565,13 +585,13 @@ export function App() {
     layoutId: ResumeLayoutId,
     importedResume?: ResumeDocument,
     customTitle?: string,
-    targetRole?: string,
+    resumeLanguage: ResumeLanguage = DEFAULT_RESUME_LANGUAGE,
   ) => {
     if (layoutModal.mode === 'create') {
       if (importedResume) {
         handleImportSuccess(importedResume);
       } else {
-        executeCreateResume(layoutId, customTitle, targetRole);
+        executeCreateResume(layoutId, customTitle, undefined, resumeLanguage);
       }
     } else {
       handleSelectLayout(layoutId);
@@ -583,8 +603,10 @@ export function App() {
     layoutId: ResumeLayoutId = DEFAULT_LAYOUT_ID,
     customTitle?: string,
     targetRole?: string,
+    resumeLanguage: ResumeLanguage = DEFAULT_RESUME_LANGUAGE,
   ) => {
     const newId = `resume-${Date.now()}`;
+    const lang = normalizeResumeLanguage(resumeLanguage);
     const roles = targetRole?.trim() ? [targetRole.trim()] : [];
     const newResume: ResumeDocument = {
       id: newId,
@@ -593,72 +615,9 @@ export function App() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       content: {
-        header: {
-          fullName: 'Your Name',
-          isPlaceholder: true,
-          roles,
-          headline: targetRole?.trim() || '',
-          location: 'City, State/Country',
-          willingToRelocate: false,
-          relocationStatus: '',
-          email: 'email@address.com',
-          phone: '+65 1234 5678',
-          links: [
-            {
-              id: `l-${Date.now()}-1`,
-              label: 'linkedin.com/in/your_linkedin',
-              url: 'https://linkedin.com',
-            },
-            {
-              id: `l-${Date.now()}-2`,
-              label: 'github.com/username',
-              url: 'https://github.com',
-            },
-            {
-              id: `l-${Date.now()}-3`,
-              label: 'otherlink.com',
-              url: 'https://example.com',
-            },
-          ],
-        },
-        sections: [
-          {
-            id: `sec-${Date.now()}-1`,
-            type: 'summary',
-            title: 'SUMMARY',
-            showTitle: false,
-            isPlaceholder: true,
-            data: { html: '' },
-          },
-          {
-            id: `sec-${Date.now()}-2`,
-            type: 'experience',
-            title: 'WORK EXPERIENCE',
-            isPlaceholder: true,
-            data: { items: [] },
-          },
-          {
-            id: `sec-${Date.now()}-3`,
-            type: 'education',
-            title: 'EDUCATION',
-            isPlaceholder: true,
-            data: { items: [] },
-          },
-          {
-            id: `sec-${Date.now()}-4`,
-            type: 'projects',
-            title: 'PROJECTS',
-            isPlaceholder: true,
-            data: { items: [] },
-          },
-          {
-            id: `sec-${Date.now()}-5`,
-            type: 'skills',
-            title: 'SKILLS',
-            isPlaceholder: true,
-            data: { categories: [] },
-          },
-        ],
+        language: lang,
+        header: buildDefaultHeader(lang, `l-${Date.now()}`, roles, targetRole?.trim() || ''),
+        sections: buildDefaultSections(lang, `sec-${Date.now()}`),
       },
     };
     setResumes((prev) => [newResume, ...prev]);
@@ -922,6 +881,8 @@ export function App() {
               onOpenPreview={() => setIsPreviewOpen(true)}
               onDownloadPdf={handleDownloadPdf}
               onBackToDashboard={() => setCurrentView('dashboard')}
+              resumeLanguage={normalizeResumeLanguage(activeResume.content.language)}
+              onChangeResumeLanguage={handleChangeResumeLanguage}
               syncStatus={syncStatus}
               isCloudUser={Boolean(user)}
             />
@@ -938,12 +899,14 @@ export function App() {
                   data={activeResume.content.header}
                   onChange={handleHeaderChange}
                   layoutId={activeResume.layoutId}
+                  resumeLanguage={normalizeResumeLanguage(activeResume.content.language)}
                 />
 
                 {/* Dynamic Sections */}
                 {activeResume.content.sections.map((section, idx) => {
                   const isFirst = idx === 0;
                   const isLast = idx === activeResume.content.sections.length - 1;
+                  const activeLanguage = normalizeResumeLanguage(activeResume.content.language);
 
                   if (section.type === 'summary') {
                     return (
@@ -954,6 +917,7 @@ export function App() {
                         isPlaceholder={section.isPlaceholder}
                         data={section.data}
                         layoutId={activeResume.layoutId}
+                        resumeLanguage={activeLanguage}
                         onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
                         onUpdateData={(newData, isPlaceholder) =>
                           handleUpdateSectionData(section.id, newData, isPlaceholder)
@@ -974,6 +938,7 @@ export function App() {
                         title={section.title}
                         isPlaceholder={section.isPlaceholder}
                         data={section.data}
+                        resumeLanguage={activeLanguage}
                         onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
                         onUpdateData={(newData, isPlaceholder) =>
                           handleUpdateSectionData(section.id, newData, isPlaceholder)
@@ -992,8 +957,10 @@ export function App() {
                       <ExperienceSection
                         key={section.id}
                         title={section.title}
+                        presetKey={section.presetKey}
                         isPlaceholder={section.isPlaceholder}
                         data={section.data}
+                        resumeLanguage={activeLanguage}
                         onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
                         onUpdateData={(newData, isPlaceholder) =>
                           handleUpdateSectionData(section.id, newData, isPlaceholder)
@@ -1014,6 +981,7 @@ export function App() {
                         title={section.title}
                         isPlaceholder={section.isPlaceholder}
                         data={section.data}
+                        resumeLanguage={activeLanguage}
                         onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
                         onUpdateData={(newData, isPlaceholder) =>
                           handleUpdateSectionData(section.id, newData, isPlaceholder)
@@ -1034,6 +1002,7 @@ export function App() {
                         title={section.title}
                         isPlaceholder={section.isPlaceholder}
                         data={section.data}
+                        resumeLanguage={activeLanguage}
                         onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
                         onUpdateData={(newData, isPlaceholder) =>
                           handleUpdateSectionData(section.id, newData, isPlaceholder)
@@ -1052,8 +1021,10 @@ export function App() {
                     <CustomSection
                       key={section.id}
                       title={section.title}
+                      presetKey={section.presetKey}
                       isPlaceholder={section.isPlaceholder}
                       data={section.data as { items: CustomSectionItem[] }}
+                      resumeLanguage={activeLanguage}
                       onRename={(newTitle) => handleRenameSection(section.id, newTitle)}
                       onUpdateData={(newData, isPlaceholder) =>
                         handleUpdateSectionData(section.id, newData, isPlaceholder)
@@ -1070,7 +1041,8 @@ export function App() {
                 {/* Bottom Bar: Add Sections */}
                 <AddSectionBar
                   onAddSection={handleAddSection}
-                  existingTitles={activeResume.content.sections.map((s) => s.title)}
+                  existingSections={activeResume.content.sections}
+                  resumeLanguage={normalizeResumeLanguage(activeResume.content.language)}
                 />
               </div>
             </main>

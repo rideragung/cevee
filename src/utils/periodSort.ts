@@ -18,7 +18,7 @@ const MONTH_MAP: Record<string, number> = {
   may: 4, mei: 4,
   jun: 5, june: 5, juni: 5,
   jul: 6, july: 6, juli: 6,
-  aug: 7, august: 7, agustus: 7,
+  aug: 7, august: 7, agu: 7, agt: 7, agustus: 7,
   sep: 8, sept: 8, september: 8,
   oct: 9, october: 9, okt: 9, oktober: 9,
   nov: 10, november: 10,

@@ -1,11 +1,11 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.38.0  
+**Dokumen Versi:** 1.39.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
-**Target Platform:** Web (Responsive — Desktop, Tablet & Mobile)  
-**Default Language:** English (US)
+**Target Platform:** Web (Responsive: Desktop, Tablet & Mobile)  
+**Default Language:** Web UI English (US) · Per-Resume Language English (`en`) / Bahasa Indonesia (`id`)
 
 ---
 
@@ -36,6 +36,7 @@ Cevee memungkinkan pengguna:
 11. Menyimpan data otomatis ke database Supabase dan cadangan lokal `localStorage`.
 12. Mengedit CV secara penuh dari perangkat mobile (tata letak responsif penuh tanpa *horizontal scroll*), dengan kanvas A4 yang mengalir ulang sesuai lebar layar di bawah ambang `900px`.
 13. Memilih format layout saat membuat CV baru dan mengganti layout secara fleksibel langsung dari kanvas editor dengan preservasi konten 100%.
+14. Memilih dan mengganti bahasa dokumen resume per-CV (`English` / `Bahasa Indonesia`) tanpa mengubah bahasa antarmuka aplikasi web (yang tetap English US).
 
 ### 1.3 Batasan Biaya & Keamanan Infrastruktur AI (Strict Constraints)
 - **Zero Cost (Rp 0):** Seluruh infrastruktur wajib berjalan di tingkat gratis permanen (*free tier*) tanpa kewajiban kartu kredit (Supabase, Vercel Serverless, Google AI Studio / Gemini API free tier).
@@ -325,6 +326,25 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
 - **FR-13.8 (Human-Friendly UX Writing, TaskSteps & Provider Abstraction):** Antarmuka pengguna (`LayoutSelectModal`) dan layer komunikasi AI (`geminiParser.ts`) mengabstraksikan nama vendor internal. Proses pemindaian dan analisis AI menggunakan komponen terstruktur **`TaskSteps`** (`ix-task-steps`) dengan 3 tahapan visual jelas (Extracting PDF document text -> Structuring experience and skills with AI -> Formatting layout and readying editor) lengkap dengan indikator animasi shimmer, status centang hijau, dan ikon spinning progress. Kegagalan/timeout/kuota dipetakan ke pesan yang solutif tanpa memaparkan kode error teknis atau istilah vendor ke pengguna.
 - **FR-13.9 (Magnetic Drop Zone):** Dropzone upload PDF resume menggunakan komponen `MagneticDropZone` berbasis fisika pegas (`motion/react`) yang memberikan efek tarikan magnetik ikon ke arah kursor/file, penyorotan visual border dan latar saat berkas ditarik di atas zona, serta dukungan aksesibilitas keyboard dan reduced-motion.
 
+### 3.14 FR-14: Fitur Bahasa Dokumen Resume Per-CV (Per-Resume Language Switcher)
+- **FR-14.1 (Pemisahan Bahasa Dokumen vs Bahasa Aplikasi Web):**
+  - Antarmuka aplikasi web Cevee (navbar, tombol, modal dialog, form label editor, dan dashboard) tetap menggunakan standar `English (US)`.
+  - Setiap dokumen resume memiliki pengaturan bahasa mandiri (`content.language?: 'en' | 'id'`, default `'en'`) yang tersimpan di dalam kolom JSONB `content` Supabase dan `localStorage` tanpa memerlukan migrasi tabel SQL.
+- **FR-14.2 (Kontrol Pemilihan & Pergantian Bahasa Resume):**
+  - **Saat Pembuatan CV Baru (`LayoutSelectModal` Step 2):** Menyediakan kontrol radio tersegmentasi `Resume language` (`English` | `Indonesia`) sejajar di samping input `Resume title`, berlaku untuk pembuatan template kosong (*Blank template*) maupun ekstraksi PDF (*Scan & import from PDF*).
+  - **Di Dalam Kanvas Editor (`Navbar`):** Menyediakan menu dropdown `Resume language` (`EN` / `ID`) pada bilah atas editor (tampil baik di desktop maupun mobile) untuk mengganti bahasa resume kapan saja secara reaktif.
+  - **Indikator Dashboard (`ResumeDashboard`):** Kartu resume menampilkan lencana kode bahasa (`EN` / `ID`) di samping nama layout agar pengguna yang memiliki CV multi-bahasa dapat membedakan dokumen secara instan.
+- **FR-14.3 (Cakupan Lokalisasi Deterministik & Preservasi Konten Pengguna):**
+  - Mengganti bahasa resume (`switchResumeLanguage` di `src/utils/resumeLocale.ts`) hanya memperbarui elemen struktural/template tanpa menimpa kalimat yang telah diketik pengguna:
+    1. **Judul Section Standar:** Mengonversi judul bawaan yang belum dikustomisasi bebas (`SUMMARY` ↔ `RINGKASAN`, `WORK EXPERIENCE` ↔ `PENGALAMAN KERJA`, `EDUCATION` ↔ `PENDIDIKAN`, `PROJECTS` ↔ `PROYEK`, `SKILLS` ↔ `KEAHLIAN`, `CERTIFICATIONS` ↔ `SERTIFIKASI`, `LANGUAGES` ↔ `BAHASA`, `PUBLICATIONS` ↔ `PUBLIKASI`, `AWARDS` ↔ `PENGHARGAAN`, `ORGANIZATIONAL & VOLUNTEERING EXPERIENCE` ↔ `PENGALAMAN ORGANISASI & RELAWAN`, `REFERENCES` ↔ `REFERENSI`). Judul yang telah diubah kustom oleh pengguna dipertahankan utuh.
+    2. **Identitas Sub-Tipe Section Stabil (`presetKey`):** Setiap section menyimpan `presetKey` opsional (`certifications`, `languages`, `publications`, `awards`, `volunteering`, `references`, dll.) dengan detektor kata kunci dwibahasa (`detectSectionPresetKey`), menjaga format khusus sertifikasi, bahasa, dan referensi tetap bekerja akurat meskipun judul section berbahasa Indonesia.
+    3. **Label Bawaan Layout & PDF (1:1 di Semua Preset Layout V1, Modern Photo, dan V2):**
+       - Relokasi Header: `(Willing to relocate)` ↔ `(Bersedia relokasi)` (V1 & Modern Photo) serta `| Willing to relocate` ↔ `| Bersedia relokasi` (V2).
+       - Education: `GPA:` ↔ `IPK:`, `Related Coursework:` ↔ `Mata Kuliah Relevan:`, `Final Thesis:` ↔ `Tugas Akhir:`.
+       - Certifications: `Credential ID:` ↔ `ID Kredensial:`, kata penghubung `by` ↔ `oleh`.
+    4. **Format Bulan, Status Aktif & DatePicker:** Mengonversi singkatan bulan (`May` ↔ `Mei`, `Aug` ↔ `Agu`, `Oct` ↔ `Okt`, `Dec` ↔ `Des`) dan status aktif (`Present` ↔ `Sekarang`) pada periode tanggal, menampilkan grid bulan sesuai bahasa resume di `DatePicker`, serta mendukung singkatan `Agu` pada pengurutan kronologis `sortByPeriodDesc`.
+    5. **Teks Panduan Placeholder A4:** Seluruh teks contoh abu-abu (`isPlaceholder`) menyesuaikan bahasa resume aktif.
+
 ---
 
 ## 4. SKEMA DATA & DATABASE
@@ -521,9 +541,26 @@ export type SectionData =
   | CustomListSectionData
   | CustomTextSectionData;
 
+export type ResumeLanguage = 'en' | 'id';
+
+export type ResumeSectionPresetKey =
+  | 'summary'
+  | 'experience'
+  | 'education'
+  | 'projects'
+  | 'skills'
+  | 'certifications'
+  | 'languages'
+  | 'publications'
+  | 'awards'
+  | 'volunteering'
+  | 'references'
+  | 'custom';
+
 export interface BaseResumeSection {
   id: string;
   title: string;          // BEBAS DIKUSTOMISASI OLEH USER
+  presetKey?: ResumeSectionPresetKey; // Penanda sub-tipe section lintas bahasa
   showTitle?: boolean;    // Dapat disembunyikan (misal: default false untuk summary)
   isPlaceholder?: boolean;// Menampilkan format dummy saat baru ditambahkan tanpa mengunci input
 }
@@ -571,6 +608,12 @@ export type ResumeSection =
   | EducationResumeSection
   | CustomTextResumeSection
   | CustomListResumeSection;
+
+export interface ResumeContent {
+  language?: ResumeLanguage; // Bahasa dokumen resume ('en' | 'id', default: 'en')
+  header: HeaderData;
+  sections: ResumeSection[];
+}
 
 export type ResumeLayoutId = 'standard-ats-v1' | 'standard-ats-v2' | 'modern-photo';
 export type LegacyResumeLayoutId = 'classic-ats' | 'reference-nodeflair';
@@ -633,6 +676,19 @@ export interface ResumeDocument {
 ---
 
 ## 7. RIWAYAT VERSI (CHANGELOG)
+
+### 1.39.0 - Fitur Bahasa Dokumen Resume Per-CV (`en` / `id`) & Label Pendidikan `IPK:`
+- **Pemisahan Bahasa Resume vs Bahasa Web (`src/utils/resumeLocale.ts`, `src/types/resume.ts`):**
+  - Menambahkan properti `language?: 'en' | 'id'` pada `ResumeContent` (tersimpan otomatis di JSONB Supabase dan `localStorage` tanpa perubahan skema tabel) serta `presetKey?: ResumeSectionPresetKey` pada `BaseResumeSection`.
+  - Seluruh antarmuka web tetap berbahasa Inggris (`English US`), sementara konten struktural dokumen A4 mengikuti bahasa resume masing-masing.
+- **Kontrol Pengubah Bahasa di Editor & Pembuatan CV (`Navbar.tsx`, `LayoutSelectModal.tsx`, `ResumeDashboard.tsx`):**
+  - Menambahkan dropdown `Resume language` (`EN` / `ID`) pada `Navbar` editor (desktop & mobile) tanpa tumpang tindih layout (`shrink-0` tiga zona sejajar).
+  - Menambahkan pemilih radio tersegmentasi `Resume language` (`English` | `Indonesia`) di Step 2 `LayoutSelectModal` (sejajar vertikal presisi dengan input `Resume title`) untuk alur template kosong maupun import PDF AI.
+  - Menambahkan lencana kode bahasa (`EN` / `ID`) pada kartu dan daftar resume di `ResumeDashboard`.
+- **Lokalisasi Penuh Seluruh Preset Layout, Tanggal, dan Label `IPK:`:**
+  - Mengonversi judul section standar, status relokasi (`(Bersedia relokasi)` / `| Bersedia relokasi`), label pendidikan (`GPA:` ↔ `IPK:`, `Related Coursework:` ↔ `Mata Kuliah Relevan:`, `Final Thesis:` ↔ `Tugas Akhir:`), label sertifikasi (`Credential ID:` ↔ `ID Kredensial:`, `by` ↔ `oleh`), periode tanggal (`May`/`Aug`/`Oct`/`Dec` ↔ `Mei`/`Agu`/`Okt`/`Des`, `Present` ↔ `Sekarang`), serta teks placeholder A4 secara identik 1:1 di kanvas editor, `ResumeContentThumbnail`, `PaginatedResumeView`, dan cetak PDF (`standard-ats-v1`, `modern-photo`, `standard-ats-v2`).
+  - Memperbarui `DatePicker` agar menampilkan grid bulan sesuai bahasa resume aktif, memperbarui `periodSort.ts` dengan dukungan singkatan bulan `agu`/`agt`, mengeliminasi titik pemisah kosong pada tautan header kosong di `ResumeHeader` dan layout header, serta memperbarui instruksi `api/parse-resume.ts` agar ekstraksi PDF mempertahankan bahasa asli dokumen sumber.
+- **Verifikasi:** `npm run lint` ✓ (0 error), `npm run build` ✓ (TypeScript + Vite bundle lulus), serta verifikasi klik interaktif penuh di browser desktop (`1440px`) dan mobile (`390px`).
 
 ### 1.38.0 — Hardening Thumbnail Halaman 1, Numbered List, dan Konsistensi Input Pillow Light
 - **Proteksi Halaman 1 Pratinjau Layout Resume (`ResumeContentThumbnail`):**

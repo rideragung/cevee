@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ResumeDocument } from '../types/resume';
+import { ResumeDocument, ResumeLanguage } from '../types/resume';
 import {
   IconPlus as Plus,
   IconCopy as Copy,
@@ -13,7 +13,12 @@ import {
   IconArrowLeft as ArrowLeft,
   IconCloud as Cloud,
   IconLoader2 as Loader2,
+  IconLanguage as LanguageIcon,
 } from '@tabler/icons-react';
+import {
+  RESUME_LANGUAGE_OPTIONS,
+  normalizeResumeLanguage,
+} from '../utils/resumeLocale';
 import { ConfirmDialog } from './ConfirmDialog';
 import { logoIcon } from '@/assets/logo';
 import { Button } from '@/components/ui/button';
@@ -39,6 +44,8 @@ interface NavbarProps {
   onOpenPreview: () => void;
   onDownloadPdf: () => void;
   onBackToDashboard?: () => void;
+  resumeLanguage?: ResumeLanguage;
+  onChangeResumeLanguage?: (lang: ResumeLanguage) => void;
   syncStatus?: 'saved' | 'saving' | 'error';
   isCloudUser?: boolean;
 }
@@ -54,6 +61,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPreview,
   onDownloadPdf,
   onBackToDashboard,
+  resumeLanguage = 'en',
+  onChangeResumeLanguage,
   syncStatus = 'saved',
   isCloudUser = false,
 }) => {
@@ -61,6 +70,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const currentResume = resumes.find((r) => r.id === currentResumeId) || resumes[0];
   const [editTitle, setEditTitle] = useState(currentResume?.title || '');
+  const activeLang = normalizeResumeLanguage(resumeLanguage);
+  const activeLangOption =
+    RESUME_LANGUAGE_OPTIONS.find((opt) => opt.id === activeLang) || RESUME_LANGUAGE_OPTIONS[0];
 
   const handleRenameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,13 +98,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       <header className="app-navbar sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border shadow-xs no-print">
         <div className="w-full max-w-[210mm] mx-auto px-2.5 sm:px-6 min-[901px]:px-0 flex items-center justify-between gap-2 sm:gap-3 py-2 lg:h-14 lg:py-0">
           {/* Left: Back button (aligned to canvas left edge) */}
-          <div className="flex items-center min-w-0 flex-1">
+          <div className="flex items-center shrink-0">
             {onBackToDashboard && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onBackToDashboard}
-                className="gap-2 px-2.5 h-8 text-muted-foreground hover:text-foreground flex-shrink-0"
+                className="relative gap-2 px-2 sm:px-2.5 h-8 text-muted-foreground hover:text-foreground flex-shrink-0 after:absolute after:-inset-y-1.5 after:-inset-x-0.5 after:content-['']"
                 title="Back to dashboard"
                 aria-label="Back to dashboard"
               >
@@ -104,7 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Center: sync indicator + file selector */}
-          <div className="flex items-center gap-2 justify-center min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 justify-center min-w-0">
             {/* Sync status indicator */}
             <div
               className="flex flex-shrink-0 items-center justify-center"
@@ -155,9 +167,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <Button
                         variant="secondary"
                         size="sm"
-                        className="h-8 gap-1.5 px-2.5 text-xs font-medium min-w-0"
+                        className="h-8 gap-1.5 px-2 sm:px-2.5 text-xs font-medium min-w-0"
                       >
-                        <span className="truncate max-w-[110px] sm:max-w-[220px]">
+                        <span className="truncate max-w-[92px] min-[380px]:max-w-[130px] sm:max-w-[130px] md:max-w-[190px]">
                           {currentResume?.title}
                         </span>
                         <ChevronDown className="size-3.5 text-muted-foreground flex-shrink-0" />
@@ -232,13 +244,68 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Right: Preview + Download (desktop) */}
-          <div className="hidden sm:flex items-center justify-end gap-2 min-w-0 flex-1">
+          {/* Right: Resume language + Preview + Download */}
+          <div className="flex items-center justify-end gap-2 shrink-0">
+            {onChangeResumeLanguage && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="relative h-8 gap-1.5 px-2 sm:px-2.5 text-xs font-medium flex-shrink-0 after:absolute after:-inset-y-1.5 after:-inset-x-0.5 after:content-['']"
+                    title={`Resume language: ${activeLangOption.label}`}
+                    aria-label={`Resume language: ${activeLangOption.label}`}
+                  >
+                    <LanguageIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                    <span className="font-semibold">{activeLangOption.shortLabel}</span>
+                    <ChevronDown className="size-3 text-muted-foreground" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60 max-w-[calc(100vw-1.5rem)]">
+                  <DropdownMenuLabel className="pb-0.5 text-xs font-semibold text-foreground">
+                    Resume language
+                  </DropdownMenuLabel>
+                  <p className="px-2 pb-1.5 text-[11px] leading-snug text-muted-foreground">
+                    Changes headings, labels (GPA / IPK), and dates in this resume only.
+                  </p>
+                  <DropdownMenuSeparator />
+                  {RESUME_LANGUAGE_OPTIONS.map((opt) => {
+                    const isSelected = opt.id === activeLang;
+                    return (
+                      <DropdownMenuItem
+                        key={opt.id}
+                        onClick={() => {
+                          if (opt.id !== activeLang) {
+                            onChangeResumeLanguage(opt.id);
+                          }
+                        }}
+                        className="flex items-center justify-between gap-2 text-xs cursor-pointer py-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 font-medium text-foreground">
+                            <span>{opt.label}</span>
+                            <span className="text-[10px] font-semibold text-muted-foreground">
+                              ({opt.shortLabel})
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {opt.description}
+                          </p>
+                        </div>
+                        {isSelected && <Check className="size-3.5 text-primary shrink-0" />}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
             <Button
               variant="secondary"
               size="sm"
               onClick={onOpenPreview}
-              className="gap-1.5 h-8 text-xs font-medium flex-shrink-0"
+              className="hidden sm:inline-flex gap-1.5 h-8 text-xs font-medium flex-shrink-0"
               title="Preview resume"
               aria-label="Preview resume"
             >
@@ -250,7 +317,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               variant="default"
               size="sm"
               onClick={onDownloadPdf}
-              className="gap-1.5 h-8 text-xs font-medium flex-shrink-0"
+              className="hidden sm:inline-flex gap-1.5 h-8 text-xs font-medium flex-shrink-0"
               title="Download PDF"
               aria-label="Download PDF"
             >

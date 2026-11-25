@@ -1,24 +1,38 @@
 import React from 'react';
 import type { ReactNode } from 'react';
-import { HeaderData } from '../../types/resume';
+import { HeaderData, ResumeLanguage } from '../../types/resume';
 import { IconUser as UserIcon } from '@tabler/icons-react';
 import { getWhatsAppUrl } from '../../utils/whatsApp';
+import { getResumeLocale, isHeaderRelocating } from '../../utils/resumeLocale';
 
-export const estimateModernPhotoHeaderHeight = (header: HeaderData): number => {
+export const estimateModernPhotoHeaderHeight = (
+  header: HeaderData,
+  language?: ResumeLanguage
+): number => {
+  const locale = getResumeLocale(language);
+  const isRelocating = isHeaderRelocating(header);
   let height = 32; // Nama
   if (header.headline || (header.roles && header.roles.length > 0)) {
     height += 18;
   }
   const linksCount = header.links?.length || 0;
   const contactTextLen =
-    (header.location?.length || 0) + (header.email?.length || 0) + (header.phone?.length || 0) + linksCount * 22;
+    (header.location?.length || locale.placeholderLocation.length) +
+    (isRelocating ? locale.relocateParen.length : 0) +
+    (header.email?.length || locale.placeholderEmail.length) +
+    (header.phone?.length || locale.placeholderPhone.length) +
+    linksCount * 22;
   const contactLines = Math.max(1, Math.ceil(contactTextLen / 76));
   height += contactLines * 16;
   height += 2; // pb-0.5
   return Math.max(104, height);
 };
 
-export const renderModernPhotoHeader = (header: HeaderData): ReactNode => {
+export const renderModernPhotoHeader = (
+  header: HeaderData,
+  language?: ResumeLanguage
+): ReactNode => {
+  const locale = getResumeLocale(language);
   const activeRoles = (
     header.roles && header.roles.length > 0
       ? header.roles
@@ -27,8 +41,7 @@ export const renderModernPhotoHeader = (header: HeaderData): ReactNode => {
         : []
   ).filter(Boolean);
   const displayedRoles = activeRoles.join(' | ');
-  const isRelocating =
-    header.willingToRelocate ?? (header.relocationStatus && header.relocationStatus.includes('Willing'));
+  const isRelocating = isHeaderRelocating(header);
 
   return (
     <div className="resume-header mb-0 pb-0.5">
@@ -56,7 +69,7 @@ export const renderModernPhotoHeader = (header: HeaderData): ReactNode => {
             }`}
             style={{ letterSpacing: 'normal' }}
           >
-            {header.fullName || 'Your Name'}
+            {header.fullName || locale.placeholderName}
           </h1>
 
           {displayedRoles && (
@@ -71,8 +84,8 @@ export const renderModernPhotoHeader = (header: HeaderData): ReactNode => {
             }`}
           >
             <span>
-              {header.location || 'City, State/Country'}
-              {isRelocating && ' (Willing to relocate)'}
+              {header.location || locale.placeholderLocation}
+              {isRelocating && locale.relocateParen}
             </span>
 
             <span>•</span>
@@ -80,7 +93,7 @@ export const renderModernPhotoHeader = (header: HeaderData): ReactNode => {
               href={header.email ? `mailto:${header.email}` : '#'}
               className={`underline ${header.isPlaceholder ? 'text-slate-400' : 'text-slate-800'}`}
             >
-              {header.email || 'email@address.com'}
+              {header.email || locale.placeholderEmail}
             </a>
 
             <span>•</span>
@@ -91,11 +104,13 @@ export const renderModernPhotoHeader = (header: HeaderData): ReactNode => {
               className={`underline ${header.isPlaceholder ? 'text-slate-400' : 'text-slate-800'}`}
               title="Contact via WhatsApp"
             >
-              {header.phone || '+65 1234 5678'}
+              {header.phone || locale.placeholderPhone}
             </a>
 
             {header.links &&
-              header.links.map((link) => (
+              header.links
+                .filter((link) => link.label || link.url)
+                .map((link) => (
                 <React.Fragment key={link.id}>
                   <span>•</span>
                   <a

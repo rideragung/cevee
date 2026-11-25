@@ -7,6 +7,7 @@ Sumber kebenaran kode (*single source of truth*):
 - `src/components/PaginatedResumeView.tsx`
 - `src/data/layouts.ts`
 - `src/types/resume.ts`
+- `src/utils/resumeLocale.ts`
 - `SRS.md`
 
 ---
@@ -79,7 +80,7 @@ Cevee menyediakan 2 varian preset layout untuk header:
   - Pemisah Item: `•` (dot separator)
   - Tautan Portofolio & Email: `underline text-slate-800`
   - WhatsApp Link: otomatis dikonversi dari nomor telepon (`https://wa.me/kode_negara_nomor`)
-  - Status Relokasi: `(Willing to relocate)`
+  - Status Relokasi: `(Willing to relocate)` pada bahasa resume `en`, atau `(Bersedia relokasi)` pada bahasa resume `id` (pada preset `standard-ats-v2`: `| Willing to relocate` atau `| Bersedia relokasi`)
   - Warna Teks: `text-slate-700` (`#334155`)
 
 #### B. Preset `modern-photo` (Photo Header • Single Column)
@@ -205,13 +206,13 @@ Cevee menyediakan 2 varian preset layout untuk header:
 - **Baris 2 (Institusi & Nilai/IPK):**
   - Tata Letak: `flex justify-between items-baseline text-slate-800 leading-snug text-[8pt]`
   - **Nama Institusi:** Font size `8pt`, Font weight `400` (`font-normal`), warna `text-slate-800`
-  - **GPA / IPK:** Selalu memuat label **GPA: ** tebal (`font-bold text-slate-900`) diikuti nilai IPK (`font-medium text-slate-800`), konsisten di seluruh layout (V1, Modern Photo, V2) dan kanvas editor.
-- **Baris 3 (Related Coursework):**
-  - Ditampilkan jika `relatedCoursework` terisi, berada tepat sebelum deskripsi/thesis dengan perataan teks rata kanan-kiri (*justify*):
-    `<div className="mt-0.5 text-slate-800 text-justify text-[7.75pt] leading-[1.48]"><span className="font-bold text-slate-900">Related Coursework: </span>[Daftar Mata Kuliah]</div>`
-  - V2 Preset: `<div className="ref-part"><div className="ref-para ref-edu-para text-justify"><span className="font-bold">Related Coursework: </span>[Daftar Mata Kuliah]</div></div>` (indented `4.8039pt` to align with `.ref-row` Degree & Institution).
-- **Baris 4 (Final Thesis):**
-  - Ditampilkan jika `thesisTitle` terisi, dengan label tebal `Final Thesis: ` dan teks rata kanan-kiri (*justify*).
+  - **GPA / IPK:** Selalu memuat label tebal (`font-bold text-slate-900`) sesuai bahasa resume aktif (**`GPA: `** untuk `en`, **`IPK: `** untuk `id`) diikuti nilai IPK (`font-medium text-slate-800`), konsisten di seluruh layout (V1, Modern Photo, V2) dan kanvas editor.
+- **Baris 3 (Related Coursework / Mata Kuliah Relevan):**
+  - Ditampilkan jika `relatedCoursework` terisi, berada tepat sebelum deskripsi/thesis dengan label sesuai bahasa resume (`Related Coursework: ` untuk `en`, `Mata Kuliah Relevan: ` untuk `id`) dan perataan teks rata kanan-kiri (*justify*):
+    `<div className="mt-0.5 text-slate-800 text-justify text-[7.75pt] leading-[1.48]"><span className="font-bold text-slate-900">[Related Coursework: | Mata Kuliah Relevan: ]</span>[Daftar Mata Kuliah]</div>`
+  - V2 Preset: `<div className="ref-part"><div className="ref-para ref-edu-para text-justify"><span className="font-bold">[Related Coursework: | Mata Kuliah Relevan: ]</span>[Daftar Mata Kuliah]</div></div>` (indented `4.8039pt` to align with `.ref-row` Degree & Institution).
+- **Baris 4 (Final Thesis / Tugas Akhir):**
+  - Ditampilkan jika `thesisTitle` terisi, dengan label tebal sesuai bahasa resume (`Final Thesis: ` untuk `en`, `Tugas Akhir: ` untuk `id`) dan teks rata kanan-kiri (*justify*).
   - Tautan dokumen di-embed langsung pada teks judul skripsi menggunakan elemen `<a>` (`underline`, hover warna primer, tanpa ikon eksternal). Jika `thesisUrl` kosong, judul ditampilkan sebagai teks biasa.
   - V1 & Modern Photo: `<div className="mt-0.5 text-slate-800 text-justify text-[7.75pt] leading-[1.48]"><span className="font-bold text-slate-900">Final Thesis: </span>[Judul Skripsi]</div>`
   - V2 Preset: `<div className="ref-part"><div className="ref-para ref-edu-para text-justify"><span className="font-bold">Final Thesis: </span>[Judul Skripsi]</div></div>` (indented `4.8039pt` to align with `.ref-row` Degree & Institution).
@@ -228,8 +229,8 @@ Cevee menyediakan 2 varian preset layout untuk header:
 #### A. Sertifikasi (Certifications)
 - **Baris Konten:** `flex justify-between items-baseline leading-snug text-[7.75pt] mb-1.5`
 - **Judul Sertifikat:** `font-bold`
-- **Credential ID:** `font-bold` dengan format `(Credential ID: [ID])`
-- **Penerbit:** `by <font-bold>Nama Penerbit</font-bold>`
+- **Credential ID:** `font-bold` dengan format `(Credential ID: [ID])` untuk `en` atau `(ID Kredensial: [ID])` untuk `id`
+- **Penerbit:** `by <font-bold>Nama Penerbit</font-bold>` untuk `en` atau `oleh <font-bold>Nama Penerbit</font-bold>` untuk `id`
 - **Periode / Validitas:** `text-[7.75pt] font-bold text-slate-900 whitespace-nowrap ml-4`
 - **Tautan Verifikasi:** Jika URL ada, teks dibungkus tag `<a>` warna `text-slate-900`
 
