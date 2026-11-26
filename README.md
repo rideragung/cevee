@@ -200,6 +200,13 @@ Tools:
   `reorder_sections`
 - `add_item`, `update_item`, `remove_item`, `reorder_items`
 - `list_layouts`, `set_layout`
+- `import_resume` — PDF text/base64/file → Gemini draft; `save: false` by default
+- `ats_audit` — deterministic ATS score and issues
+
+`import_resume` requires `GEMINI_API_KEYS` (and optional `GEMINI_MODEL`) in the
+MCP environment. It returns a draft by default; `save: true` creates a new
+resume and never overwrites an existing one. `pdfBase64` and `filePath` are
+local-only inputs; the remote server will accept `pdfText` only.
 
 Resources: `cevee://capabilities`, `cevee://resumes`,
 `cevee://resumes/{resumeId}`, `cevee://layouts`, `cevee://schema/resume`,

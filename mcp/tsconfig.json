@@ -18,6 +18,8 @@
     "test",
     "../src/lib/mcp/**/*.ts",
     "../src/lib/domain/**/*.ts",
+    "../src/lib/pdf/extractTextNode.ts",
+    "../src/lib/pdf/pdfjs-legacy.d.ts",
     "../src/layouts/ids.ts",
     "../src/layouts/catalog.ts",
     "../src/types/resume.ts",

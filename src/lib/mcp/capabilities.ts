@@ -40,7 +40,7 @@ export const getMcpCapabilities = (): McpCapabilities => ({
   sections: MCP_SECTION_PRESETS,
   layouts: LAYOUT_CATALOG_LIST.map((layout) => layout.id),
   features: {
-    import: [],
+    import: ['pdf'],
     export: [],
     ai: [],
   },

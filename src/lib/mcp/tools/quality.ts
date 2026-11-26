@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import type { ResumeDocument, ResumeSection } from '../../../types/resume';
+import { auditResume } from '../../domain/ats';
 import { htmlToPlainText } from '../../domain/html';
 import { getMcpCapabilities } from '../capabilities';
 import { resumeDocumentSchema } from '../schema/resume';
@@ -139,6 +140,22 @@ export const registerQualityTools = (
         valid: issues.every((issue) => issue.severity !== 'error'),
         issues,
       });
+    }
+  );
+
+  server.registerTool(
+    'ats_audit',
+    {
+      title: 'ATS audit',
+      description:
+        'Score a resume for ATS readiness and list actionable issues: contact completeness, summary length, bullet quality, ordering, skills, and length.',
+      inputSchema: z.object({ resumeId: z.string() }),
+      annotations: { readOnlyHint: true, idempotentHint: true },
+    },
+    async ({ resumeId }) => {
+      const resume = await store.getResume(resumeId);
+      if (!resume) return errorResult(`Resume "${resumeId}" was not found.`);
+      return jsonResult(auditResume(resume));
     }
   );
 };

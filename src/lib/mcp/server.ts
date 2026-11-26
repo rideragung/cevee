@@ -5,6 +5,7 @@ import { registerPrompts } from './prompts';
 import { registerResources } from './resources';
 import type { ResumeStore } from './store/types';
 import { registerItemTools } from './tools/items';
+import { registerImportTools, type McpImportServices } from './tools/import';
 import { registerLayoutTools } from './tools/layouts';
 import { registerQualityTools } from './tools/quality';
 import { registerResumeTools } from './tools/resumes';
@@ -13,11 +14,13 @@ import { registerSectionTools } from './tools/sections';
 export interface BuildMcpServerOptions {
   store: ResumeStore;
   auth: McpAuthContext;
+  importServices?: McpImportServices;
 }
 
 export const buildMcpServer = ({
   store,
   auth,
+  importServices,
 }: BuildMcpServerOptions): McpServer => {
   const server = new McpServer({
     name: 'cevee',
@@ -29,6 +32,7 @@ export const buildMcpServer = ({
   registerSectionTools(server, store, auth);
   registerItemTools(server, store, auth);
   registerLayoutTools(server, store, auth);
+  registerImportTools(server, store, auth, importServices);
   registerResources(server, store, auth);
   registerPrompts(server);
 

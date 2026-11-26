@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { buildMcpServer } from '../../src/lib/mcp/server';
 import { MemoryStore } from '../../src/lib/mcp/store/memoryStore';
+import type { ParsedResumeRaw } from '../../src/lib/ai/types';
 import type { ResumeDocument } from '../../src/types/resume';
 
 interface TextContent {
@@ -22,6 +23,29 @@ beforeAll(async () => {
   const server = buildMcpServer({
     store,
     auth: { userId: 'test-user', mode: 'local', scopes: ['read', 'write'] },
+    importServices: {
+      gemini: { apiKeys: 'test-key' },
+      parseResumeText: async (): Promise<ParsedResumeRaw> => ({
+        header: {
+          fullName: 'Imported Person',
+          email: 'imported@example.com',
+          phone: '+62 812 1111 2222',
+          location: 'Bandung, Indonesia',
+        },
+        summary: 'Imported summary for the Phase 2 test.',
+        workExperience: [
+          {
+            role: 'Engineer',
+            company: 'Acme',
+            startDate: 'Jan 2024',
+            endDate: 'Present',
+            current: true,
+            bullets: ['Built a tested import path'],
+          },
+        ],
+        skills: [{ category: 'Tools', items: 'TypeScript, Node.js' }],
+      }),
+    },
   });
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -162,6 +186,59 @@ describe('MCP tools', () => {
 
     expect(typeof validation.valid).toBe('boolean');
     expect(Array.isArray(validation.issues)).toBe(true);
+  });
+
+  it('audits the resume for ATS readiness', async () => {
+    const audit = parseResult(
+      await client.callTool({
+        name: 'ats_audit',
+        arguments: { resumeId: resume.id },
+      })
+    );
+
+    expect(typeof audit.score).toBe('number');
+    expect(Array.isArray(audit.issues)).toBe(true);
+    expect(audit.summary).toBeTruthy();
+  });
+
+  it('imports a resume as a draft without saving', async () => {
+    const imported = parseResult(
+      await client.callTool({
+        name: 'import_resume',
+        arguments: { pdfText: 'A'.repeat(80), save: false },
+      })
+    );
+
+    expect(imported.saved).toBe(false);
+    const draft = imported.draft as {
+      content: { header: { fullName: string } };
+    };
+    expect(draft.content.header.fullName).toBe('Imported Person');
+  });
+
+  it('imports and saves a new resume', async () => {
+    const imported = parseResult(
+      await client.callTool({
+        name: 'import_resume',
+        arguments: {
+          pdfText: 'B'.repeat(80),
+          save: true,
+          title: 'Imported Resume',
+        },
+      })
+    );
+
+    expect(imported.saved).toBe(true);
+    const saved = imported.resume as { id: string; title: string };
+    expect(saved.title).toBe('Imported Resume');
+
+    const audit = parseResult(
+      await client.callTool({
+        name: 'ats_audit',
+        arguments: { resumeId: saved.id },
+      })
+    );
+    expect(typeof audit.score).toBe('number');
   });
 
   it('requires confirmation before deleting', async () => {

@@ -20,6 +20,7 @@
     "dev": "tsx src/index.ts",
     "test": "npm run build && vitest run",
     "smoke": "tsx scripts/smoke.ts",
+    "check": "tsx scripts/check-server.ts",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
@@ -28,7 +29,8 @@
     "zod": "^4.6.7"
   },
   "peerDependencies": {
-    "@supabase/supabase-js": "^2.117.3"
+    "@supabase/supabase-js": "^2.117.3",
+    "pdfjs-dist": "^6.4.299"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "^2.4.0",

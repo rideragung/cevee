@@ -48,10 +48,18 @@ role key: every query runs with the signed-in user's token and Supabase RLS.
   `reorder_sections`
 - `add_item`, `update_item`, `remove_item`, `reorder_items`
 - `list_layouts`, `set_layout`
+- `import_resume` — PDF text/base64/file → Gemini draft; `save: false` by default
+- `ats_audit` — deterministic ATS score and issues
 
 Every write requires `expectedVersion`. A stale version returns a conflict with
 the latest document; re-read it and retry. Delete operations require
 `confirm: true`.
+
+`import_resume` requires `GEMINI_API_KEYS` (and optional `GEMINI_MODEL`). It
+returns a draft by default; `save: true` creates a new resume and never
+overwrites an existing one. `pdfBase64` and `filePath` are local-only inputs;
+the remote server will accept `pdfText` only. The extracted text is sent to
+Google Gemini.
 
 Summary and bullet inputs are plain text. The server escapes text and converts
 bullets to safe HTML; it does not accept raw HTML from the agent.

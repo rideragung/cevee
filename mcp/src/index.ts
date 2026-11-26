@@ -3,7 +3,8 @@ import { buildMcpServer } from '../../src/lib/mcp/server';
 import { MemoryStore } from '../../src/lib/mcp/store/memoryStore';
 import { SupabaseResumeStore } from '../../src/lib/mcp/store/supabaseStore';
 import { runCli } from './cli';
-import { loadConfigEnv } from './config';
+import { getGeminiKeys, getGeminiModel, loadConfigEnv } from './config';
+import { extractPdfTextFromBase64, extractPdfTextFromFile } from './pdf';
 import { getAuthenticatedClient } from './session';
 
 const CLI_COMMANDS = new Set(['login', 'whoami', 'logout', 'help', '--help', '-h']);
@@ -33,6 +34,14 @@ const main = async (): Promise<void> => {
   const server = buildMcpServer({
     store,
     auth: { userId, mode: 'local', scopes: ['read', 'write'], email },
+    importServices: {
+      gemini: {
+        apiKeys: getGeminiKeys(),
+        model: getGeminiModel(),
+      },
+      extractPdfTextFromBase64,
+      extractPdfTextFromFile,
+    },
   });
 
   await server.connect(new StdioServerTransport());

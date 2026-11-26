@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.41.0  
+**Dokumen Versi:** 1.42.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Responsive: Desktop, Tablet & Mobile)  
@@ -350,7 +350,9 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
 ### 3.15 FR-15: Integrasi MCP (Model Context Protocol)
 - **FR-15.1 (Fondasi Domain Bersama):** Logika resume yang tidak bergantung React dipusatkan di `src/lib/domain/` (factory, migrasi, ATS, HTML) dan schema validasi Zod di `src/lib/mcp/schema/`. Schema dianotasi `z.ZodType<ResumeDocument>` sehingga perubahan tipe tanpa pembaruan schema menggagalkan `tsc`.
 - **FR-15.2 (Versi Data):** Dokumen membawa `content.schemaVersion`; migrasi saat baca mempertahankan field yang belum dikenal agar fitur baru tidak hilang saat dibaca/ditulis melalui MCP.
-- **FR-15.3 (MCP Lokal):** Paket `mcp/` menyediakan server stdio `cevee-mcp` dengan CLI `login` / `whoami` / `logout`. Session disimpan di `~/.cevee` dengan permission owner-only; tidak ada service role. Tool yang tersedia: `get_capabilities`, `validate_resume`, CRUD resume (`list_resumes`, `get_resume`, `create_resume`, `update_resume`, `duplicate_resume`, `delete_resume`), `update_header`, section (`list_sections`, `add_section`, `update_section`, `remove_section`, `reorder_sections`), item (`add_item`, `update_item`, `remove_item`, `reorder_items`), dan layout (`list_layouts`, `set_layout`). Setiap write memakai `expectedVersion`; delete membutuhkan `confirm: true`. Input summary/bullet berupa plain text dan di-escape server-side.
+- **FR-15.3 (MCP Lokal):** Paket `mcp/` menyediakan server stdio `cevee-mcp` dengan CLI `login` / `whoami` / `logout`. Session disimpan di `~/.cevee` dengan permission owner-only; tidak ada service role. Tool yang tersedia: `get_capabilities`, `validate_resume`, `ats_audit`, CRUD resume (`list_resumes`, `get_resume`, `create_resume`, `update_resume`, `duplicate_resume`, `delete_resume`), `update_header`, section (`list_sections`, `add_section`, `update_section`, `remove_section`, `reorder_sections`), item (`add_item`, `update_item`, `remove_item`, `reorder_items`), layout (`list_layouts`, `set_layout`), dan import (`import_resume`). Setiap write memakai `expectedVersion`; delete membutuhkan `confirm: true`. Input summary/bullet berupa plain text dan di-escape server-side.
+- **FR-15.3a (Import PDF):** `import_resume` menerima `pdfText`, `pdfBase64`, atau `filePath` (lokal), mengekstrak teks dengan PDF.js legacy, lalu memanggil Google Gemini untuk menghasilkan `ParsedResumeRaw`. Hasil dipetakan ke `ResumeDocument` baru dan dikembalikan sebagai draft (`save: false`, default) atau disimpan sebagai resume baru (`save: true`). Tool ini tidak pernah menimpa resume yang sudah ada. `pdfBase64` dan `filePath` hanya tersedia di server lokal.
+- **FR-15.3b (Audit ATS):** `ats_audit` menjalankan aturan deterministik di `src/lib/domain/ats.ts` dan mengembalikan skor 0–100, daftar isu (critical/warning/info), serta ringkasan jumlah section, item, bullet, dan kata. Tool ini read-only.
 - **FR-15.4 (MCP Remote — Rencana):** Endpoint Streamable HTTP di Vercel Edge (`/api/mcp`) memakai OAuth 2.1 Supabase sebagai authorization server, consent page `/oauth/consent`, dan RLS untuk isolasi data. PAT opsional hanya untuk client yang tidak mendukung OAuth.
 - **FR-15.5 (Batasan):** Guest mode tidak dapat memakai MCP karena data hanya berada di `localStorage`. Export PDF tetap dijalankan di sisi klien; remote MCP tidak menjalankan Playwright.
 
@@ -686,6 +688,17 @@ export interface ResumeDocument {
 ---
 
 ## 7. RIWAYAT VERSI (CHANGELOG)
+
+### 1.42.0 — MCP Fase 2: Import PDF & Audit ATS
+- **Import PDF (`import_resume`):**
+  - Menambahkan ekstraksi teks PDF Node di `src/lib/pdf/extractTextNode.ts` menggunakan PDF.js legacy (tanpa DOM/worker).
+  - Menambahkan input `pdfText`, `pdfBase64`, dan `filePath` (lokal), lalu memanggil Gemini dan memetakan hasilnya ke `ResumeDocument` baru.
+  - Default `save: false` mengembalikan draft; `save: true` membuat resume baru dan tidak pernah menimpa resume yang ada.
+  - Menambahkan validasi schema sebelum draft dikembalikan/disimpan, serta batas ukuran base64 ~15 MB.
+- **Audit ATS (`ats_audit`):**
+  - Menambahkan tool read-only yang memakai `src/lib/domain/ats.ts` untuk skor 0–100, isu critical/warning/info, dan ringkasan konten.
+- **Capabilities:** `features.import` sekarang berisi `pdf`.
+- **Verifikasi:** `npm run build` ✓, `npm run lint` ✓, `npm run typecheck:api` ✓, `npm --prefix mcp run typecheck` ✓, `npm --prefix mcp test` ✓ (17 test), serta smoke test nyata: `pdfText` → Gemini → draft (5 section), `pdfBase64` → PDF.js → Gemini → draft (1 halaman, 5 section).
 
 ### 1.41.0 — MCP Lokal Fase 1, Kebijakan Cache Lokal & Hardening Privasi
 - **MCP Lokal (`mcp/`, `src/lib/mcp/`):**

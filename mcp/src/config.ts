@@ -49,6 +49,12 @@ export const getDefaultSupabaseUrl = (): string =>
 export const getDefaultSupabaseAnonKey = (): string =>
   (process.env.CEEVEE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
+export const getGeminiKeys = (): string =>
+  (process.env.GEMINI_API_KEYS || process.env.VITE_GEMINI_API_KEYS || '').trim();
+
+export const getGeminiModel = (): string =>
+  (process.env.GEMINI_MODEL || process.env.VITE_GEMINI_MODEL || '').trim();
+
 export interface McpConfig {
   supabaseUrl: string;
   supabaseAnonKey: string;
