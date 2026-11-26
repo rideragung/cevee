@@ -378,8 +378,8 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
     <div className="min-h-screen bg-muted/20 flex flex-col font-sans">
       {/* Floating Top Header */}
       <header className="sticky top-0 z-30 pt-3 sm:pt-4 px-3 sm:px-6 pointer-events-none">
-        <div className="max-w-6xl mx-auto h-16 px-3.5 sm:px-6 flex items-center justify-between rounded-full border border-border/80 bg-background/90 backdrop-blur-md shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08),0_2px_8px_-2px_rgba(15,23,42,0.04)] pointer-events-auto transition-all">
-          <div className="flex items-center gap-3 sm:gap-5">
+        <div className="max-w-6xl mx-auto h-16 px-3.5 sm:px-6 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-full border border-border/80 bg-background/90 backdrop-blur-md shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08),0_2px_8px_-2px_rgba(15,23,42,0.04)] pointer-events-auto transition-all">
+          <div className="flex min-w-0 items-center justify-self-start">
             <span className="font-extrabold text-xl tracking-tight text-foreground flex items-center gap-2.5 shrink-0">
               <img
                 src={logoIcon}
@@ -388,50 +388,61 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
               />
               <span className="hidden min-[440px]:inline tracking-tight">Cevee</span>
             </span>
-
-            {/* Workspace Navigation Switcher */}
-            <nav
-              aria-label="Workspace section"
-              className="inline-flex h-10 items-center rounded-full border border-border/80 bg-muted/50 p-1 shadow-2xs"
-            >
-              <button
-                type="button"
-                onClick={() => handleSelectTab('resumes')}
-                aria-current={currentTab === 'resumes' ? 'page' : undefined}
-                className={cn(
-                  'relative inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-[""]',
-                  currentTab === 'resumes'
-                    ? 'bg-card text-foreground shadow-2xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <FileText className="size-3.5 shrink-0" />
-                <span>Resumes</span>
-                <span className="hidden sm:inline text-[11px] font-normal text-muted-foreground tabular-nums">
-                  {resumes.length}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelectTab('jobs')}
-                aria-current={currentTab === 'jobs' ? 'page' : undefined}
-                className={cn(
-                  'relative inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-[""]',
-                  currentTab === 'jobs'
-                    ? 'bg-card text-foreground shadow-2xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <Briefcase className="size-3.5 shrink-0" />
-                <span>Job tracker</span>
-                <span className="hidden sm:inline text-[11px] font-normal text-muted-foreground tabular-nums">
-                  {jobs.filter((job) => job.status !== 'archived').length}
-                </span>
-              </button>
-            </nav>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Workspace Navigation Switcher (centered in header) */}
+          <nav
+            aria-label="Workspace section"
+            className="justify-self-center inline-flex h-10 items-center rounded-full border border-border/80 bg-muted/50 p-1 shadow-2xs"
+          >
+            <button
+              type="button"
+              onClick={() => handleSelectTab('resumes')}
+              aria-current={currentTab === 'resumes' ? 'page' : undefined}
+              className={cn(
+                'relative inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 sm:px-3 text-xs font-semibold transition-colors after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-[""] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                currentTab === 'resumes'
+                  ? 'bg-primary text-primary-foreground shadow-2xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <FileText className="hidden size-3.5 shrink-0 min-[360px]:block" />
+              <span>Resumes</span>
+              <span
+                className={cn(
+                  'hidden sm:inline text-[11px] font-normal tabular-nums',
+                  currentTab === 'resumes' ? 'text-primary-foreground' : 'text-muted-foreground'
+                )}
+              >
+                {resumes.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectTab('jobs')}
+              aria-current={currentTab === 'jobs' ? 'page' : undefined}
+              className={cn(
+                'relative inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 sm:px-3 text-xs font-semibold transition-colors after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-[""] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                currentTab === 'jobs'
+                  ? 'bg-primary text-primary-foreground shadow-2xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Briefcase className="hidden size-3.5 shrink-0 min-[360px]:block" />
+              <span className="sm:hidden">Jobs</span>
+              <span className="hidden sm:inline">Job tracker</span>
+              <span
+                className={cn(
+                  'hidden sm:inline text-[11px] font-normal tabular-nums',
+                  currentTab === 'jobs' ? 'text-primary-foreground' : 'text-muted-foreground'
+                )}
+              >
+                {jobs.filter((job) => job.status !== 'archived').length}
+              </span>
+            </button>
+          </nav>
+
+          <div className="flex items-center justify-end justify-self-end gap-2 sm:gap-3">
             {isGuest && onSignIn && (
               <Button
                 variant="outline"

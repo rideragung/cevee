@@ -316,7 +316,8 @@ feedback only.
 ## Job Tracker Workspace & Local JD Match (2026-11-26)
 
 - **Workspace Switcher (Floating Top Header):**
-  - Segmented pill (`rounded-full border border-border/80 bg-muted/50 p-1`) next to the Cevee brand mark in the dashboard header, switching between `Resumes` (`FileText`) and `Job tracker` (`Briefcase`) with `tabular-nums` counts.
+  - Segmented pill (`rounded-full border border-border/80 bg-muted/50 p-1`) centered in the dashboard header (`grid grid-cols-[1fr_auto_1fr]`) between the Cevee brand mark on the left and the account actions on the right, switching between `Resumes` (`FileText`) and `Job tracker` (`Briefcase`) with `tabular-nums` counts.
+  - Active segment uses a solid cobalt pill (`bg-primary text-primary-foreground shadow-2xs`), keeping the selected workspace visible against the white floating header; inactive segments stay muted with a text-only hover.
   - Adjacent segment buttons use vertical hit-area guards (`after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-['']`) so touch targets reach 44px vertically without overlapping horizontally.
 - **Primary Action & Title Row:**
   - When the `Job tracker` workspace is active, the title row carries the single primary CTA `"Add application"` (`Button variant="default"`), matching `"Create resume"` on the Resumes workspace.
@@ -328,8 +329,8 @@ feedback only.
     - `Rejected` (`CircleX`, rose pill)
     - `Archived` (`Archive`, muted pill — isolated in a dedicated Archived menu outside the Kanban board)
 - **Kanban Board, List View, Employment Type & Dedicated Archived Menu:**
-  - Pipeline summary (`JobTrackerStats.tsx`) uses a balanced 2-card Bento row (`lg:grid-cols-[276px_minmax(0,1fr)]`):
-    - **Left card (`Pipeline breakdown`):** Compact 96px SVG Donut Ring + 4 clickable stage filter rows (`Applied`, `On progress`, `Offering`, `Rejected` in `tabular-nums`) with `response` and `offer` rates.
+  - Pipeline summary (`JobTrackerStats.tsx` + `StudioDonutChart.tsx`) uses a balanced 2-card Bento row (`lg:grid-cols-[288px_minmax(0,1fr)]`):
+    - **Left card (`Pipeline breakdown`):** Compact card with `response` and `offer` rates, 4 clickable stage filter rows (`Applied`, `On progress`, `Offering`, `Rejected` in `tabular-nums`), and the `StudioDonutChart` graphic (HiDPI `<canvas>` pixelated dot-matrix mosaic donut matching the Pillow Light *Studio Plan Donut* showcase: orthogonal square pixel cells per slice with angular separators, subtle per-cell opacity texture, pointer hit-testing, and hover/active highlight).
     - **Right card (`Application activity`):** Full-year Jan 1 – Dec 31 calendar heatmap (52–53 responsive columns filling 100% width, `Mon/Wed/Fri` weekday axis, accurate month labels anchored to the 1st of each month, year switcher `‹ 2026 ›`, 4 cobalt tint levels + 1 empty level, and an interactive hover/tap/focus date readout).
   - Board renders 4 active columns (`Applied`, `On progress`, `Offering`, `Rejected`) in `md:grid-cols-2 xl:grid-cols-4` with compact card anatomy (role/company, interactive sub-stage pill for `On progress`, employment type + work mode + location chips, single-line linked resume + match score, and `Intl.DateTimeFormat` applied date + stage mover).
   - `JobFormDialog` uses 1-click selectable chips for `Employment type` (`Full-time`, `Internship`, `Contract`, `Part-time`, `Freelance`, `Other`), conditional sub-stage chips when `Stage = On progress`, and inline `aria-invalid` / `aria-describedby` field validation.

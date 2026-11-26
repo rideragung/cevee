@@ -9,6 +9,7 @@ import {
   JobApplication,
 } from '../../types/job';
 import { Card } from '@/components/ui/card';
+import { StudioDonutChart } from './StudioDonutChart';
 import { cn } from '@/lib/utils';
 
 export interface JobPipelineStats {
@@ -49,9 +50,6 @@ const MONTH_NAMES = [
   'Nov',
   'Dec',
 ] as const;
-
-const DONUT_RADIUS = 38;
-const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
 const toLocalIsoDate = (date: Date): string => {
   const y = date.getFullYear();
@@ -101,7 +99,6 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
   const offerRate =
     stats.total > 0 ? Math.round((stats.offering / stats.total) * 100) : 0;
 
-  // Stage rows & Donut arcs
   const stageRows = useMemo(
     () => [
       {
@@ -109,58 +106,43 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
         label: JOB_STATUS_LABELS.applied,
         count: stats.applied,
         dotClass: 'bg-slate-400',
-        strokeColor: '#94A3B8',
+        color: '#94A3B8',
       },
       {
         key: 'on_progress' as ActiveJobStatus,
         label: JOB_STATUS_LABELS.on_progress,
         count: stats.onProgress,
         dotClass: 'bg-primary',
-        strokeColor: 'var(--primary)',
+        color: 'var(--primary)',
       },
       {
         key: 'offering' as ActiveJobStatus,
         label: JOB_STATUS_LABELS.offering,
         count: stats.offering,
         dotClass: 'bg-emerald-500',
-        strokeColor: '#10B981',
+        color: '#10B981',
       },
       {
         key: 'rejected' as ActiveJobStatus,
         label: JOB_STATUS_LABELS.rejected,
         count: stats.rejected,
         dotClass: 'bg-rose-500',
-        strokeColor: '#E11D48',
+        color: '#E11D48',
       },
     ],
     [stats.applied, stats.onProgress, stats.offering, stats.rejected]
   );
 
-  const donutArcs = useMemo(() => {
-    if (stats.total <= 0) return [];
-    const nonZeroCount = stageRows.filter((r) => r.count > 0).length;
-    const gap = nonZeroCount > 1 ? 2.5 : 0;
-    let cumulative = 0;
-
-    return stageRows
-      .filter((r) => r.count > 0)
-      .map((row) => {
-        const rawLength = (row.count / stats.total) * DONUT_CIRCUMFERENCE;
-        const dashLength = Math.max(rawLength - gap, 1.5);
-        const offset = -cumulative;
-        cumulative += rawLength;
-        return {
-          ...row,
-          dashArray: `${dashLength} ${DONUT_CIRCUMFERENCE - dashLength}`,
-          dashOffset: offset,
-        };
-      });
-  }, [stageRows, stats.total]);
-
-  const focusedStage = hoveredStage ?? (activeFilter !== 'all' ? activeFilter : null);
-  const focusedRow = focusedStage
-    ? stageRows.find((r) => r.key === focusedStage) ?? null
-    : null;
+  const donutData = useMemo(
+    () =>
+      stageRows.map((row) => ({
+        key: row.key,
+        label: row.label,
+        value: row.count,
+        color: row.color,
+      })),
+    [stageRows]
+  );
 
   // Full-Year Calendar Heatmap (Jan 1 – Dec 31 of selectedYear)
   const { weeks, monthColMap, yearTotal } = useMemo(() => {
@@ -230,8 +212,8 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
   };
 
   return (
-    <div className="mb-6 grid grid-cols-1 lg:grid-cols-[276px_minmax(0,1fr)] gap-3 items-stretch">
-      {/* Left Card: Compact Donut Ring + 4 Clickable Stage Counters */}
+    <div className="mb-6 grid grid-cols-1 lg:grid-cols-[288px_minmax(0,1fr)] gap-3 items-stretch">
+      {/* Left Card: Original Compact Pipeline Breakdown Card with Studio Plan Donut Chart */}
       <Card className="rounded-2xl border border-border bg-card p-4 shadow-2xs flex flex-col justify-between min-w-0">
         <div className="mb-3 flex items-center justify-between gap-2">
           <span className="text-xs font-semibold text-foreground">
@@ -242,63 +224,18 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-3.5 flex-1">
-          {/* Interactive Donut Ring */}
-          <svg
-            width="96"
-            height="96"
-            viewBox="0 0 100 100"
-            className="shrink-0"
-            role="img"
-            aria-label={`Pipeline breakdown: ${stats.total} total applications (${stats.applied} applied, ${stats.onProgress} on progress, ${stats.offering} offering, ${stats.rejected} rejected)`}
-          >
-            <circle
-              cx="50"
-              cy="50"
-              r={DONUT_RADIUS}
-              fill="none"
-              className="stroke-muted"
-              strokeWidth="11"
-            />
-            {donutArcs.map((arc) => {
-              const isDimmed = Boolean(focusedStage && focusedStage !== arc.key);
-              return (
-                <circle
-                  key={arc.key}
-                  cx="50"
-                  cy="50"
-                  r={DONUT_RADIUS}
-                  fill="none"
-                  stroke={arc.strokeColor}
-                  strokeWidth="11"
-                  strokeDasharray={arc.dashArray}
-                  strokeDashoffset={arc.dashOffset}
-                  transform="rotate(-90 50 50)"
-                  onMouseEnter={() => setHoveredStage(arc.key)}
-                  onMouseLeave={() => setHoveredStage(null)}
-                  onClick={() => handleToggleStage(arc.key)}
-                  style={{ opacity: isDimmed ? 0.25 : 1 }}
-                  className="cursor-pointer transition-opacity duration-150 ease-out"
-                />
-              );
-            })}
-            <text
-              x="50"
-              y="48"
-              textAnchor="middle"
-              className="fill-foreground text-[18px] font-bold tabular-nums"
-            >
-              {focusedRow ? focusedRow.count : stats.total}
-            </text>
-            <text
-              x="50"
-              y="61"
-              textAnchor="middle"
-              className="fill-muted-foreground text-[9px] font-medium"
-            >
-              {focusedRow ? focusedRow.label : 'Total'}
-            </text>
-          </svg>
+        <div className="flex items-center gap-3 flex-1">
+          <StudioDonutChart
+            data={donutData}
+            total={stats.total}
+            defaultLabel="Total"
+            size={110}
+            activeKey={activeFilter !== 'all' ? activeFilter : null}
+            hoveredKey={hoveredStage}
+            onHoverChange={setHoveredStage}
+            onSelect={handleToggleStage}
+            ariaLabel={`Pipeline breakdown: ${stats.total} total applications (${stats.applied} applied, ${stats.onProgress} on progress, ${stats.offering} offering, ${stats.rejected} rejected)`}
+          />
 
           {/* 4 Clickable Stage Filter Rows */}
           <div
