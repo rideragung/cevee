@@ -70,6 +70,34 @@ const GUEST_DATA_FLAG_KEY = 'cevee_has_guest_data_v3';
 const IS_GUEST_KEY = 'cevee_is_guest_v3';
 const PENDING_DRAFT_KEY = 'cevee_pending_drafts_v1';
 const JOBS_STORAGE_KEY = 'cevee_job_applications_v1';
+const DASHBOARD_WORKSPACE_KEY = 'cevee.dashboard.workspace';
+
+const readInitialDashboardWorkspace = (): DashboardWorkspaceTab => {
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('workspace')) {
+      return url.searchParams.get('workspace') === 'jobs' ? 'jobs' : 'resumes';
+    }
+    const stored = window.localStorage.getItem(DASHBOARD_WORKSPACE_KEY);
+    if (stored === 'jobs' || stored === 'resumes') return stored;
+  } catch {
+    // Fall through to the default workspace.
+  }
+  return 'resumes';
+};
+
+const clearAuthParams = () => {
+  try {
+    const url = new URL(window.location.href);
+    ['code', 'state', 'error', 'error_description', 'error_code'].forEach((key) => {
+      url.searchParams.delete(key);
+    });
+    url.hash = '';
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+  } catch {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+};
 
 interface PendingDraftEntry {
   resume: ResumeDocument;
@@ -164,7 +192,7 @@ export function App() {
 
   // Default view is 'dashboard' so user always lands on the resume list first!
   const [currentView, setCurrentView] = useState<'dashboard' | 'editor'>('dashboard');
-  const [dashboardTab, setDashboardTab] = useState<DashboardWorkspaceTab>('resumes');
+  const [dashboardTab, setDashboardTab] = useState<DashboardWorkspaceTab>(readInitialDashboardWorkspace);
   const [jobs, setJobs] = useState<JobApplication[]>(() => {
     const saved = localStorage.getItem(JOBS_STORAGE_KEY);
     if (saved) {
@@ -192,6 +220,56 @@ export function App() {
   });
   const jobsRef = useRef(jobs);
   jobsRef.current = jobs;
+
+  const handleDashboardTabChange = (tab: DashboardWorkspaceTab) => {
+    if (tab === dashboardTab) return;
+    setDashboardTab(tab);
+    try {
+      const url = new URL(window.location.href);
+      if (tab === 'jobs') url.searchParams.set('workspace', 'jobs');
+      else url.searchParams.delete('workspace');
+      window.history.pushState(
+        { workspace: tab },
+        '',
+        `${url.pathname}${url.search}${url.hash}`,
+      );
+    } catch {
+      // History can be unavailable in restricted contexts; the tab state still updates.
+    }
+  };
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DASHBOARD_WORKSPACE_KEY, dashboardTab);
+    } catch {
+      // Storage can be unavailable; the URL remains the source of truth.
+    }
+  }, [dashboardTab]);
+
+  useEffect(() => {
+    if (currentView !== 'dashboard') return;
+    try {
+      const url = new URL(window.location.href);
+      const target = dashboardTab === 'jobs' ? 'jobs' : null;
+      const current = url.searchParams.get('workspace');
+      if (current === target) return;
+      if (target) url.searchParams.set('workspace', target);
+      else url.searchParams.delete('workspace');
+      window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+    } catch {
+      // Addressability is best-effort; the state remains usable without URL access.
+    }
+  }, [currentView, dashboardTab]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setDashboardTab(params.get('workspace') === 'jobs' ? 'jobs' : 'resumes');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [layoutModal, setLayoutModal] = useState<{ isOpen: boolean; mode: 'create' | 'switch' }>({
     isOpen: false,
@@ -255,7 +333,7 @@ export function App() {
         session &&
         (window.location.search.includes('code=') || window.location.hash.includes('access_token'))
       ) {
-        window.history.replaceState({}, document.title, window.location.pathname);
+        clearAuthParams();
       }
     });
 
@@ -273,7 +351,7 @@ export function App() {
           window.location.search.includes('code=') ||
           window.location.hash.includes('access_token')
         ) {
-          window.history.replaceState({}, document.title, window.location.pathname);
+          clearAuthParams();
         }
       }
     });
@@ -313,6 +391,7 @@ export function App() {
     localStorage.removeItem(IS_GUEST_KEY);
     localStorage.removeItem(PENDING_DRAFT_KEY);
     localStorage.removeItem(JOBS_STORAGE_KEY);
+    localStorage.removeItem(DASHBOARD_WORKSPACE_KEY);
   };
 
   const handleContinueAsGuest = () => {
@@ -1399,7 +1478,7 @@ export function App() {
             onDownloadResume={handleDownloadResumeById}
             jobs={jobs}
             activeTab={dashboardTab}
-            onTabChange={setDashboardTab}
+            onTabChange={handleDashboardTabChange}
             onSaveJob={handleSaveJob}
             onUpdateJobStatus={handleUpdateJobStatus}
             onDeleteJob={handleDeleteJob}

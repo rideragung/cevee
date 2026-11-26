@@ -1,14 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import {
-  IconChevronLeft as ChevronLeft,
-  IconChevronRight as ChevronRight,
-} from '@tabler/icons-react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   ActiveJobStatus,
   JOB_STATUS_LABELS,
   JobApplication,
 } from '../../types/job';
 import { Card } from '@/components/ui/card';
+import { DatePicker } from '@/components/ui/date-picker';
 import { StudioDonutChart } from './StudioDonutChart';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +22,8 @@ interface JobTrackerStatsProps {
   jobs: JobApplication[];
   activeFilter: ActiveJobStatus | 'all';
   onFilterChange: (nextFilter: ActiveJobStatus | 'all') => void;
+  selectedDate: string | null;
+  onDateFilterChange: (nextDate: string | null) => void;
 }
 
 interface HeatmapDay {
@@ -58,6 +57,12 @@ const toLocalIsoDate = (date: Date): string => {
   return `${y}-${m}-${d}`;
 };
 
+const parseIsoToLocalDate = (iso: string): Date | undefined => {
+  const parts = iso.split('-').map(Number);
+  if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) return undefined;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+};
+
 const formatFullDate = (date: Date): string =>
   new Intl.DateTimeFormat('en-US', {
     month: 'short',
@@ -86,18 +91,20 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
   jobs,
   activeFilter,
   onFilterChange,
+  selectedDate,
+  onDateFilterChange,
 }) => {
-  const currentYear = new Date().getFullYear();
+  const todayDate = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+  const currentYear = todayDate.getFullYear();
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [hoveredStage, setHoveredStage] = useState<ActiveJobStatus | null>(null);
-  const [selectedDay, setSelectedDay] = useState<HeatmapDay | null>(null);
-
-  const responseRate =
-    stats.total > 0
-      ? Math.round(((stats.onProgress + stats.offering) / stats.total) * 100)
-      : 0;
-  const offerRate =
-    stats.total > 0 ? Math.round((stats.offering / stats.total) * 100) : 0;
+  const [hoveredDay, setHoveredDay] = useState<HeatmapDay | null>(null);
+  const [focusedIso, setFocusedIso] = useState<string | null>(null);
+  const cellRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const stageRows = useMemo(
     () => [
@@ -149,12 +156,25 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
     [stageRows]
   );
 
-  // Full-Year Calendar Heatmap (Jan 1 – Dec 31 of selectedYear)
-  const { weeks, monthColMap, yearTotal } = useMemo(() => {
+  // Full-Year Calendar Heatmap (Jan 1 to Dec 31 of selectedYear), synced with activeFilter
+  const {
+    weeks,
+    monthColMap,
+    yearTotal,
+    last7DaysCount,
+    selectableIsos,
+    dayLookup,
+    defaultTabIso,
+  } = useMemo(() => {
+    const scopedJobs =
+      activeFilter === 'all'
+        ? jobs
+        : jobs.filter((job) => job.status === activeFilter);
+
     const countsByDate = new Map<string, number>();
     let totalInYear = 0;
 
-    for (const job of jobs) {
+    for (const job of scopedJobs) {
       const rawDate = (job.appliedDate || job.createdAt || '').slice(0, 10);
       if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
         countsByDate.set(rawDate, (countsByDate.get(rawDate) ?? 0) + 1);
@@ -164,9 +184,11 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
       }
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayIso = toLocalIsoDate(today);
+    const todayIso = toLocalIsoDate(todayDate);
+
+    const sevenDaysAgo = new Date(todayDate);
+    sevenDaysAgo.setDate(todayDate.getDate() - 6);
+    const sevenDaysAgoIso = toLocalIsoDate(sevenDaysAgo);
 
     const jan1 = new Date(selectedYear, 0, 1);
     const dec31 = new Date(selectedYear, 11, 31);
@@ -182,6 +204,9 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
 
     const builtWeeks: HeatmapDay[][] = [];
     const monthLabels: Record<number, string> = {};
+    const validIsos: string[] = [];
+    const lookup = new Map<string, HeatmapDay>();
+    let recent7 = 0;
 
     for (let w = 0; w < totalWeeks; w += 1) {
       const col: HeatmapDay[] = [];
@@ -193,39 +218,145 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
         const isFuture = iso > todayIso;
         const count = inYear && !isFuture ? countsByDate.get(iso) ?? 0 : 0;
 
+        if (inYear && !isFuture && iso >= sevenDaysAgoIso) {
+          recent7 += count;
+        }
+
         if (inYear && dt.getDate() === 1 && monthLabels[w] === undefined) {
           monthLabels[w] = MONTH_NAMES[dt.getMonth()];
         }
 
-        col.push({
+        const dayObj: HeatmapDay = {
           iso,
           label: formatFullDate(dt),
           count,
           level: getHeatLevel(count),
           inYear,
           isFuture,
-        });
+        };
+
+        if (inYear && !isFuture) {
+          validIsos.push(iso);
+          lookup.set(iso, dayObj);
+        }
+
+        col.push(dayObj);
       }
       builtWeeks.push(col);
     }
 
-    return { weeks: builtWeeks, monthColMap: monthLabels, yearTotal: totalInYear };
-  }, [jobs, selectedYear]);
+    const fallbackIso = validIsos.includes(todayIso)
+      ? todayIso
+      : validIsos[validIsos.length - 1] ?? null;
+
+    return {
+      weeks: builtWeeks,
+      monthColMap: monthLabels,
+      yearTotal: totalInYear,
+      last7DaysCount: recent7,
+      selectableIsos: validIsos,
+      dayLookup: lookup,
+      defaultTabIso: fallbackIso,
+    };
+  }, [jobs, activeFilter, selectedYear, todayDate]);
+
+  const activeTabIso =
+    (focusedIso && dayLookup.has(focusedIso) ? focusedIso : null) ??
+    (selectedDate && dayLookup.has(selectedDate) ? selectedDate : null) ??
+    defaultTabIso;
+
+  const selectedDayObj = selectedDate ? dayLookup.get(selectedDate) ?? null : null;
+  const selectedDateValue = useMemo(
+    () => (selectedDate ? parseIsoToLocalDate(selectedDate) : undefined),
+    [selectedDate]
+  );
+
+  const pickerYears = useMemo(() => {
+    const currentYear = todayDate.getFullYear();
+    let earliestDataYear = currentYear;
+
+    for (const job of jobs) {
+      const rawYear = Number((job.appliedDate || job.createdAt || '').slice(0, 4));
+      if (Number.isFinite(rawYear) && rawYear >= 2000 && rawYear < earliestDataYear) {
+        earliestDataYear = rawYear;
+      }
+    }
+
+    // Always offer the current year plus the previous three, so the year menu
+    // never locks to a single year when all applications share one date year.
+    // Older data extends the range on its own.
+    const floorYear = Math.min(earliestDataYear, currentYear - 3);
+
+    const list: number[] = [];
+    for (let year = currentYear; year >= floorYear; year -= 1) {
+      list.push(year);
+    }
+    return list;
+  }, [jobs, todayDate]);
+
+  const formattedSelectedDate = useMemo(() => {
+    if (!selectedDate) return null;
+    if (selectedDayObj) return selectedDayObj.label;
+    return selectedDateValue ? formatFullDate(selectedDateValue) : selectedDate;
+  }, [selectedDate, selectedDayObj, selectedDateValue]);
 
   const handleToggleStage = (stage: ActiveJobStatus) => {
     onFilterChange(activeFilter === stage ? 'all' : stage);
   };
 
+  const handleSelectDay = (day: HeatmapDay) => {
+    if (selectedDate === day.iso) {
+      onDateFilterChange(null);
+      return;
+    }
+    onDateFilterChange(day.iso);
+  };
+
+  const handleDatePickerChange = (nextDate: Date | undefined) => {
+    if (!nextDate) {
+      onDateFilterChange(null);
+      return;
+    }
+    const iso = toLocalIsoDate(nextDate);
+    setSelectedYear(nextDate.getFullYear());
+    setFocusedIso(iso);
+    onDateFilterChange(iso);
+  };
+
+  const handleGridKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, iso: string) => {
+    const idx = selectableIsos.indexOf(iso);
+    if (idx === -1) return;
+
+    let nextIdx: number | null = null;
+    if (event.key === 'ArrowRight') nextIdx = Math.min(selectableIsos.length - 1, idx + 7);
+    if (event.key === 'ArrowLeft') nextIdx = Math.max(0, idx - 7);
+    if (event.key === 'ArrowDown') nextIdx = Math.min(selectableIsos.length - 1, idx + 1);
+    if (event.key === 'ArrowUp') nextIdx = Math.max(0, idx - 1);
+    if (event.key === 'Home') nextIdx = 0;
+    if (event.key === 'End') nextIdx = selectableIsos.length - 1;
+
+    if (nextIdx !== null && nextIdx !== idx) {
+      event.preventDefault();
+      const targetIso = selectableIsos[nextIdx];
+      setFocusedIso(targetIso);
+      const targetDay = dayLookup.get(targetIso) ?? null;
+      setHoveredDay(targetDay);
+      cellRefs.current.get(targetIso)?.focus();
+    }
+  };
+
+  const yearCountLabel =
+    activeFilter === 'all'
+      ? `${yearTotal} sent in ${selectedYear}`
+      : `${yearTotal} ${JOB_STATUS_LABELS[activeFilter].toLowerCase()} in ${selectedYear}`;
+
   return (
     <div className="mb-6 grid grid-cols-1 lg:grid-cols-[288px_minmax(0,1fr)] gap-3 items-stretch">
-      {/* Left Card: Original Compact Pipeline Breakdown Card with Studio Plan Donut Chart */}
+      {/* Left Card: Applications by stage + Studio Plan Donut */}
       <Card className="rounded-2xl border border-border bg-card p-4 shadow-2xs flex flex-col justify-between min-w-0">
         <div className="mb-3 flex items-center justify-between gap-2">
           <span className="text-xs font-semibold text-foreground">
-            Pipeline breakdown
-          </span>
-          <span className="text-[11px] text-muted-foreground tabular-nums">
-            <span className="font-semibold text-foreground">{responseRate}%</span> response
+            Applications by stage
           </span>
         </div>
 
@@ -239,10 +370,10 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
             hoveredKey={hoveredStage}
             onHoverChange={setHoveredStage}
             onSelect={handleToggleStage}
-            ariaLabel={`Pipeline breakdown: ${stats.total} total applications (${stats.applied} applied, ${stats.onProgress} on progress, ${stats.offering} offering, ${stats.rejected} rejected)`}
+            ariaLabel={`Applications by stage: ${stats.total} total (${stats.applied} applied, ${stats.onProgress} on progress, ${stats.offering} offering, ${stats.rejected} rejected)`}
           />
 
-          {/* 4 Clickable Stage Filter Rows */}
+          {/* 4 Clickable Stage Filter Rows (Solid Bullets) */}
           <div
             role="group"
             aria-label="Filter applications by stage"
@@ -283,72 +414,59 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
           </div>
         </div>
 
+        {/* Simple Guidance Footer */}
         <div className="mt-3 pt-2 border-t border-border/60 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-          <span className="tabular-nums">
-            Offer rate <span className="font-semibold text-foreground">{offerRate}%</span>
-          </span>
           {activeFilter !== 'all' ? (
-            <button
-              type="button"
-              onClick={() => onFilterChange('all')}
-              className="font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-            >
-              Show all
-            </button>
+            <>
+              <span className="truncate">
+                Stage:{' '}
+                <span className="font-semibold text-foreground">
+                  {JOB_STATUS_LABELS[activeFilter]}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => onFilterChange('all')}
+                className="font-semibold text-primary hover:underline shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+              >
+                Clear filter
+              </button>
+            </>
           ) : (
-            <span>Click stage to filter</span>
+            <span>Select a stage to filter</span>
           )}
         </div>
       </Card>
 
-      {/* Right Card: Full-Year Jan–Dec Activity Heatmap */}
+      {/* Right Card: Full-Year Jan to Dec Daily Applications Heatmap */}
       <Card className="rounded-2xl border border-border bg-card p-4 shadow-2xs flex flex-col justify-between min-w-0">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-foreground">
-            Application activity
-          </span>
-
-          <div className="flex items-center gap-2.5">
-            <span className="text-[11px] text-muted-foreground tabular-nums">
-              <span className="font-semibold text-foreground">{yearTotal}</span> in {selectedYear}
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="text-xs font-semibold text-foreground">
+              Daily applications
             </span>
-
-            <div
-              role="group"
-              aria-label="Select activity year"
-              className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted/50 p-0.5 text-[11px] font-semibold text-foreground tabular-nums"
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedYear((y) => y - 1);
-                  setSelectedDay(null);
-                }}
-                aria-label={`Show ${selectedYear - 1}`}
-                title={`Show ${selectedYear - 1}`}
-                className="flex size-5 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <ChevronLeft className="size-3.5" />
-              </button>
-              <span className="px-1.5">{selectedYear}</span>
-              <button
-                type="button"
-                disabled={selectedYear >= currentYear}
-                onClick={() => {
-                  setSelectedYear((y) => Math.min(currentYear, y + 1));
-                  setSelectedDay(null);
-                }}
-                aria-label={`Show ${selectedYear + 1}`}
-                title={`Show ${selectedYear + 1}`}
-                className="flex size-5 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-card hover:text-foreground disabled:opacity-35 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <ChevronRight className="size-3.5" />
-              </button>
-            </div>
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {yearCountLabel}
+            </span>
           </div>
+
+          {/* Single control: Pillow Light DatePicker with month and year menus */}
+          <DatePicker
+            value={selectedDateValue}
+            onChange={handleDatePickerChange}
+            years={pickerYears}
+            placeholder="Pick date"
+            maxDate={todayDate}
+            align="end"
+            ariaLabel={
+              formattedSelectedDate
+                ? `Filtered by ${formattedSelectedDate}. Select another date`
+                : 'Pick a date to filter applications'
+            }
+          />
         </div>
 
-        {/* Full-Width Responsive 52–53 Week Calendar Grid */}
+        {/* Full-Width Responsive 52 to 53 Week Calendar Grid */}
         <div className="overflow-x-auto pb-0.5">
           <div className="grid grid-cols-[24px_minmax(0,1fr)] gap-1.5 min-w-[540px]">
             {/* Weekday Axis */}
@@ -366,7 +484,7 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
             </div>
 
             <div>
-              {/* Month Labels Row (Jan – Dec) */}
+              {/* Month Labels Row */}
               <div
                 className="mb-0.5 grid gap-[2.5px] h-[13px] text-[9.5px] leading-none font-medium text-muted-foreground"
                 style={{ gridTemplateColumns: `repeat(${weeks.length}, minmax(0, 1fr))` }}
@@ -379,13 +497,13 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
                 ))}
               </div>
 
-              {/* Calendar Cells */}
+              {/* Calendar Cells with Roving Tabindex */}
               <div
                 className="grid gap-[2.5px]"
                 style={{ gridTemplateColumns: `repeat(${weeks.length}, minmax(0, 1fr))` }}
                 role="grid"
-                aria-label={`Daily job applications in ${selectedYear}`}
-                onMouseLeave={() => setSelectedDay(null)}
+                aria-label={`Daily job applications in ${selectedYear}. Use arrow keys to move across days and Enter to filter.`}
+                onMouseLeave={() => setHoveredDay(null)}
               >
                 {weeks.map((week, weekIdx) => (
                   <div key={weekIdx} className="flex flex-col gap-[2.5px]" role="row">
@@ -413,24 +531,40 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
 
                       const countText =
                         day.count === 1 ? '1 application' : `${day.count} applications`;
-                      const isSelected = selectedDay?.iso === day.iso;
+                      const isLocked = selectedDate === day.iso;
+                      const isHovered = hoveredDay?.iso === day.iso;
+                      const isTabStop = activeTabIso === day.iso;
 
                       return (
                         <button
                           key={day.iso}
+                          ref={(node) => {
+                            if (node) {
+                              cellRefs.current.set(day.iso, node);
+                            } else {
+                              cellRefs.current.delete(day.iso);
+                            }
+                          }}
                           type="button"
-                          onMouseEnter={() => setSelectedDay(day)}
-                          onFocus={() => setSelectedDay(day)}
-                          onBlur={() => setSelectedDay(null)}
-                          onClick={() =>
-                            setSelectedDay((prev) => (prev?.iso === day.iso ? null : day))
-                          }
+                          role="gridcell"
+                          tabIndex={isTabStop ? 0 : -1}
+                          aria-pressed={isLocked}
                           aria-label={`${day.label}: ${countText}`}
-                          title={`${day.label} — ${countText}`}
+                          title={`${day.label}: ${countText}`}
+                          onMouseEnter={() => setHoveredDay(day)}
+                          onFocus={() => {
+                            setFocusedIso(day.iso);
+                            setHoveredDay(day);
+                          }}
+                          onBlur={() => setHoveredDay(null)}
+                          onKeyDown={(e) => handleGridKeyDown(e, day.iso)}
+                          onClick={() => handleSelectDay(day)}
                           className={cn(
-                            'w-full aspect-square rounded-[2px] transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                            'w-full aspect-square rounded-[2px] cursor-pointer transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                             HEAT_LEVEL_CLASSES[day.level],
-                            isSelected && 'ring-1 ring-foreground/60'
+                            isLocked
+                              ? 'ring-2 ring-foreground'
+                              : isHovered && 'ring-1 ring-foreground/60'
                           )}
                         />
                       );
@@ -442,21 +576,39 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
           </div>
         </div>
 
-        {/* Footer: Date Readout & 4-Level Legend */}
+        {/* Footer: Locked Filter / Hover Preview / Recent 7-Day Count + Legend */}
         <div className="mt-3 pt-2 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
-          <span role="status" aria-live="polite" className="tabular-nums truncate">
-            {selectedDay ? (
-              <>
-                <span className="font-semibold text-foreground">{selectedDay.label}</span>
-                {' · '}
-                {selectedDay.count === 1
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-center gap-2 min-w-0 tabular-nums"
+          >
+            {hoveredDay ? (
+              <span className="truncate">
+                <span className="font-semibold text-foreground">{hoveredDay.label}</span>
+                {': '}
+                {hoveredDay.count === 1
                   ? '1 application'
-                  : `${selectedDay.count} applications`}
-              </>
+                  : `${hoveredDay.count} applications`}
+              </span>
+            ) : formattedSelectedDate ? (
+              <span className="truncate">
+                Date:{' '}
+                <span className="font-semibold text-foreground">
+                  {formattedSelectedDate}
+                </span>
+                {selectedDayObj ? ` (${selectedDayObj.count})` : ''}
+              </span>
+            ) : yearTotal === 0 ? (
+              <span>No applications logged in {selectedYear}</span>
+            ) : selectedYear === currentYear ? (
+              <span>
+                <span className="font-semibold text-foreground">{last7DaysCount}</span> sent in the last 7 days
+              </span>
             ) : (
-              `Jan – Dec ${selectedYear} · Hover or tap a day`
+              <span>{selectedYear} archive</span>
             )}
-          </span>
+          </div>
 
           <div className="flex items-center gap-1 shrink-0" aria-hidden="true">
             <span>Less</span>

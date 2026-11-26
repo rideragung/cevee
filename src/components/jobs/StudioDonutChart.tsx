@@ -107,10 +107,10 @@ export function StudioDonutChart<K extends string = string>({
   const focusedKey = hoveredKey ?? activeKey ?? null;
 
   const center = size / 2;
-  const outerRadius = size * 0.455;
-  const innerRadius = size * 0.275;
-  const cellStep = 4.4;
-  const dotSize = 3.1;
+  const outerRadius = size * 0.46;
+  const innerRadius = size * 0.295;
+  const cellStep = 4.3;
+  const dotSize = 3.0;
   const padAngle = 0.065;
 
   // Compute slice angular ranges (clockwise from 12 o'clock: 0..2*PI)
@@ -298,13 +298,13 @@ export function StudioDonutChart<K extends string = string>({
 
       {/* Center Readout */}
       <div
-        className="pointer-events-none flex flex-col items-center justify-center text-center"
+        className="pointer-events-none flex flex-col items-center justify-center text-center px-2"
         style={{ gridArea: '1 / 1' }}
       >
         <span className="text-[17px] font-bold leading-none tracking-tight text-foreground tabular-nums">
           {focusedItem ? focusedItem.value : total}
         </span>
-        <span className="mt-0.5 max-w-[54px] truncate text-[9px] font-medium leading-tight text-muted-foreground">
+        <span className="mt-0.5 max-w-[64px] text-[9px] font-medium leading-[1.15] text-muted-foreground break-words">
           {focusedItem ? focusedItem.label : defaultLabel}
         </span>
       </div>

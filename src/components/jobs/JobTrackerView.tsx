@@ -139,6 +139,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   );
   const [statusFilter, setStatusFilter] = useState<ActiveJobStatus | 'all'>('all');
   const [employmentFilter, setEmploymentFilter] = useState<EmploymentType | 'all'>('all');
+  const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -210,6 +211,10 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
     const filtered = activeJobs.filter((job) => {
       if (statusFilter !== 'all' && job.status !== statusFilter) return false;
       if (employmentFilter !== 'all' && job.employmentType !== employmentFilter) return false;
+      if (dateFilter) {
+        const jobDate = (job.appliedDate || job.createdAt || '').slice(0, 10);
+        if (jobDate !== dateFilter) return false;
+      }
       if (!normalizedQuery) return true;
       const linkedTitle = job.resumeId ? resumeMap.get(job.resumeId)?.title || '' : '';
       const stageText = job.progressStage ? JOB_PROGRESS_STAGE_LABELS[job.progressStage] : '';
@@ -218,7 +223,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
       return haystack.includes(normalizedQuery);
     });
     return sortJobs(filtered, sortBy);
-  }, [activeJobs, statusFilter, employmentFilter, normalizedQuery, sortBy, resumeMap]);
+  }, [activeJobs, statusFilter, employmentFilter, dateFilter, normalizedQuery, sortBy, resumeMap]);
 
   const visibleArchivedJobs = useMemo(() => {
     const filtered = archivedJobs.filter((job) => {
@@ -275,7 +280,10 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   const currentTypeFilterLabel =
     employmentFilter === 'all' ? 'All types' : EMPLOYMENT_TYPE_LABELS[employmentFilter];
   const hasActiveFilters =
-    Boolean(normalizedQuery) || statusFilter !== 'all' || employmentFilter !== 'all';
+    Boolean(normalizedQuery) ||
+    statusFilter !== 'all' ||
+    employmentFilter !== 'all' ||
+    Boolean(dateFilter);
 
   const renderProgressSubStagePill = (job: JobApplication) => {
     if (job.status !== 'on_progress') return null;
@@ -526,14 +534,16 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
               </span>
             </Button>
 
-            <Button
-              variant="default"
-              onClick={() => openCreateModal('applied')}
-              className="relative inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
-            >
-              <Plus className="size-4" />
-              <span>Add application</span>
-            </Button>
+            {activeJobs.length > 0 && (
+              <Button
+                variant="default"
+                onClick={() => openCreateModal('applied')}
+                className="relative inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
+              >
+                <Plus className="size-4" />
+                <span>Add application</span>
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -784,12 +794,14 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         </div>
       ) : (
         <>
-          {/* Application Activity Heatmap + Stage Counters */}
+          {/* Applications by stage (Donut) + Daily applications (Heatmap) */}
           <JobTrackerStats
             stats={stats}
-            jobs={jobs}
+            jobs={activeJobs}
             activeFilter={statusFilter}
             onFilterChange={setStatusFilter}
+            selectedDate={dateFilter}
+            onDateFilterChange={setDateFilter}
           />
 
           {/* Toolbar */}
@@ -1000,6 +1012,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                   setSearchQuery('');
                   setStatusFilter('all');
                   setEmploymentFilter('all');
+                  setDateFilter(null);
                 }}
                 className="mt-3 text-xs"
               >

@@ -45,6 +45,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { SegmentedControl, type SegmentedOption } from '@/components/ui/ix-segmented-control';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -182,6 +183,45 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
     setInternalTab(tab);
     onTabChange?.(tab);
   };
+  const activeJobCount = useMemo(
+    () => jobs.filter((job) => job.status !== 'archived').length,
+    [jobs],
+  );
+  const workspaceOptions: SegmentedOption[] = [
+    {
+      value: 'resumes',
+      label: 'Resumes',
+      ariaLabel: isLoading
+        ? 'Resumes, loading'
+        : `Resumes, ${resumes.length} ${resumes.length === 1 ? 'resume' : 'resumes'}`,
+      icon: <FileText className="hidden size-3.5 min-[400px]:block" />,
+    },
+    {
+      value: 'jobs',
+      label: (
+        <>
+          <span className="hidden min-[360px]:inline">Job tracker</span>
+          <span className="min-[360px]:hidden">Jobs</span>
+        </>
+      ),
+      ariaLabel: isLoading
+        ? 'Job tracker, loading'
+        : `Job tracker, ${activeJobCount} ${
+            activeJobCount === 1 ? 'application' : 'applications'
+          }`,
+      icon: <Briefcase className="hidden size-3.5 min-[400px]:block" />,
+    },
+  ];
+  const hasMountedTabRef = useRef(false);
+
+  useEffect(() => {
+    if (!hasMountedTabRef.current) {
+      hasMountedTabRef.current = true;
+      return;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.querySelector<HTMLElement>('main h1')?.focus({ preventScroll: true });
+  }, [currentTab]);
   const [deletingResume, setDeletingResume] = useState<ResumeDocument | null>(null);
   const [isConfirmingSignOut, setIsConfirmingSignOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -250,7 +290,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
 
   const initials = getInitials(userName);
   const displayName = userName || (isGuest ? 'Guest' : userEmail?.split('@')[0] || 'User');
-  const displayEmail = userEmail || (isGuest ? 'guest@cevee.app' : '');
+  const displayEmail = userEmail || (isGuest ? 'Saved locally' : '');
 
   const formatDate = (isoString: string) => {
     try {
@@ -378,84 +418,46 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
     <div className="min-h-screen bg-muted/20 flex flex-col font-sans">
       {/* Floating Top Header */}
       <header className="sticky top-0 z-30 pt-3 sm:pt-4 px-3 sm:px-6 pointer-events-none">
-        <div className="max-w-6xl mx-auto h-16 px-3.5 sm:px-6 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-full border border-border/80 bg-background/90 backdrop-blur-md shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08),0_2px_8px_-2px_rgba(15,23,42,0.04)] pointer-events-auto transition-all">
-          <div className="flex min-w-0 items-center justify-self-start">
-            <span className="font-extrabold text-xl tracking-tight text-foreground flex items-center gap-2.5 shrink-0">
+        <div className="relative max-w-6xl mx-auto h-16 px-3.5 sm:px-6 flex items-center justify-between gap-2 rounded-full border border-border/80 bg-background/90 backdrop-blur-md shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08),0_2px_8px_-2px_rgba(15,23,42,0.04)] pointer-events-auto transition-all">
+          <div className="flex min-w-0 items-center">
+            <button
+              type="button"
+              onClick={() => {
+                handleSelectTab('resumes');
+                window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+              }}
+              aria-label="Cevee dashboard"
+              title="Cevee dashboard"
+              className="relative flex items-center gap-2.5 shrink-0 rounded-full font-extrabold text-xl tracking-tight text-foreground after:absolute after:-inset-1.5 after:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
               <img
                 src={logoIcon}
-                alt="Cevee"
+                alt=""
                 className="size-8 sm:size-9 object-contain drop-shadow-xs"
               />
               <span className="hidden min-[440px]:inline tracking-tight">Cevee</span>
-            </span>
+            </button>
           </div>
 
           {/* Workspace Navigation Switcher (centered in header) */}
           <nav
-            aria-label="Workspace section"
-            className="justify-self-center inline-flex h-10 items-center rounded-full border border-border/80 bg-muted/50 p-1 shadow-2xs"
+            aria-label="Workspace"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           >
-            <button
-              type="button"
-              onClick={() => handleSelectTab('resumes')}
-              aria-current={currentTab === 'resumes' ? 'page' : undefined}
-              className={cn(
-                'relative inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 sm:px-3 text-xs font-semibold transition-colors after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-[""] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-                currentTab === 'resumes'
-                  ? 'bg-primary text-primary-foreground shadow-2xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <FileText className="hidden size-3.5 shrink-0 min-[360px]:block" />
-              <span>Resumes</span>
-              <span
-                className={cn(
-                  'hidden sm:inline text-[11px] font-normal tabular-nums',
-                  currentTab === 'resumes' ? 'text-primary-foreground' : 'text-muted-foreground'
-                )}
-              >
-                {resumes.length}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectTab('jobs')}
-              aria-current={currentTab === 'jobs' ? 'page' : undefined}
-              className={cn(
-                'relative inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 sm:px-3 text-xs font-semibold transition-colors after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-[""] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-                currentTab === 'jobs'
-                  ? 'bg-primary text-primary-foreground shadow-2xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Briefcase className="hidden size-3.5 shrink-0 min-[360px]:block" />
-              <span className="sm:hidden">Jobs</span>
-              <span className="hidden sm:inline">Job tracker</span>
-              <span
-                className={cn(
-                  'hidden sm:inline text-[11px] font-normal tabular-nums',
-                  currentTab === 'jobs' ? 'text-primary-foreground' : 'text-muted-foreground'
-                )}
-              >
-                {jobs.filter((job) => job.status !== 'archived').length}
-              </span>
-            </button>
+            <span className="sr-only" role="status" aria-live="polite">
+              {currentTab === 'jobs' ? 'Job tracker workspace' : 'Resumes workspace'}
+            </span>
+            <SegmentedControl
+              options={workspaceOptions}
+              label="Workspace"
+              value={currentTab}
+              onValueChange={(value) => handleSelectTab(value as DashboardWorkspaceTab)}
+              tone="bare"
+              className="shadow-2xs"
+            />
           </nav>
 
-          <div className="flex items-center justify-end justify-self-end gap-2 sm:gap-3">
-            {isGuest && onSignIn && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onSignIn}
-                className="gap-1.5 text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors h-9 px-3.5 rounded-full"
-                title="Save resumes to cloud"
-              >
-                <Cloud className="size-3.5" />
-                <span className="hidden sm:inline">Save to cloud</span>
-              </Button>
-            )}
-
+          <div className="flex items-center justify-end gap-2 sm:gap-3">
             {onSignOut && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -468,10 +470,10 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                     <Avatar className="size-9 ring-1 ring-border/80 shadow-2xs shrink-0">
                       {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={displayName} className="object-cover" />}
                       <AvatarFallback className="bg-secondary text-xs font-semibold text-secondary-foreground">
-                        {initials || 'U'}
+                        {initials || (isGuest ? 'G' : 'U')}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="hidden sm:flex flex-col text-left leading-tight min-w-0 max-w-[130px] md:max-w-[170px]">
+                    <div className="hidden md:flex flex-col text-left leading-tight min-w-0 max-w-[110px] lg:max-w-[170px]">
                       <span className="text-xs font-bold text-foreground truncate">
                         {displayName}
                       </span>
@@ -481,7 +483,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                         </span>
                       )}
                     </div>
-                    <ChevronDown className="size-3.5 text-muted-foreground shrink-0 hidden sm:block" />
+                    <ChevronDown className="size-3.5 text-muted-foreground shrink-0 hidden md:block" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -494,7 +496,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                     <Avatar className="size-14 rounded-full ring-2 ring-border/80 shrink-0 shadow-xs">
                       {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={displayName} className="object-cover" />}
                       <AvatarFallback className="bg-secondary text-sm font-semibold text-secondary-foreground">
-                        {initials || 'U'}
+                        {initials || (isGuest ? 'G' : 'U')}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col gap-1 min-w-0 flex-1">
@@ -514,6 +516,28 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                   </div>
 
                   <DropdownMenuSeparator className="-mx-5 my-4 bg-border/60" />
+
+                  {isGuest && onSignIn && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={onSignIn}
+                        className="w-full flex items-center gap-3.5 p-2 rounded-2xl hover:bg-muted/70 focus:bg-muted/70 cursor-pointer transition-all active:scale-[0.98]"
+                      >
+                        <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                          <Cloud className="size-5" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-semibold text-foreground">
+                            Sign in to save your work
+                          </span>
+                          <span className="text-[11px] text-muted-foreground leading-snug">
+                            Save your resumes and applications to your account.
+                          </span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="-mx-5 my-4 bg-border/60" />
+                    </>
+                  )}
 
                   {/* Language Section */}
                   <div className="flex items-center justify-between py-1">
@@ -609,7 +633,10 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
         {/* Title Section */}
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1
+              tabIndex={-1}
+              className="text-2xl font-bold tracking-tight text-foreground focus:outline-none"
+            >
               Your resumes
               {!isLoading && (
                 <span className="ml-2 text-lg font-normal text-muted-foreground" aria-live="polite">
@@ -624,7 +651,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
             </p>
           </div>
 
-          {!isLoading && onCreateResume && (
+          {!isLoading && resumes.length > 0 && onCreateResume && (
             <Button
               variant="default"
               onClick={onCreateResume}
@@ -997,7 +1024,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
       <ConfirmDialog
         isOpen={isConfirmingSignOut}
         title="Exit guest mode?"
-        description="Your resumes and tracked applications are stored only in this browser while using guest mode. Exiting deletes them permanently. To keep them, use 'Save to cloud' to sign in."
+        description="Your resumes and tracked applications are stored only in this browser while using guest mode. Exiting deletes them permanently. To keep them, sign in and save your work to your account."
         confirmLabel="Exit and delete"
         cancelLabel="Stay"
         isDestructive={true}

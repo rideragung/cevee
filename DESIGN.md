@@ -122,8 +122,8 @@ feedback only.
 - Hover styles on feedback-aggressive states are gated `[@media(hover:hover)]:hover:...`
   so touch devices don't stick-and-hold them.
 - The page's primary action (dashboard "Create resume") lives in the **title row**, right
-  of the page heading — the sticky top bar carries only the logo and the account menu.
-  The title-row CTA can scroll beneath the top bar; that is safe because of the closed
+  of the page heading — the sticky top bar carries only the logo, the centered workspace
+  switcher, and the account menu. The title-row CTA can scroll beneath the top bar; that is safe because of the closed
   popper-wrapper rule below (2026-10-20: the CTA was briefly moved into the top bar to
   dodge a click bug that turned out to be the closed dropdown portal, not the position).
 - Pillow shadows always use the arbitrary-property form `[box-shadow:var(--shadow-pillow-*)]`,
@@ -316,11 +316,15 @@ feedback only.
 ## Job Tracker Workspace & Local JD Match (2026-11-26)
 
 - **Workspace Switcher (Floating Top Header):**
-  - Segmented pill (`rounded-full border border-border/80 bg-muted/50 p-1`) centered in the dashboard header (`grid grid-cols-[1fr_auto_1fr]`) between the Cevee brand mark on the left and the account actions on the right, switching between `Resumes` (`FileText`) and `Job tracker` (`Briefcase`) with `tabular-nums` counts.
-  - Active segment uses a solid cobalt pill (`bg-primary text-primary-foreground shadow-2xs`), keeping the selected workspace visible against the white floating header; inactive segments stay muted with a text-only hover.
-  - Adjacent segment buttons use vertical hit-area guards (`after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-['']`) so touch targets reach 44px vertically without overlapping horizontally.
+  - Built on the Pillow Light **`SegmentedControl`** (`src/components/ui/ix-segmented-control.tsx`, from the Better Design registry): an animated ink thumb slides between `Resumes` (`FileText`) and `Job tracker` (`Briefcase`), with a radiogroup + roving-tabindex keyboard model (arrows, Home/End).
+  - The control is absolutely centered between the Cevee brand and the account cluster with **no track or container**: `tone="bare"` renders only the option buttons. The active option is a DS primary capsule (`bg-primary text-primary-foreground`), the hovered inactive option is a DS accent capsule (`bg-accent text-accent-foreground`), and inactive labels use `text-muted-foreground`. This keeps every surface on Pillow Light semantic tokens while matching the reference's filled-active/soft-hover relationship.
+  - Icons are restored from the previous switcher (`FileText` / `Briefcase`, visible from 400px) and the labels stay text-led. Visible counts are not shown in the control; the workspace count remains in the page title and in each radio's accessible name (`Resumes, 1 resume`, `Job tracker, 0 applications`); the full `Job tracker` label shows from 360px and the short `Jobs` label only below 360px.
+  - Active state is URL-addressable (`?workspace=jobs`, `localStorage` fallback, `pushState`/`popstate`), resets scroll to top, focuses the workspace heading, and announces the new workspace through a polite live region.
+  - The visible segment is 32px tall; a vertical pseudo guard (`after:-inset-y-2`) gives a 48px pointer target, and there is no horizontal guard, so adjacent option hit areas never overlap. Without a container, the active and hover capsules are the only surfaces; no nested track border is needed.
+  - Header responsive ladder: guest sign-in lives in the account menu as `Sign in to save your work`; account name/email appears from `md`; the switcher keeps at least 16px of air on both sides at 320/390/640/768/1024/1440.
 - **Primary Action & Title Row:**
-  - When the `Job tracker` workspace is active, the title row carries the single primary CTA `"Add application"` (`Button variant="default"`), matching `"Create resume"` on the Resumes workspace.
+  - When the `Job tracker` workspace has active applications, the title row carries the single primary CTA `"Add application"` (`Button variant="default"`), matching `"Create resume"` on the Resumes workspace.
+  - When the workspace is empty, the title-row CTA is hidden and the in-content empty-state CTA becomes the only primary action.
 - **Semantic Stage Badges (Icon + Text):**
   - Every pipeline stage pairs a functional Tabler icon with a sentence-case label:
     - `Applied` (`Send`, neutral secondary pill)
@@ -330,8 +334,8 @@ feedback only.
     - `Archived` (`Archive`, muted pill — isolated in a dedicated Archived menu outside the Kanban board)
 - **Kanban Board, List View, Employment Type & Dedicated Archived Menu:**
   - Pipeline summary (`JobTrackerStats.tsx` + `StudioDonutChart.tsx`) uses a balanced 2-card Bento row (`lg:grid-cols-[288px_minmax(0,1fr)]`):
-    - **Left card (`Pipeline breakdown`):** Compact card with `response` and `offer` rates, 4 clickable stage filter rows with solid status bullets (`Applied` `#7C3AED`, `On progress` `#1E66FF`, `Offering` `#00C896`, `Rejected` `#FF4D6D` in `tabular-nums`), and the `StudioDonutChart` graphic (HiDPI `<canvas>` pixelated dot-matrix mosaic donut matching the Pillow Light *Studio Plan Donut* showcase with subtle per-slice angular + radial color gradients, angular separators, pointer hit-testing, and hover/active highlight).
-    - **Right card (`Application activity`):** Full-year Jan 1 – Dec 31 calendar heatmap (52–53 responsive columns filling 100% width, `Mon/Wed/Fri` weekday axis, accurate month labels anchored to the 1st of each month, year switcher `‹ 2026 ›`, 4 cobalt tint levels + 1 empty level, and an interactive hover/tap/focus date readout).
+    - **Left card (`Applications by stage`):** Compact card with a clean header (`Applications by stage`), 4 clickable stage filter rows with solid status bullets (`Applied` `#7C3AED`, `On progress` `#1E66FF`, `Offering` `#00C896`, `Rejected` `#FF4D6D` in `tabular-nums`) that cross-filter both the board and heatmap, `StudioDonutChart` (HiDPI `<canvas>` pixelated dot-matrix mosaic donut with subtle per-slice angular + radial color gradients, non-truncating center label, pointer hit-testing, and hover/active highlight), and a simple 1-line guidance footer (`Select a stage to filter` / `Stage: ...` + `Clear filter`).
+    - **Right card (`Daily applications`):** Full-year Jan 1 to Dec 31 calendar heatmap synced to active jobs and the selected stage filter (52 to 53 responsive columns, `Mon/Wed/Fri` weekday axis, month labels anchored to the 1st of each month, one Pillow Light `DatePicker` in the header with button-based month and year menus instead of native selects, a `Selected: ...` confirmation line, a `Today` shortcut, a `Clear` action in the popover footer and an `×` on the trigger, year menu always covering the current year plus the previous three and widening when older data exists, and no side effect on the heatmap year until a date is actually picked, plus `Dates after today are unavailable.`, ARIA grid roving tabindex with arrow-key navigation, click-to-filter date selection, 4 cobalt tint levels + 1 empty level, and a 7-day summary footer).
   - Board renders 4 active columns (`Applied`, `On progress`, `Offering`, `Rejected`) in `md:grid-cols-2 xl:grid-cols-4` with compact card anatomy (role/company, interactive sub-stage pill for `On progress`, employment type + work mode + location chips, single-line linked resume + match score, and `Intl.DateTimeFormat` applied date + stage mover).
   - `JobFormDialog` uses 1-click selectable chips for `Employment type` (`Full-time`, `Internship`, `Contract`, `Part-time`, `Freelance`, `Other`), conditional sub-stage chips when `Stage = On progress`, and inline `aria-invalid` / `aria-describedby` field validation.
   - Archiving an application triggers a polite `role="status"` Undo banner (`Undo` restores previous stage & sub-stage). Archived applications live in a dedicated `Archived (N)` menu with focus management, `Restore`, and `Delete`.
