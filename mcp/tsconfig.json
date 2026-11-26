@@ -14,6 +14,7 @@
   },
   "include": [
     "src",
+    "scripts",
     "test",
     "../src/lib/mcp/**/*.ts",
     "../src/lib/domain/**/*.ts",
