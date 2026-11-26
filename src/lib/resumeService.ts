@@ -1,6 +1,32 @@
 import { getSupabase } from './supabase';
-import { ResumeDocument } from '../types/resume';
+import { ResumeContent, ResumeDocument } from '../types/resume';
 import { normalizeLayoutId } from '../layouts/registry';
+
+export type SaveResumeResult =
+  | { ok: true; version: number; legacy?: boolean }
+  | { ok: false; reason: 'conflict'; latest?: ResumeDocument }
+  | { ok: false; reason: 'error'; message: string }
+  | { ok: false; reason: 'unauthenticated' };
+
+interface ResumeRow {
+  id: string;
+  title: string;
+  layout_id?: string | null;
+  content: ResumeContent;
+  created_at?: string | null;
+  updated_at: string;
+  version?: number | null;
+}
+
+const mapRowToResume = (row: ResumeRow): ResumeDocument => ({
+  id: row.id,
+  title: row.title,
+  layoutId: normalizeLayoutId(row.layout_id ?? undefined),
+  createdAt: row.created_at ?? row.updated_at,
+  updatedAt: row.updated_at,
+  version: typeof row.version === 'number' ? row.version : 1,
+  content: row.content,
+});
 
 export const fetchUserResumes = async (): Promise<ResumeDocument[] | null> => {
   const supabase = getSupabase();
@@ -24,56 +50,212 @@ export const fetchUserResumes = async (): Promise<ResumeDocument[] | null> => {
       return [];
     }
 
-    return data.map((row) => ({
-      id: row.id,
-      title: row.title,
-      layoutId: normalizeLayoutId(row.layout_id),
-      createdAt: row.created_at ?? row.updated_at,
-      updatedAt: row.updated_at,
-      content: row.content,
-    }));
+    return (data as ResumeRow[]).map(mapRowToResume);
   } catch (err) {
     console.error('Failed to fetch resumes:', err);
     return null;
   }
 };
 
-export const saveUserResume = async (resume: ResumeDocument): Promise<boolean> => {
+export const fetchUserResume = async (id: string): Promise<ResumeDocument | null> => {
   const supabase = getSupabase();
-  if (!supabase) return false;
+  if (!supabase) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('resumes')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching resume from Supabase:', error);
+      return null;
+    }
+
+    return data ? mapRowToResume(data as ResumeRow) : null;
+  } catch (err) {
+    console.error('Failed to fetch resume:', err);
+    return null;
+  }
+};
+
+const buildPayload = (
+  resume: ResumeDocument,
+  version: number,
+  includeUserId: boolean,
+  userId?: string
+): Record<string, unknown> => {
+  const payload: Record<string, unknown> = {
+    id: resume.id,
+    title: resume.title,
+    layout_id: normalizeLayoutId(resume.layoutId),
+    content: resume.content,
+    updated_at: new Date().toISOString(),
+    version,
+  };
+
+  if (includeUserId && userId) {
+    payload.user_id = userId;
+  }
+
+  return payload;
+};
+
+const legacyUpsert = async (
+  resume: ResumeDocument,
+  userId: string
+): Promise<SaveResumeResult> => {
+  const supabase = getSupabase();
+  if (!supabase) return { ok: false, reason: 'unauthenticated' };
+
+  const payload = buildPayload(resume, 1, true, userId);
+  delete payload.version;
+
+  let { error } = await supabase.from('resumes').upsert(payload, { onConflict: 'id' });
+
+  if (error && /layout_id/i.test(error.message)) {
+    const withoutLayout = { ...payload };
+    delete withoutLayout.layout_id;
+    ({ error } = await supabase.from('resumes').upsert(withoutLayout, { onConflict: 'id' }));
+  }
+
+  if (error) {
+    return { ok: false, reason: 'error', message: error.message };
+  }
+
+  return { ok: true, version: 0, legacy: true };
+};
+
+const insertResume = async (
+  resume: ResumeDocument,
+  userId: string
+): Promise<SaveResumeResult> => {
+  const supabase = getSupabase();
+  if (!supabase) return { ok: false, reason: 'unauthenticated' };
+
+  let payload = buildPayload(resume, 1, true, userId);
+  let { data, error } = await supabase
+    .from('resumes')
+    .insert(payload)
+    .select('version')
+    .single();
+
+  if (error && /layout_id/i.test(error.message)) {
+    const withoutLayout = { ...payload };
+    delete withoutLayout.layout_id;
+    payload = withoutLayout;
+    ({ data, error } = await supabase
+      .from('resumes')
+      .insert(payload)
+      .select('version')
+      .single());
+  }
+
+  if (error && /version/i.test(error.message)) {
+    return legacyUpsert(resume, userId);
+  }
+
+  if (error) {
+    if (error.code === '23505') {
+      const latest = await fetchUserResume(resume.id);
+      return { ok: false, reason: 'conflict', latest: latest ?? undefined };
+    }
+    console.error('Error saving resume to Supabase:', error);
+    return { ok: false, reason: 'error', message: error.message };
+  }
+
+  return {
+    ok: true,
+    version: typeof data?.version === 'number' ? data.version : 1,
+  };
+};
+
+const updateResume = async (
+  resume: ResumeDocument,
+  expectedVersion: number,
+  userId: string
+): Promise<SaveResumeResult> => {
+  const supabase = getSupabase();
+  if (!supabase) return { ok: false, reason: 'unauthenticated' };
+
+  let payload = buildPayload(resume, expectedVersion + 1, false);
+  let { data, error } = await supabase
+    .from('resumes')
+    .update(payload)
+    .eq('id', resume.id)
+    .eq('version', expectedVersion)
+    .select('version')
+    .maybeSingle();
+
+  if (error && /layout_id/i.test(error.message)) {
+    const withoutLayout = { ...payload };
+    delete withoutLayout.layout_id;
+    payload = withoutLayout;
+    ({ data, error } = await supabase
+      .from('resumes')
+      .update(payload)
+      .eq('id', resume.id)
+      .eq('version', expectedVersion)
+      .select('version')
+      .maybeSingle());
+  }
+
+  if (error && /version/i.test(error.message)) {
+    // The database migration has not been applied yet. Keep the editor usable
+    // with a legacy upsert until the user runs the migration.
+    return legacyUpsert(resume, userId);
+  }
+
+  if (error) {
+    console.error('Error updating resume in Supabase:', error);
+    return { ok: false, reason: 'error', message: error.message };
+  }
+
+  if (!data) {
+    const latest = await fetchUserResume(resume.id);
+    return { ok: false, reason: 'conflict', latest: latest ?? undefined };
+  }
+
+  return {
+    ok: true,
+    version: typeof data.version === 'number' ? data.version : expectedVersion + 1,
+  };
+};
+
+/**
+ * Saves a resume with optimistic concurrency.
+ *
+ * - No `expectedVersion`: insert a new resume (version 1).
+ * - `expectedVersion > 0`: conditional update guarded by the row version.
+ * - `expectedVersion === 0`: legacy upsert (database migration not applied).
+ */
+export const saveUserResume = async (
+  resume: ResumeDocument,
+  expectedVersion?: number
+): Promise<SaveResumeResult> => {
+  const supabase = getSupabase();
+  if (!supabase) return { ok: false, reason: 'unauthenticated' };
 
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+    if (!user) return { ok: false, reason: 'unauthenticated' };
 
-    const payload: Record<string, unknown> = {
-      id: resume.id,
-      user_id: user.id,
-      title: resume.title,
-      layout_id: normalizeLayoutId(resume.layoutId),
-      content: resume.content,
-      updated_at: new Date().toISOString(),
-    };
-
-    let { error } = await supabase
-      .from('resumes')
-      .upsert(payload, { onConflict: 'id' });
-
-    // Graceful degradation until the layout_id column migration is applied.
-    if (error && /layout_id/i.test(error.message)) {
-      delete payload.layout_id;
-      ({ error } = await supabase.from('resumes').upsert(payload, { onConflict: 'id' }));
+    if (typeof expectedVersion === 'number') {
+      if (expectedVersion <= 0) {
+        return legacyUpsert(resume, user.id);
+      }
+      return updateResume(resume, expectedVersion, user.id);
     }
 
-    if (error) {
-      console.error('Error saving resume to Supabase:', error);
-      return false;
-    }
-
-    return true;
+    return insertResume(resume, user.id);
   } catch (err) {
     console.error('Failed to save resume:', err);
-    return false;
+    return {
+      ok: false,
+      reason: 'error',
+      message: err instanceof Error ? err.message : String(err),
+    };
   }
 };
 
@@ -85,12 +267,9 @@ export const saveUserResumes = async (resumesToSave: ResumeDocument[]): Promise<
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
 
-    const payloads = resumesToSave.map((resume) => ({
-      id: resume.id,
-      user_id: user.id,
-      title: resume.title,
-      layout_id: normalizeLayoutId(resume.layoutId),
-      content: resume.content,
+    let payloads: Record<string, unknown>[] = resumesToSave.map((resume) => ({
+      ...buildPayload(resume, 1, true, user.id),
+      created_at: resume.createdAt || new Date().toISOString(),
       updated_at: resume.updatedAt || new Date().toISOString(),
     }));
 
@@ -99,8 +278,21 @@ export const saveUserResumes = async (resumesToSave: ResumeDocument[]): Promise<
       .upsert(payloads, { onConflict: 'id' });
 
     if (error && /layout_id/i.test(error.message)) {
-      const strippedPayloads = payloads.map(({ layout_id: _layoutId, ...rest }) => rest);
-      ({ error } = await supabase.from('resumes').upsert(strippedPayloads, { onConflict: 'id' }));
+      payloads = payloads.map((payload) => {
+        const copy = { ...payload };
+        delete copy.layout_id;
+        return copy;
+      });
+      ({ error } = await supabase.from('resumes').upsert(payloads, { onConflict: 'id' }));
+    }
+
+    if (error && /version/i.test(error.message)) {
+      payloads = payloads.map((payload) => {
+        const copy = { ...payload };
+        delete copy.version;
+        return copy;
+      });
+      ({ error } = await supabase.from('resumes').upsert(payloads, { onConflict: 'id' }));
     }
 
     if (error) {

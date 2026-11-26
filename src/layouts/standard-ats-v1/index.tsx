@@ -2,22 +2,12 @@ import React from 'react';
 import { buildSingleColumnBlocks } from '../shared/single-column-blocks';
 import { renderStandardAtsV1Header, estimateStandardAtsV1HeaderHeight } from './header';
 import { StandardAtsV1Thumbnail } from './Thumbnail';
+import { LAYOUT_CATALOG } from '../catalog';
 import type { LayoutPlugin } from '../core/types';
 import type { ResumeDocument } from '../../types/resume';
 
 export const standardAtsV1Plugin: LayoutPlugin = {
-  id: 'standard-ats-v1',
-  name: 'Standard ATS V1',
-  badge: 'Standard Single-Column',
-  description:
-    'Engineered for Applicant Tracking Systems with centered header, 7.75pt calibrated typography, and hairline section dividers.',
-  features: [
-    '100% ATS parser compatible',
-    'Centered header & inline contact row',
-    'Dense A4 content capacity',
-    'Consistent vector print output',
-  ],
-  isDefault: true,
+  ...LAYOUT_CATALOG['standard-ats-v1'],
   geometry: {
     contentWidth: '184mm',
     maxPageHeightPx: 1050,

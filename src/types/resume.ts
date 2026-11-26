@@ -202,6 +202,8 @@ export type ResumeSection =
 
 export interface ResumeContent {
   language?: ResumeLanguage;
+  /** Shape version of the stored resume JSON. */
+  schemaVersion?: number;
   header: HeaderData;
   sections: ResumeSection[];
 }
@@ -216,5 +218,7 @@ export interface ResumeDocument {
   layoutId?: ResumeLayoutId | LegacyResumeLayoutId | string; // Layout selector (default: 'standard-ats-v1')
   createdAt?: string; // ISO timestamp when the resume was first created
   updatedAt: string;
+  /** Optimistic concurrency token. 0 means the database migration is not applied. */
+  version?: number;
   content: ResumeContent;
 }

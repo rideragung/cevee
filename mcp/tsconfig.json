@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
+  },
+  "include": [
+    "src",
+    "test",
+    "../src/lib/mcp/**/*.ts",
+    "../src/lib/domain/**/*.ts",
+    "../src/layouts/ids.ts",
+    "../src/layouts/catalog.ts",
+    "../src/types/resume.ts",
+    "../src/utils/resumeLocale.ts",
+    "../src/utils/periodSort.ts",
+    "../src/lib/ai/types.ts",
+    "../src/lib/ai/gemini.ts",
+    "../src/lib/ai/resumeAdapter.ts"
+  ]
+}

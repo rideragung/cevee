@@ -2,21 +2,12 @@ import React from 'react';
 import { buildSingleColumnBlocks } from '../shared/single-column-blocks';
 import { renderModernPhotoHeader, estimateModernPhotoHeaderHeight } from './header';
 import { ModernPhotoThumbnail } from './Thumbnail';
+import { LAYOUT_CATALOG } from '../catalog';
 import type { LayoutPlugin } from '../core/types';
 import type { ResumeDocument } from '../../types/resume';
 
 export const modernPhotoPlugin: LayoutPlugin = {
-  id: 'modern-photo',
-  name: 'Modern Photo',
-  badge: 'Photo Header • Single Column',
-  description:
-    'Single-column ATS format with left-aligned header and 3:4 portrait profile photo frame.',
-  features: [
-    '3:4 portrait profile photo',
-    'Left-aligned header & contact details',
-    '100% content & section parity with ATS standard',
-    'Compact print-optimized vector layout',
-  ],
+  ...LAYOUT_CATALOG['modern-photo'],
   geometry: {
     contentWidth: '184mm',
     maxPageHeightPx: 1020,

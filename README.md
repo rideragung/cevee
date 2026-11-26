@@ -149,6 +149,7 @@ create table if not exists public.resumes (
   title text not null default 'Untitled Resume',
   layout_id text not null default 'standard-ats-v1',
   content jsonb not null default '{}'::jsonb,
+  version integer not null default 1,
   created_at timestamptz not null default timezone('utc'::text, now()),
   updated_at timestamptz not null default timezone('utc'::text, now())
 );
@@ -172,6 +173,48 @@ create policy "Users can delete their own resumes"
 ```
 
 Each row stores a full resume document as JSONB, so the schema stays stable as new section types are added.
+
+If your project was created before the MCP work, apply the additive migration:
+
+```sql
+alter table public.resumes
+  add column if not exists version integer not null default 1;
+```
+
+The editor falls back to legacy upsert mode when the column is missing, but
+conflict protection (and MCP write safety) only works after the migration.
+
+## MCP Server (Phase 0)
+
+Cevee exposes its resume domain through a Model Context Protocol server so AI
+clients can read and edit resumes. Phase 0 ships the shared domain layer, the
+Zod schema guard, optimistic concurrency, and a stdio server with one tool:
+
+- `get_capabilities` — server version, schema version, section presets, layouts,
+  feature flags, and limits.
+
+```bash
+npm --prefix mcp install
+npm --prefix mcp run build
+npm --prefix mcp test
+```
+
+The server speaks MCP over stdio. Add it to an MCP client such as OpenCode:
+
+```json
+{
+  "mcp": {
+    "cevee": {
+      "type": "local",
+      "command": ["node", "C:/path/to/Cevee/mcp/dist/index.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+Phase 1 adds resume CRUD tools. Phase 3 adds the remote Vercel endpoint with
+Supabase OAuth 2.1. See `mcp/README.md` and `SRS.md` (FR-15).
 
 ## Project Structure
 
@@ -203,6 +246,9 @@ src/
 │   ├── shared/                  # Single-column blocks and mini previews shared by templates
 │   └── registry.ts              # Template registry, default template, legacy ID normalization
 ├── lib/
+│   ├── ai/                      # Gemini parsing, types, and resume adapter
+│   ├── domain/                  # Framework-free factory, migrations, ATS, HTML
+│   ├── mcp/                     # MCP schema, capabilities, and shared server core
 │   ├── resumeService.ts         # Supabase read and write helpers
 │   └── supabase.ts              # Supabase client initialization
 ├── types/
@@ -217,6 +263,13 @@ src/
 ├── App.tsx                      # Root controller and template dispatcher
 ├── index.css                    # Global styles and A4 print rules
 └── main.tsx                     # Entry point and font imports
+
+mcp/
+├── src/index.ts                 # stdio MCP entry (Phase 0: get_capabilities)
+├── test/                        # Vitest unit and stdio integration tests
+└── README.md
+
+supabase/migrations/             # Additive SQL migrations (resume version)
 ```
 
 ## Documentation
@@ -235,6 +288,10 @@ src/
 | `npm run lint:fix` | Automatically fix fixable ESLint warnings/errors. |
 | `npm run format` | Format code using Prettier. |
 | `npm run format:check` | Check code formatting compliance with Prettier. |
+| `npm run typecheck:api` | Type-check the Vercel `api/` functions. |
+| `npm run mcp:build` | Build the `cevee-mcp` stdio server. |
+| `npm run mcp:dev` | Run the MCP server from source with `tsx`. |
+| `npm run mcp:test` | Build and test the MCP package with Vitest. |
 
 ## Deployment
 

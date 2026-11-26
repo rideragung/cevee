@@ -1,5 +1,6 @@
 import { ResumeLayoutId } from '../types/resume';
-import { LAYOUT_LIST, getLayoutPlugin } from '../layouts/registry';
+import { LAYOUT_CATALOG_LIST } from '../layouts/catalog';
+import { getLayoutPlugin } from '../layouts/registry';
 
 export interface LayoutDefinition {
   id: ResumeLayoutId;
@@ -10,13 +11,8 @@ export interface LayoutDefinition {
   isDefault?: boolean;
 }
 
-export const RESUME_LAYOUTS: LayoutDefinition[] = LAYOUT_LIST.map((plugin) => ({
-  id: plugin.id,
-  name: plugin.name,
-  badge: plugin.badge,
-  description: plugin.description,
-  features: plugin.features,
-  isDefault: plugin.isDefault,
+export const RESUME_LAYOUTS: LayoutDefinition[] = LAYOUT_CATALOG_LIST.map((layout) => ({
+  ...layout,
 }));
 
 export const getLayoutById = (id?: string): LayoutDefinition => {

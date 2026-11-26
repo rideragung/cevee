@@ -281,6 +281,18 @@ feedback only.
   - **Dashboard Metadata (`ResumeDashboard.tsx`):**
     - Menampilkan lencana `Badge variant="outline"` (`EN` / `ID`) berdampingan dengan lencana layout pada kartu resume sehingga pengguna dapat langsung mengenali versi bahasa tiap CV.
 
+## Conflict Dialog: Resume Changed Elsewhere (2026-11-26)
+
+- Dipicu oleh guard optimistik `version` saat resume aktif berubah di tab lain atau melalui Cevee MCP.
+- Menggunakan `AlertDialog` dengan bahasa visual yang sama seperti `ConfirmDialog`:
+  - Ikon amber (`bg-amber-50 text-amber-600`) — ini keputusan merge, bukan aksi destruktif, sehingga tidak memakai merah.
+  - Judul sentence case: `This resume changed elsewhere`.
+  - Deskripsi menyebut judul resume dan menjelaskan dua pilihan tanpa jargon teknis.
+- Dua aksi eksplisit:
+  - `Reload latest` (cancel/secondary) — memuat versi terbaru dan membuang draft lokal; menjadi default aman saat dialog ditutup.
+  - `Keep mine` (primary) — menulis draft lokal di atas versi terbaru dengan versi baru.
+- Dialog diberi `no-print` dan tidak pernah muncul di hasil cetak PDF.
+
 ## Review status (2026-10-25)
 
 PDF Export & Typographic Layer Audit:

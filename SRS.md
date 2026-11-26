@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.39.0  
+**Dokumen Versi:** 1.40.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Responsive: Desktop, Tablet & Mobile)  
@@ -243,6 +243,7 @@ Sistem mendukung beragam tipe struktur section:
 ### 3.7 FR-7: Auto-Save & Sinkronisasi
 - **FR-7.1 (Debounce):** Setiap ketukan tuts keyboard memicu penyimpanan lokal seketika dan mengirim permintaan update ke Supabase dengan jeda debounce 800ms.
 - **FR-7.2 (Indicator):** Status ditampilkan di bilah navigasi: "Saved", "Saving...", atau "Offline Mode".
+- **FR-7.3 (Optimistic Concurrency):** Setiap baris `resumes` memiliki kolom `version` (integer, default `1`). Update dari editor maupun MCP wajib menyertakan versi yang diharapkan; bila versi berubah, penulisan ditolak dan pengguna melihat dialog **Reload latest** / **Keep mine** alih-alih menimpa perubahan secara diam-diam. Tanpa migrasi `version`, editor memakai mode legacy upsert agar tetap dapat digunakan.
 
 ### 3.8 FR-8: Fitur 1:1 PDF Live Preview & Item-Level Multi-Sheet Pagination
 - **FR-8.1 (Physical A4 Sheets Rendering & 100% Identical Layout):** Pratinjau PDF merender lembaran fisik kertas A4 individual (`.a4-page-sheet`) berukuran pasti `210mm x 297mm` dengan padding `10mm 13mm 12mm 13mm`. Tata letak pada mode pratinjau dan unduh PDF menggunakan kalkulasi deterministik yang sama persis sehingga tidak ada disparitas item antar lembar. Lembar ke-1 dan lembar ke-2 ditampilkan terpisah dengan spasi antar lembar yang luas (`48px`).
@@ -345,6 +346,13 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
     4. **Format Bulan, Status Aktif & DatePicker:** Mengonversi singkatan bulan (`May` ↔ `Mei`, `Aug` ↔ `Agu`, `Oct` ↔ `Okt`, `Dec` ↔ `Des`) dan status aktif (`Present` ↔ `Sekarang`) pada periode tanggal, menampilkan grid bulan sesuai bahasa resume di `DatePicker`, serta mendukung singkatan `Agu` pada pengurutan kronologis `sortByPeriodDesc`.
     5. **Teks Panduan Placeholder A4:** Seluruh teks contoh abu-abu (`isPlaceholder`) menyesuaikan bahasa resume aktif.
 
+### 3.15 FR-15: Integrasi MCP (Model Context Protocol)
+- **FR-15.1 (Fondasi Domain Bersama):** Logika resume yang tidak bergantung React dipusatkan di `src/lib/domain/` (factory, migrasi, ATS, HTML) dan schema validasi Zod di `src/lib/mcp/schema/`. Schema dianotasi `z.ZodType<ResumeDocument>` sehingga perubahan tipe tanpa pembaruan schema menggagalkan `tsc`.
+- **FR-15.2 (Versi Data):** Dokumen membawa `content.schemaVersion`; migrasi saat baca mempertahankan field yang belum dikenal agar fitur baru tidak hilang saat dibaca/ditulis melalui MCP.
+- **FR-15.3 (MCP Lokal):** Paket `mcp/` menyediakan server stdio `cevee-mcp`. Fase 0 mengekspos tool `get_capabilities`; fase 1 menambahkan CRUD resume, section, item, layout, dan validasi.
+- **FR-15.4 (MCP Remote — Rencana):** Endpoint Streamable HTTP di Vercel Edge (`/api/mcp`) memakai OAuth 2.1 Supabase sebagai authorization server, consent page `/oauth/consent`, dan RLS untuk isolasi data. PAT opsional hanya untuk client yang tidak mendukung OAuth.
+- **FR-15.5 (Batasan):** Guest mode tidak dapat memakai MCP karena data hanya berada di `localStorage`. Export PDF tetap dijalankan di sisi klien; remote MCP tidak menjalankan Playwright.
+
 ---
 
 ## 4. SKEMA DATA & DATABASE
@@ -384,6 +392,7 @@ create table public.resumes (
   title text not null default 'Untitled Resume',
   layout_id text not null default 'classic-ats',
   content jsonb not null default '{}'::jsonb,
+  version integer not null default 1,
   is_favorite boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -676,6 +685,20 @@ export interface ResumeDocument {
 ---
 
 ## 7. RIWAYAT VERSI (CHANGELOG)
+
+### 1.40.0 — Fondasi MCP, Schema Parity & Optimistic Concurrency
+- **Domain Bersama (`src/lib/domain/`, `src/lib/mcp/`):**
+  - Menambahkan `resumeFactory.ts` (factory resume/section), `migrations.ts` (`schemaVersion` + preservasi field tak dikenal), `ats.ts` (audit ATS deterministik), dan `html.ts` (helper teks/HTML).
+  - Menambahkan schema Zod `resumeDocumentSchema` dengan anotasi `z.ZodType<ResumeDocument>` sebagai pengaman drift tipe.
+  - Menambahkan `src/lib/mcp/capabilities.ts` dan paket `mcp/` (server stdio `cevee-mcp`, tool `get_capabilities`, test Vitest + client stdio).
+- **Pemisahan Modul Murni:**
+  - `src/layouts/ids.ts` dan `src/layouts/catalog.ts` memisahkan metadata layout dari plugin React; `resumeAdapter.ts` tidak lagi mengimpor registry TSX.
+  - `src/lib/ai/gemini.ts` mengekstrak parser Gemini dari `api/parse-resume.ts`; handler serverless menjadi tipis.
+- **Konkurensi & Konflik:**
+  - Menambahkan kolom `resumes.version` (migrasi `supabase/migrations/20261126_add_resume_version.sql`) dan guard update berbasis versi di `resumeService`.
+  - Menambahkan dialog `ConflictDialog` dengan aksi **Reload latest** / **Keep mine**; auto-save tidak lagi menimpa perubahan dari sesi lain atau MCP secara diam-diam.
+  - Menambahkan `tsconfig.api.json` + script `typecheck:api` agar folder `api/` ikut diperiksa TypeScript.
+- **Verifikasi:** `npm run build` ✓, `npm run lint` ✓, `npm run typecheck:api` ✓, `npm --prefix mcp run typecheck` ✓, `npm --prefix mcp test` ✓ (5 test).
 
 ### 1.39.0 - Fitur Bahasa Dokumen Resume Per-CV (`en` / `id`) & Label Pendidikan `IPK:`
 - **Pemisahan Bahasa Resume vs Bahasa Web (`src/utils/resumeLocale.ts`, `src/types/resume.ts`):**

@@ -12,7 +12,7 @@ import {
   ResumeLanguage,
 } from '../../types/resume';
 import { ParsedResumeRaw } from './types';
-import { DEFAULT_LAYOUT_ID } from '../../layouts/registry';
+import { DEFAULT_LAYOUT_ID } from '../../layouts/ids';
 import {
   DEFAULT_RESUME_LANGUAGE,
   SECTION_PRESET_TITLES,

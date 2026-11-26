@@ -31,6 +31,7 @@ import { PreviewModal } from './components/PreviewModal';
 import { PaginatedResumeView } from './components/PaginatedResumeView';
 import { ResumeDashboard } from './components/ResumeDashboard';
 import { ConfirmDialog } from './components/ConfirmDialog';
+import { ConflictDialog } from './components/ConflictDialog';
 import { LayoutSelectModal } from './components/LayoutSelectModal';
 import { LayoutSidebar } from './components/LayoutSidebar';
 import { AuthPage } from './components/AuthPage';
@@ -121,6 +122,17 @@ export function App() {
   const [deletingSectionId, setDeletingSectionId] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [resumesLoadedForUser, setResumesLoadedForUser] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<{
+    local: ResumeDocument;
+    latest: ResumeDocument;
+  } | null>(null);
+  const lastSavedAtRef = useRef<Record<string, string>>({});
+
+  const markResumesSaved = (list: ResumeDocument[]) => {
+    for (const resume of list) {
+      lastSavedAtRef.current[resume.id] = resume.updatedAt;
+    }
+  };
 
   // Supabase Auth listener
   useEffect(() => {
@@ -181,6 +193,8 @@ export function App() {
     setResumes([]);
     setActiveResumeId('');
     setCurrentView('dashboard');
+    lastSavedAtRef.current = {};
+    setConflict(null);
     localStorage.removeItem(LOCAL_STORAGE_KEY);
     localStorage.removeItem(ACTIVE_RESUME_KEY);
     localStorage.removeItem(GUEST_DATA_FLAG_KEY);
@@ -261,6 +275,7 @@ export function App() {
           // Directly merge: new guest resumes + cloud resumes
           const merged = [...newToUpload, ...cloudResumes];
           setResumes(merged);
+          markResumesSaved(merged);
           setActiveResumeId((prevActiveId) => {
             if (prevActiveId && merged.some((r) => r.id === prevActiveId)) {
               return prevActiveId;
@@ -275,6 +290,7 @@ export function App() {
           setIsGuest(false);
         } else if (dbResumes && dbResumes.length > 0) {
           setResumes(dbResumes);
+          markResumesSaved(dbResumes);
           setActiveResumeId((prevActiveId) => {
             return prevActiveId && dbResumes.some((r) => r.id === prevActiveId)
               ? prevActiveId
@@ -313,15 +329,50 @@ export function App() {
   const activeResume =
     resumes.find((r) => r.id === activeResumeId) || (resumes.length > 0 ? resumes[0] : undefined);
 
-  // Auto-sync active resume to Supabase if logged in (debounced)
+  // Auto-sync active resume to Supabase if logged in (debounced, version-guarded)
   useEffect(() => {
     if (!user || !activeResume || !activeResumeId || resumes.length === 0) return;
     if (resumesLoadedForUser !== user.id) return;
+    if (lastSavedAtRef.current[activeResume.id] === activeResume.updatedAt) return;
 
     setSyncStatus('saving');
     const timeout = setTimeout(async () => {
-      const ok = await saveUserResume(activeResume);
-      setSyncStatus(ok ? 'saved' : 'error');
+      const result = await saveUserResume(activeResume, activeResume.version ?? 1);
+
+      if (result.ok) {
+        lastSavedAtRef.current[activeResume.id] = activeResume.updatedAt;
+        if (result.version > 0 && result.version !== activeResume.version) {
+          setResumes((prev) =>
+            prev.map((resume) =>
+              resume.id === activeResume.id ? { ...resume, version: result.version } : resume
+            )
+          );
+        }
+        setSyncStatus('saved');
+        return;
+      }
+
+      if (result.reason === 'conflict') {
+        if (result.latest) {
+          setConflict({ local: activeResume, latest: result.latest });
+        } else {
+          // The row is not in the cloud yet (for example a guest resume that
+          // was never uploaded). Create it instead of losing the edit.
+          const inserted = await saveUserResume(activeResume);
+          if (inserted.ok) {
+            lastSavedAtRef.current[activeResume.id] = activeResume.updatedAt;
+            setResumes((prev) =>
+              prev.map((resume) =>
+                resume.id === activeResume.id ? { ...resume, version: inserted.version } : resume
+              )
+            );
+            setSyncStatus('saved');
+            return;
+          }
+        }
+      }
+
+      setSyncStatus('error');
     }, 800);
 
     return () => clearTimeout(timeout);
@@ -623,7 +674,11 @@ export function App() {
     setResumes((prev) => [newResume, ...prev]);
     setActiveResumeId(newId);
     if (user) {
-      saveUserResume(newResume);
+      void saveUserResume(newResume).then((result) => {
+        if (result.ok) {
+          lastSavedAtRef.current[newResume.id] = newResume.updatedAt;
+        }
+      });
     }
     setCurrentView('editor');
   };
@@ -632,7 +687,11 @@ export function App() {
     setResumes((prev) => [newResume, ...prev]);
     setActiveResumeId(newResume.id);
     if (user) {
-      saveUserResume(newResume);
+      void saveUserResume(newResume).then((result) => {
+        if (result.ok) {
+          lastSavedAtRef.current[newResume.id] = newResume.updatedAt;
+        }
+      });
     }
     setCurrentView('editor');
   };
@@ -647,17 +706,26 @@ export function App() {
       title: `${target.title} (Copy)`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      version: 1,
     };
     setResumes((prev) => [duplicated, ...prev]);
     setActiveResumeId(newId);
     if (user) {
-      saveUserResume(duplicated);
+      void saveUserResume(duplicated).then((result) => {
+        if (result.ok) {
+          lastSavedAtRef.current[duplicated.id] = duplicated.updatedAt;
+        }
+      });
     }
   };
 
   const handleDeleteResume = (id: string) => {
     const filtered = resumes.filter((r) => r.id !== id);
     setResumes(filtered);
+    delete lastSavedAtRef.current[id];
+    if (conflict?.local.id === id) {
+      setConflict(null);
+    }
     if (user) {
       deleteUserResume(id);
     }
@@ -670,13 +738,65 @@ export function App() {
   };
 
   const handleRenameResume = (id: string, newTitle: string) => {
-    setResumes((prev) => prev.map((r) => (r.id === id ? { ...r, title: newTitle } : r)));
-    if (user) {
-      const target = resumes.find((r) => r.id === id);
-      if (target) {
-        saveUserResume({ ...target, title: newTitle });
-      }
+    const target = resumes.find((r) => r.id === id);
+    const now = new Date().toISOString();
+    setResumes((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, title: newTitle, updatedAt: now } : r))
+    );
+
+    // The active resume is saved by the debounced auto-save effect. Other
+    // resumes need an explicit write because they are not in the active slot.
+    if (user && target && id !== activeResumeId) {
+      const renamed = { ...target, title: newTitle, updatedAt: now };
+      void saveUserResume(renamed, target.version ?? 1).then((result) => {
+        if (result.ok) {
+          lastSavedAtRef.current[id] = now;
+          if (result.version > 0 && result.version !== target.version) {
+            setResumes((prev) =>
+              prev.map((r) => (r.id === id ? { ...r, version: result.version } : r))
+            );
+          }
+        } else if (result.reason === 'conflict' && result.latest) {
+          setConflict({ local: renamed, latest: result.latest });
+        } else {
+          setSyncStatus('error');
+        }
+      });
     }
+  };
+
+  const handleConflictReload = () => {
+    if (!conflict) return;
+    const latest = conflict.latest;
+    setResumes((prev) => prev.map((resume) => (resume.id === latest.id ? latest : resume)));
+    lastSavedAtRef.current[latest.id] = latest.updatedAt;
+    setConflict(null);
+    setSyncStatus('saved');
+  };
+
+  const handleConflictKeepMine = async () => {
+    if (!conflict) return;
+    const { local, latest } = conflict;
+    const result = await saveUserResume(local, latest.version ?? 0);
+
+    if (result.ok) {
+      lastSavedAtRef.current[local.id] = local.updatedAt;
+      setResumes((prev) =>
+        prev.map((resume) =>
+          resume.id === local.id ? { ...resume, version: result.version } : resume
+        )
+      );
+      setConflict(null);
+      setSyncStatus('saved');
+      return;
+    }
+
+    if (result.reason === 'conflict' && result.latest) {
+      setConflict({ local, latest: result.latest });
+      return;
+    }
+
+    setSyncStatus('error');
   };
 
   // Open editor for a chosen resume
@@ -1068,6 +1188,14 @@ export function App() {
           onDownload={handleDownloadPdf}
         />
       )}
+
+      {/* Conflict dialog: the resume changed in another session or via MCP */}
+      <ConflictDialog
+        isOpen={Boolean(conflict)}
+        resumeTitle={conflict?.local.title || 'Resume'}
+        onReload={handleConflictReload}
+        onKeepMine={handleConflictKeepMine}
+      />
 
       {/* Confirmation Modal for Section Deletion */}
       <ConfirmDialog
