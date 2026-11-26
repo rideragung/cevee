@@ -328,7 +328,7 @@ feedback only.
     - `Rejected` (`CircleX`, rose pill)
     - `Archived` (`Archive`, muted pill — isolated in a dedicated Archived menu outside the Kanban board)
 - **Kanban Board, List View, Employment Type & Dedicated Archived Menu:**
-  - Summary strip uses 4 flat `rounded-2xl` metric cards with `tabular-nums` figures (`Total applications`, `On progress`, `Rejected`, `Offering`).
+  - Pipeline summary (`JobTrackerStats.tsx`) consolidates metrics into a single calm `rounded-2xl` Pillow Light card (~116px height): hero `Total applications` count + `response · offer` rates (`tabular-nums`), an 8px segmented distribution bar (`motion.div` spring `scaleX` honoring `prefers-reduced-motion`), and 4 flat clickable stage segments (`Applied`, `On progress`, `Offering`, `Rejected`) that filter the board/list directly without nested cards or redundant icon boxes.
   - Board renders 4 active columns (`Applied`, `On progress`, `Offering`, `Rejected`) in `md:grid-cols-2 xl:grid-cols-4` with compact card anatomy (role/company, interactive sub-stage pill for `On progress`, employment type + work mode + location chips, single-line linked resume + match score, and `Intl.DateTimeFormat` applied date + stage mover).
   - `JobFormDialog` uses 1-click selectable chips for `Employment type` (`Full-time`, `Internship`, `Contract`, `Part-time`, `Freelance`, `Other`), conditional sub-stage chips when `Stage = On progress`, and inline `aria-invalid` / `aria-describedby` field validation.
   - Archiving an application triggers a polite `role="status"` Undo banner (`Undo` restores previous stage & sub-stage). Archived applications live in a dedicated `Archived (N)` menu with focus management, `Restore`, and `Delete`.

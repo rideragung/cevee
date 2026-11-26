@@ -8,9 +8,6 @@ import {
   IconBriefcase as Briefcase,
   IconCheck as Check,
   IconChevronDown as ChevronDown,
-  IconCircleCheck as CircleCheck,
-  IconCircleX as CircleX,
-  IconClock as Clock,
   IconCopy as Copy,
   IconDotsVertical as MoreVertical,
   IconEdit as Edit2,
@@ -49,6 +46,7 @@ import { formatRelativeTime } from '../../utils/relativeTime';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { JobEmptyState } from './JobEmptyState';
 import { JobFormDialog } from './JobFormDialog';
+import { JobTrackerStats } from './JobTrackerStats';
 import {
   JOB_SORT_OPTIONS,
   JobSortKey,
@@ -193,15 +191,17 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   );
 
   const stats = useMemo(() => {
+    let applied = 0;
     let onProgress = 0;
     let rejected = 0;
     let offering = 0;
     for (const job of activeJobs) {
+      if (job.status === 'applied') applied += 1;
       if (job.status === 'on_progress') onProgress += 1;
       if (job.status === 'rejected') rejected += 1;
       if (job.status === 'offering') offering += 1;
     }
-    return { total: activeJobs.length, onProgress, rejected, offering };
+    return { total: activeJobs.length, applied, onProgress, rejected, offering };
   }, [activeJobs]);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -784,48 +784,12 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         </div>
       ) : (
         <>
-          {/* Summary Strip (4 Cards: Total applications, On progress, Rejected, Offering) */}
-          <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Card className="rounded-2xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>Total applications</span>
-                <Briefcase className="size-4 text-muted-foreground" />
-              </div>
-              <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground tabular-nums">
-                {stats.total}
-              </p>
-            </Card>
-
-            <Card className="rounded-2xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>On progress</span>
-                <Clock className="size-4 text-primary" />
-              </div>
-              <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground tabular-nums">
-                {stats.onProgress}
-              </p>
-            </Card>
-
-            <Card className="rounded-2xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>Rejected</span>
-                <CircleX className="size-4 text-rose-600" />
-              </div>
-              <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground tabular-nums">
-                {stats.rejected}
-              </p>
-            </Card>
-
-            <Card className="rounded-2xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>Offering</span>
-                <CircleCheck className="size-4 text-emerald-600" />
-              </div>
-              <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground tabular-nums">
-                {stats.offering}
-              </p>
-            </Card>
-          </div>
+          {/* Unified Calm Pipeline Summary Bar */}
+          <JobTrackerStats
+            stats={stats}
+            activeFilter={statusFilter}
+            onFilterChange={setStatusFilter}
+          />
 
           {/* Toolbar */}
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
