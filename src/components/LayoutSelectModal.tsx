@@ -530,6 +530,9 @@ export const LayoutSelectModal: React.FC<LayoutSelectModalProps> = ({
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
                       Upload an existing PDF resume to automatically extract content into the template.
                     </p>
+                    <p className="text-[10px] text-muted-foreground/80 leading-relaxed mt-1.5">
+                      Only the extracted text is sent to Google Gemini. The PDF file stays in your browser.
+                    </p>
 
                     <div className="absolute top-3.5 right-3.5 pointer-events-none">
                       <div

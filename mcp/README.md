@@ -1,25 +1,67 @@
 # cevee-mcp
 
-MCP server for Cevee resume data.
-
-Phase 0 currently exposes only `get_capabilities`. The remaining tools are
-implemented in Phase 1.
+MCP server for Cevee resume data. Phase 1 is a local stdio server with resume
+CRUD, section/item editing, layout selection, and structural validation.
 
 ## Requirements
 
 - Node.js 20 or newer
-- A Cevee account (Supabase) for Phase 1 tools
+- A Cevee account (Supabase)
 
-## Build and run
+## Install and build
 
 ```bash
 npm --prefix mcp install
 npm --prefix mcp run build
-node mcp/dist/index.js
+npm --prefix mcp test
 ```
 
-The server speaks MCP over stdio. It must be launched by an MCP client, not by
-opening a browser.
+## Sign in
+
+```bash
+node mcp/dist/index.js login
+node mcp/dist/index.js whoami
+node mcp/dist/index.js logout
+```
+
+`login` prompts for the Supabase URL, anon key, email, and password. The session
+is stored in `~/.cevee` with owner-only permissions. For automation:
+
+```bash
+CEEVEE_SUPABASE_URL=... \
+CEEVEE_SUPABASE_ANON_KEY=... \
+CEEVEE_EMAIL=... \
+CEEVEE_PASSWORD=... \
+node mcp/dist/index.js login
+```
+
+`CEEVEE_HOME` overrides the config directory. The server never uses a service
+role key: every query runs with the signed-in user's token and Supabase RLS.
+
+## Tools
+
+- `get_capabilities`, `validate_resume`
+- `list_resumes`, `get_resume`, `create_resume`, `update_resume`,
+  `duplicate_resume`, `delete_resume`
+- `update_header`
+- `list_sections`, `add_section`, `update_section`, `remove_section`,
+  `reorder_sections`
+- `add_item`, `update_item`, `remove_item`, `reorder_items`
+- `list_layouts`, `set_layout`
+
+Every write requires `expectedVersion`. A stale version returns a conflict with
+the latest document; re-read it and retry. Delete operations require
+`confirm: true`.
+
+Summary and bullet inputs are plain text. The server escapes text and converts
+bullets to safe HTML; it does not accept raw HTML from the agent.
+
+## Resources and prompts
+
+- Resources: `cevee://capabilities`, `cevee://resumes`,
+  `cevee://resumes/{resumeId}`, `cevee://layouts`, `cevee://schema/resume`,
+  `cevee://guides/ats`
+- Prompts: `create-resume-from-bio`, `ats-review`
 
 ## OpenCode config
 
@@ -36,3 +78,9 @@ opening a browser.
 ```
 
 Logs go to stderr only; stdout is reserved for the MCP protocol.
+
+## Tests
+
+`npm --prefix mcp test` builds the server and runs Vitest unit, in-memory tool,
+and stdio integration tests. The stdio test uses `CEEVEE_MCP_TEST_MODE=1`, which
+uses an empty in-memory store and never touches Supabase.

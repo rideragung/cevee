@@ -1,32 +1,16 @@
 import { getSupabase } from './supabase';
-import { ResumeContent, ResumeDocument } from '../types/resume';
-import { normalizeLayoutId } from '../layouts/registry';
+import { ResumeDocument } from '../types/resume';
+import {
+  buildResumeRowPayload,
+  mapResumeRowToDocument,
+  type ResumeRow,
+} from './domain/resumeRow';
 
 export type SaveResumeResult =
   | { ok: true; version: number; legacy?: boolean }
   | { ok: false; reason: 'conflict'; latest?: ResumeDocument }
   | { ok: false; reason: 'error'; message: string }
   | { ok: false; reason: 'unauthenticated' };
-
-interface ResumeRow {
-  id: string;
-  title: string;
-  layout_id?: string | null;
-  content: ResumeContent;
-  created_at?: string | null;
-  updated_at: string;
-  version?: number | null;
-}
-
-const mapRowToResume = (row: ResumeRow): ResumeDocument => ({
-  id: row.id,
-  title: row.title,
-  layoutId: normalizeLayoutId(row.layout_id ?? undefined),
-  createdAt: row.created_at ?? row.updated_at,
-  updatedAt: row.updated_at,
-  version: typeof row.version === 'number' ? row.version : 1,
-  content: row.content,
-});
 
 export const fetchUserResumes = async (): Promise<ResumeDocument[] | null> => {
   const supabase = getSupabase();
@@ -50,7 +34,7 @@ export const fetchUserResumes = async (): Promise<ResumeDocument[] | null> => {
       return [];
     }
 
-    return (data as ResumeRow[]).map(mapRowToResume);
+    return (data as ResumeRow[]).map(mapResumeRowToDocument);
   } catch (err) {
     console.error('Failed to fetch resumes:', err);
     return null;
@@ -73,33 +57,11 @@ export const fetchUserResume = async (id: string): Promise<ResumeDocument | null
       return null;
     }
 
-    return data ? mapRowToResume(data as ResumeRow) : null;
+    return data ? mapResumeRowToDocument(data as ResumeRow) : null;
   } catch (err) {
     console.error('Failed to fetch resume:', err);
     return null;
   }
-};
-
-const buildPayload = (
-  resume: ResumeDocument,
-  version: number,
-  includeUserId: boolean,
-  userId?: string
-): Record<string, unknown> => {
-  const payload: Record<string, unknown> = {
-    id: resume.id,
-    title: resume.title,
-    layout_id: normalizeLayoutId(resume.layoutId),
-    content: resume.content,
-    updated_at: new Date().toISOString(),
-    version,
-  };
-
-  if (includeUserId && userId) {
-    payload.user_id = userId;
-  }
-
-  return payload;
 };
 
 const legacyUpsert = async (
@@ -109,7 +71,7 @@ const legacyUpsert = async (
   const supabase = getSupabase();
   if (!supabase) return { ok: false, reason: 'unauthenticated' };
 
-  const payload = buildPayload(resume, 1, true, userId);
+  const payload = buildResumeRowPayload(resume, 1, userId);
   delete payload.version;
 
   let { error } = await supabase.from('resumes').upsert(payload, { onConflict: 'id' });
@@ -134,7 +96,7 @@ const insertResume = async (
   const supabase = getSupabase();
   if (!supabase) return { ok: false, reason: 'unauthenticated' };
 
-  let payload = buildPayload(resume, 1, true, userId);
+  let payload = buildResumeRowPayload(resume, 1, userId);
   let { data, error } = await supabase
     .from('resumes')
     .insert(payload)
@@ -179,7 +141,7 @@ const updateResume = async (
   const supabase = getSupabase();
   if (!supabase) return { ok: false, reason: 'unauthenticated' };
 
-  let payload = buildPayload(resume, expectedVersion + 1, false);
+  let payload = buildResumeRowPayload(resume, expectedVersion + 1);
   let { data, error } = await supabase
     .from('resumes')
     .update(payload)
@@ -268,14 +230,16 @@ export const saveUserResumes = async (resumesToSave: ResumeDocument[]): Promise<
     if (!user) return false;
 
     let payloads: Record<string, unknown>[] = resumesToSave.map((resume) => ({
-      ...buildPayload(resume, 1, true, user.id),
+      ...buildResumeRowPayload(resume, 1, user.id),
       created_at: resume.createdAt || new Date().toISOString(),
       updated_at: resume.updatedAt || new Date().toISOString(),
     }));
 
+    // Guest migration must never overwrite an existing cloud row or reset its
+    // version. ignoreDuplicates performs ON CONFLICT DO NOTHING.
     let { error } = await supabase
       .from('resumes')
-      .upsert(payloads, { onConflict: 'id' });
+      .upsert(payloads, { onConflict: 'id', ignoreDuplicates: true });
 
     if (error && /layout_id/i.test(error.message)) {
       payloads = payloads.map((payload) => {
@@ -283,7 +247,9 @@ export const saveUserResumes = async (resumesToSave: ResumeDocument[]): Promise<
         delete copy.layout_id;
         return copy;
       });
-      ({ error } = await supabase.from('resumes').upsert(payloads, { onConflict: 'id' }));
+      ({ error } = await supabase
+        .from('resumes')
+        .upsert(payloads, { onConflict: 'id', ignoreDuplicates: true }));
     }
 
     if (error && /version/i.test(error.message)) {
@@ -292,7 +258,9 @@ export const saveUserResumes = async (resumesToSave: ResumeDocument[]): Promise<
         delete copy.version;
         return copy;
       });
-      ({ error } = await supabase.from('resumes').upsert(payloads, { onConflict: 'id' }));
+      ({ error } = await supabase
+        .from('resumes')
+        .upsert(payloads, { onConflict: 'id', ignoreDuplicates: true }));
     }
 
     if (error) {

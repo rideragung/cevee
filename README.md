@@ -184,18 +184,35 @@ alter table public.resumes
 The editor falls back to legacy upsert mode when the column is missing, but
 conflict protection (and MCP write safety) only works after the migration.
 
-## MCP Server (Phase 0)
+## MCP Server (Phase 1 — Local)
 
 Cevee exposes its resume domain through a Model Context Protocol server so AI
-clients can read and edit resumes. Phase 0 ships the shared domain layer, the
-Zod schema guard, optimistic concurrency, and a stdio server with one tool:
+clients can read and edit resumes. The local stdio server is implemented in
+`mcp/` and shares its domain layer with the web app.
 
-- `get_capabilities` — server version, schema version, section presets, layouts,
-  feature flags, and limits.
+Tools:
+
+- `get_capabilities`, `validate_resume`
+- `list_resumes`, `get_resume`, `create_resume`, `update_resume`,
+  `duplicate_resume`, `delete_resume`
+- `update_header`
+- `list_sections`, `add_section`, `update_section`, `remove_section`,
+  `reorder_sections`
+- `add_item`, `update_item`, `remove_item`, `reorder_items`
+- `list_layouts`, `set_layout`
+
+Resources: `cevee://capabilities`, `cevee://resumes`,
+`cevee://resumes/{resumeId}`, `cevee://layouts`, `cevee://schema/resume`,
+`cevee://guides/ats`.
+
+Prompts: `create-resume-from-bio`, `ats-review`.
 
 ```bash
 npm --prefix mcp install
 npm --prefix mcp run build
+node mcp/dist/index.js login     # sign in once; stores a session in ~/.cevee
+node mcp/dist/index.js whoami
+node mcp/dist/index.js logout
 npm --prefix mcp test
 ```
 
@@ -213,8 +230,19 @@ The server speaks MCP over stdio. Add it to an MCP client such as OpenCode:
 }
 ```
 
-Phase 1 adds resume CRUD tools. Phase 3 adds the remote Vercel endpoint with
-Supabase OAuth 2.1. See `mcp/README.md` and `SRS.md` (FR-15).
+`login` accepts `CEEVEE_SUPABASE_URL`, `CEEVEE_SUPABASE_ANON_KEY`,
+`CEEVEE_EMAIL`, and `CEEVEE_PASSWORD` for non-interactive use. The session
+file is written with owner-only permissions and never uses a service role; all
+queries run through the signed-in user's token and RLS.
+
+**Privacy note:** for signed-in users the web app no longer mirrors the whole
+resume library to `localStorage`. It keeps only unsaved drafts and clears each
+draft after a successful save. Guest mode still uses `localStorage` because
+there is no account to sync to. PDF import sends only the extracted text to
+Google Gemini; the PDF file stays in the browser.
+
+Phase 3 adds the remote Vercel endpoint with Supabase OAuth 2.1. See
+`mcp/README.md` and `SRS.md` (FR-15).
 
 ## Project Structure
 

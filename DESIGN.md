@@ -281,6 +281,14 @@ feedback only.
   - **Dashboard Metadata (`ResumeDashboard.tsx`):**
     - Menampilkan lencana `Badge variant="outline"` (`EN` / `ID`) berdampingan dengan lencana layout pada kartu resume sehingga pengguna dapat langsung mengenali versi bahasa tiap CV.
 
+## MCP, Privacy Copy & Local Cache (2026-11-26)
+
+- **PDF import disclosure (`LayoutSelectModal.tsx`):** di bawah deskripsi kartu *Scan & import from PDF*, tambahkan satu baris `text-[10px] text-muted-foreground/80`:
+  *"Only the extracted text is sent to Google Gemini. The PDF file stays in your browser."*
+  Kalimat ini menjelaskan alur data sebelum user memilih file, tanpa menambah kartu atau CTA baru.
+- **Local cache policy:** pengguna login tidak lagi menyimpan seluruh library resume di `localStorage`. Hanya draft aktif yang belum tersimpan yang dipersist, lalu dihapus setelah save Supabase berhasil. Guest mode tetap memakai `localStorage` karena tidak ada akun untuk sinkronisasi.
+- **Conflict dialog** tetap menjadi satu-satunya interupsi untuk perubahan bersamaan; draft yang dipulihkan dengan versi sama digabung otomatis tanpa dialog.
+
 ## Conflict Dialog: Resume Changed Elsewhere (2026-11-26)
 
 - Dipicu oleh guard optimistik `version` saat resume aktif berubah di tab lain atau melalui Cevee MCP.

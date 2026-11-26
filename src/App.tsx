@@ -51,6 +51,37 @@ const LOCAL_STORAGE_KEY = 'cevee_resumes_v3';
 const ACTIVE_RESUME_KEY = 'cevee_active_resume_id_v3';
 const GUEST_DATA_FLAG_KEY = 'cevee_has_guest_data_v3';
 const IS_GUEST_KEY = 'cevee_is_guest_v3';
+const PENDING_DRAFT_KEY = 'cevee_pending_drafts_v1';
+
+interface PendingDraftEntry {
+  resume: ResumeDocument;
+  savedAt: string;
+}
+
+interface PendingDraftFile {
+  userId: string;
+  drafts: Record<string, PendingDraftEntry>;
+}
+
+const readPendingDraftFile = (): PendingDraftFile | null => {
+  const raw = localStorage.getItem(PENDING_DRAFT_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as PendingDraftFile;
+    if (!parsed || typeof parsed !== 'object' || !parsed.drafts) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writePendingDraftFile = (file: PendingDraftFile) => {
+  if (Object.keys(file.drafts).length === 0) {
+    localStorage.removeItem(PENDING_DRAFT_KEY);
+    return;
+  }
+  localStorage.setItem(PENDING_DRAFT_KEY, JSON.stringify(file));
+};
 
 const isResumeModified = (resume: ResumeDocument): boolean => {
   if (resume.id !== 'resume-sample-1') return true;
@@ -87,6 +118,7 @@ export function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const fetchedUserIdRef = useRef<string | null>(null);
   const pendingPrintIdRef = useRef<string | null>(null);
+  const draftRecoveredForUserRef = useRef<string | null>(null);
 
   const [resumes, setResumes] = useState<ResumeDocument[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -131,6 +163,30 @@ export function App() {
   const markResumesSaved = (list: ResumeDocument[]) => {
     for (const resume of list) {
       lastSavedAtRef.current[resume.id] = resume.updatedAt;
+    }
+  };
+
+  const persistPendingDraft = (userId: string, resume: ResumeDocument) => {
+    const existing = readPendingDraftFile();
+    const file: PendingDraftFile =
+      existing && existing.userId === userId ? existing : { userId, drafts: {} };
+    file.drafts[resume.id] = { resume, savedAt: new Date().toISOString() };
+    try {
+      writePendingDraftFile(file);
+    } catch {
+      // Storage can be full; the Supabase write remains the source of truth.
+    }
+  };
+
+  const clearPendingDraft = (resumeId: string) => {
+    const file = readPendingDraftFile();
+    if (!file) return;
+    if (!file.drafts[resumeId]) return;
+    delete file.drafts[resumeId];
+    try {
+      writePendingDraftFile(file);
+    } catch {
+      // Ignore storage failures; the next successful save retries the cleanup.
     }
   };
 
@@ -182,6 +238,14 @@ export function App() {
   }, []);
 
   const handleSignOut = async () => {
+    // Best-effort flush before clearing the local session. The pending draft
+    // file is always removed so a signed-out browser does not keep PII.
+    const currentResume =
+      resumesRef.current.find((resume) => resume.id === activeResumeId) ?? resumesRef.current[0];
+    if (user && currentResume && lastSavedAtRef.current[currentResume.id] !== currentResume.updatedAt) {
+      await saveUserResume(currentResume, currentResume.version ?? 1);
+    }
+
     const supabase = getSupabase();
     if (supabase) {
       await supabase.auth.signOut();
@@ -199,6 +263,7 @@ export function App() {
     localStorage.removeItem(ACTIVE_RESUME_KEY);
     localStorage.removeItem(GUEST_DATA_FLAG_KEY);
     localStorage.removeItem(IS_GUEST_KEY);
+    localStorage.removeItem(PENDING_DRAFT_KEY);
   };
 
   const handleContinueAsGuest = () => {
@@ -341,6 +406,7 @@ export function App() {
 
       if (result.ok) {
         lastSavedAtRef.current[activeResume.id] = activeResume.updatedAt;
+        clearPendingDraft(activeResume.id);
         if (result.version > 0 && result.version !== activeResume.version) {
           setResumes((prev) =>
             prev.map((resume) =>
@@ -361,6 +427,7 @@ export function App() {
           const inserted = await saveUserResume(activeResume);
           if (inserted.ok) {
             lastSavedAtRef.current[activeResume.id] = activeResume.updatedAt;
+            clearPendingDraft(activeResume.id);
             setResumes((prev) =>
               prev.map((resume) =>
                 resume.id === activeResume.id ? { ...resume, version: inserted.version } : resume
@@ -378,13 +445,75 @@ export function App() {
     return () => clearTimeout(timeout);
   }, [activeResume, activeResumeId, user, resumes.length, resumesLoadedForUser]);
 
-  // Auto-save to localStorage & mark guest data if unauthenticated
+  // Guest mode keeps the full library in localStorage. Signed-in users keep
+  // only unsaved drafts (cleared after each successful save).
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(resumes));
     if (!user) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(resumes));
       localStorage.setItem(GUEST_DATA_FLAG_KEY, 'true');
+      return;
     }
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
   }, [resumes, user]);
+
+  // Persist only the active unsaved draft for signed-in users.
+  useEffect(() => {
+    if (!user || !activeResume) return;
+    if (lastSavedAtRef.current[activeResume.id] === activeResume.updatedAt) return;
+    persistPendingDraft(user.id, activeResume);
+  }, [activeResume, user]);
+
+  // Recover unsaved drafts after the cloud list has loaded.
+  useEffect(() => {
+    if (!user || resumesLoadedForUser !== user.id) return;
+    if (draftRecoveredForUserRef.current === user.id) return;
+    draftRecoveredForUserRef.current = user.id;
+
+    const file = readPendingDraftFile();
+    if (!file) return;
+
+    if (file.userId !== user.id) {
+      localStorage.removeItem(PENDING_DRAFT_KEY);
+      return;
+    }
+
+    const merged = new Map<string, ResumeDocument>();
+    let firstConflict: { local: ResumeDocument; latest: ResumeDocument } | null = null;
+
+    for (const [id, entry] of Object.entries(file.drafts)) {
+      const latest = resumes.find((resume) => resume.id === id);
+      if (!latest) {
+        delete file.drafts[id];
+        continue;
+      }
+
+      const draftTime = new Date(entry.resume.updatedAt).getTime();
+      const latestTime = new Date(latest.updatedAt).getTime();
+      if (!Number.isFinite(draftTime) || draftTime <= latestTime) {
+        delete file.drafts[id];
+        continue;
+      }
+
+      if ((entry.resume.version ?? 0) === (latest.version ?? 0)) {
+        merged.set(latest.id, { ...entry.resume, version: latest.version });
+      } else if (!firstConflict) {
+        firstConflict = { local: entry.resume, latest };
+      }
+    }
+
+    try {
+      writePendingDraftFile(file);
+    } catch {
+      // Ignore cleanup failures; the drafts remain recoverable.
+    }
+
+    if (merged.size > 0) {
+      setResumes((prev) => prev.map((resume) => merged.get(resume.id) ?? resume));
+    }
+    if (firstConflict) {
+      setConflict(firstConflict);
+    }
+  }, [user, resumesLoadedForUser, resumes]);
 
   useEffect(() => {
     if (activeResumeId) {
@@ -719,18 +848,34 @@ export function App() {
     }
   };
 
-  const handleDeleteResume = (id: string) => {
-    const filtered = resumes.filter((r) => r.id !== id);
+  const handleDeleteResume = async (id: string) => {
+    const target = resumes.find((resume) => resume.id === id);
+    if (!target) return;
+
+    const filtered = resumes.filter((resume) => resume.id !== id);
     setResumes(filtered);
     delete lastSavedAtRef.current[id];
+    clearPendingDraft(id);
     if (conflict?.local.id === id) {
       setConflict(null);
     }
+
     if (user) {
-      deleteUserResume(id);
+      const deleted = await deleteUserResume(id);
+      if (!deleted) {
+        // Restore the row so the UI matches the database instead of showing a
+        // phantom deletion.
+        setResumes((prev) => [target, ...prev.filter((resume) => resume.id !== id)]);
+        setSyncStatus('error');
+        return;
+      }
     }
-    if (filtered.length > 0) {
-      setActiveResumeId(filtered[0].id);
+
+    const remaining = resumesRef.current.filter((resume) => resume.id !== id);
+    if (remaining.length > 0) {
+      setActiveResumeId((prev) =>
+        remaining.some((resume) => resume.id === prev) ? prev : remaining[0].id
+      );
     } else {
       setActiveResumeId('');
       setCurrentView('dashboard');
@@ -751,6 +896,7 @@ export function App() {
       void saveUserResume(renamed, target.version ?? 1).then((result) => {
         if (result.ok) {
           lastSavedAtRef.current[id] = now;
+          clearPendingDraft(id);
           if (result.version > 0 && result.version !== target.version) {
             setResumes((prev) =>
               prev.map((r) => (r.id === id ? { ...r, version: result.version } : r))
@@ -768,6 +914,7 @@ export function App() {
   const handleConflictReload = () => {
     if (!conflict) return;
     const latest = conflict.latest;
+    clearPendingDraft(latest.id);
     setResumes((prev) => prev.map((resume) => (resume.id === latest.id ? latest : resume)));
     lastSavedAtRef.current[latest.id] = latest.updatedAt;
     setConflict(null);
@@ -781,6 +928,7 @@ export function App() {
 
     if (result.ok) {
       lastSavedAtRef.current[local.id] = local.updatedAt;
+      clearPendingDraft(local.id);
       setResumes((prev) =>
         prev.map((resume) =>
           resume.id === local.id ? { ...resume, version: result.version } : resume

@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.40.0  
+**Dokumen Versi:** 1.41.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Responsive: Desktop, Tablet & Mobile)  
@@ -244,6 +244,7 @@ Sistem mendukung beragam tipe struktur section:
 - **FR-7.1 (Debounce):** Setiap ketukan tuts keyboard memicu penyimpanan lokal seketika dan mengirim permintaan update ke Supabase dengan jeda debounce 800ms.
 - **FR-7.2 (Indicator):** Status ditampilkan di bilah navigasi: "Saved", "Saving...", atau "Offline Mode".
 - **FR-7.3 (Optimistic Concurrency):** Setiap baris `resumes` memiliki kolom `version` (integer, default `1`). Update dari editor maupun MCP wajib menyertakan versi yang diharapkan; bila versi berubah, penulisan ditolak dan pengguna melihat dialog **Reload latest** / **Keep mine** alih-alih menimpa perubahan secara diam-diam. Tanpa migrasi `version`, editor memakai mode legacy upsert agar tetap dapat digunakan.
+- **FR-7.4 (Kebijakan Cache Lokal):** Mode guest menyimpan seluruh library di `localStorage`. Pengguna yang sudah login **tidak** mencerminkan seluruh library ke `localStorage`; yang disimpan hanya draft aktif yang belum tersimpan (satu entri per resume) dan entri tersebut dihapus setelah penyimpanan Supabase berhasil. Saat logout, seluruh cache lokal dan draft dihapus. Jika browser ditutup sebelum save selesai, draft dipulihkan saat login berikutnya: otomatis bila versinya sama, atau melalui dialog konflik bila versi sudah berubah.
 
 ### 3.8 FR-8: Fitur 1:1 PDF Live Preview & Item-Level Multi-Sheet Pagination
 - **FR-8.1 (Physical A4 Sheets Rendering & 100% Identical Layout):** Pratinjau PDF merender lembaran fisik kertas A4 individual (`.a4-page-sheet`) berukuran pasti `210mm x 297mm` dengan padding `10mm 13mm 12mm 13mm`. Tata letak pada mode pratinjau dan unduh PDF menggunakan kalkulasi deterministik yang sama persis sehingga tidak ada disparitas item antar lembar. Lembar ke-1 dan lembar ke-2 ditampilkan terpisah dengan spasi antar lembar yang luas (`48px`).
@@ -349,7 +350,7 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
 ### 3.15 FR-15: Integrasi MCP (Model Context Protocol)
 - **FR-15.1 (Fondasi Domain Bersama):** Logika resume yang tidak bergantung React dipusatkan di `src/lib/domain/` (factory, migrasi, ATS, HTML) dan schema validasi Zod di `src/lib/mcp/schema/`. Schema dianotasi `z.ZodType<ResumeDocument>` sehingga perubahan tipe tanpa pembaruan schema menggagalkan `tsc`.
 - **FR-15.2 (Versi Data):** Dokumen membawa `content.schemaVersion`; migrasi saat baca mempertahankan field yang belum dikenal agar fitur baru tidak hilang saat dibaca/ditulis melalui MCP.
-- **FR-15.3 (MCP Lokal):** Paket `mcp/` menyediakan server stdio `cevee-mcp`. Fase 0 mengekspos tool `get_capabilities`; fase 1 menambahkan CRUD resume, section, item, layout, dan validasi.
+- **FR-15.3 (MCP Lokal):** Paket `mcp/` menyediakan server stdio `cevee-mcp` dengan CLI `login` / `whoami` / `logout`. Session disimpan di `~/.cevee` dengan permission owner-only; tidak ada service role. Tool yang tersedia: `get_capabilities`, `validate_resume`, CRUD resume (`list_resumes`, `get_resume`, `create_resume`, `update_resume`, `duplicate_resume`, `delete_resume`), `update_header`, section (`list_sections`, `add_section`, `update_section`, `remove_section`, `reorder_sections`), item (`add_item`, `update_item`, `remove_item`, `reorder_items`), dan layout (`list_layouts`, `set_layout`). Setiap write memakai `expectedVersion`; delete membutuhkan `confirm: true`. Input summary/bullet berupa plain text dan di-escape server-side.
 - **FR-15.4 (MCP Remote — Rencana):** Endpoint Streamable HTTP di Vercel Edge (`/api/mcp`) memakai OAuth 2.1 Supabase sebagai authorization server, consent page `/oauth/consent`, dan RLS untuk isolasi data. PAT opsional hanya untuk client yang tidak mendukung OAuth.
 - **FR-15.5 (Batasan):** Guest mode tidak dapat memakai MCP karena data hanya berada di `localStorage`. Export PDF tetap dijalankan di sisi klien; remote MCP tidak menjalankan Playwright.
 
@@ -685,6 +686,20 @@ export interface ResumeDocument {
 ---
 
 ## 7. RIWAYAT VERSI (CHANGELOG)
+
+### 1.41.0 — MCP Lokal Fase 1, Kebijakan Cache Lokal & Hardening Privasi
+- **MCP Lokal (`mcp/`, `src/lib/mcp/`):**
+  - Menambahkan `SupabaseResumeStore` (RLS, tanpa service role), `MemoryStore`, dan tool CRUD resume/header/section/item/layout/validasi.
+  - Menambahkan resource (`cevee://capabilities`, `cevee://resumes`, `cevee://resumes/{id}`, `cevee://layouts`, `cevee://schema/resume`, `cevee://guides/ats`) dan prompt (`create-resume-from-bio`, `ats-review`).
+  - Menambahkan CLI `cevee-mcp login|whoami|logout`, session file owner-only di `~/.cevee`, serta test unit, in-memory, dan stdio (13 test).
+  - Semua write memakai `expectedVersion`; delete butuh `confirm: true`; input bullet/summary di-escape menjadi HTML aman.
+- **Perlindungan Data Pengguna:**
+  - Pengguna login tidak lagi mencerminkan seluruh library resume ke `localStorage`; hanya draft aktif yang belum tersimpan yang disimpan, lalu dihapus setelah save berhasil.
+  - Draft dipulihkan saat login berikutnya: auto-merge bila versi sama, dialog konflik bila versi berbeda.
+  - Migrasi guest memakai `ignoreDuplicates: true` sehingga tidak pernah menimpa baris cloud atau mereset `version`.
+  - Hapus resume kini menunggu konfirmasi database dan mengembalikan baris ke UI bila delete gagal.
+  - Menambahkan disclosure bahwa hanya teks PDF yang dikirim ke Google Gemini; file PDF tetap di browser.
+- **Verifikasi:** `npm run build` ✓, `npm run lint` ✓, `npm run typecheck:api` ✓, `npm --prefix mcp run typecheck` ✓, `npm --prefix mcp test` ✓ (13 test).
 
 ### 1.40.0 — Fondasi MCP, Schema Parity & Optimistic Concurrency
 - **Domain Bersama (`src/lib/domain/`, `src/lib/mcp/`):**
