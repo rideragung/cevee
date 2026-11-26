@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import {
-  IconChevronDown as ChevronDown,
   IconChevronLeft as ChevronLeft,
   IconChevronRight as ChevronRight,
 } from '@tabler/icons-react';
@@ -46,41 +45,24 @@ function CalendarDayButton({ className, modifiers, ...props }: DayButtonProps) {
   );
 }
 
-function Calendar({
-  className,
-  classNames,
-  showOutsideDays = true,
-  captionLayout = 'dropdown',
-  ...props
-}: CalendarProps) {
-  const isDropdown = captionLayout !== 'label';
-
+/**
+ * Month and year navigation lives in the date picker header, so the caption is
+ * hidden visually and only announced to assistive technology.
+ */
+function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      captionLayout={captionLayout}
       className={cn('p-3', className)}
       classNames={{
         months: 'relative flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
         month: 'space-y-3',
-        month_caption: 'relative flex justify-center items-center h-8 px-8',
-        caption_label: cn(
-          'text-xs font-semibold text-foreground inline-flex items-center gap-1',
-          isDropdown &&
-            'rounded-lg border border-border bg-card px-2 py-1 shadow-2xs pointer-events-none'
-        ),
-        dropdowns: 'flex items-center justify-center gap-1.5',
-        dropdown_root:
-          'relative inline-flex items-center rounded-lg focus-within:ring-2 focus-within:ring-ring',
-        dropdown:
-          'absolute inset-0 w-full h-full opacity-0 cursor-pointer',
-        nav: 'absolute left-0 top-0.5 w-full flex items-center justify-between pointer-events-none z-10',
-        button_previous: cn(navButton, 'pointer-events-auto'),
-        button_next: cn(navButton, 'pointer-events-auto'),
-        month_grid: 'w-full border-collapse space-y-1',
+        month_caption: 'sr-only',
+        caption_label: 'text-xs font-semibold text-foreground',
+        nav: 'hidden',
+        month_grid: 'w-full border-collapse',
         weekdays: 'flex',
-        weekday:
-          'text-muted-foreground rounded-full w-9 font-medium text-[0.75rem]',
+        weekday: 'text-muted-foreground rounded-full w-9 font-medium text-[0.75rem]',
         week: 'flex w-full mt-1.5',
         day: 'h-9 w-9 text-center text-sm p-0 relative [&:has([data-selected=true])]:bg-accent first:[&:has([data-selected=true])]:rounded-l-full last:[&:has([data-selected=true])]:rounded-r-full focus-within:relative focus-within:z-20',
         day_button: cn(
@@ -91,15 +73,12 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Chevron: (chevronProps) => {
-          if (chevronProps.orientation === 'left') {
-            return <ChevronLeft className="h-4 w-4" />;
-          }
-          if (chevronProps.orientation === 'right') {
-            return <ChevronRight className="h-4 w-4" />;
-          }
-          return <ChevronDown className="h-3 w-3 text-muted-foreground" />;
-        },
+        Chevron: (chevronProps) =>
+          chevronProps.orientation === 'left' ? (
+            <ChevronLeft className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          ),
         DayButton: CalendarDayButton,
       }}
       {...props}

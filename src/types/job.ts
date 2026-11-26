@@ -20,6 +20,38 @@ export type EmploymentType =
 
 export type WorkMode = 'onsite' | 'hybrid' | 'remote';
 
+export type JobPlatform =
+  | 'linkedin'
+  | 'jobstreet'
+  | 'glints'
+  | 'kalibrr'
+  | 'dealls'
+  | 'indeed'
+  | 'tech_in_asia'
+  | 'company_website'
+  | 'referral'
+  | 'other';
+
+export type JobIndustry =
+  | 'technology'
+  | 'finance_banking'
+  | 'ecommerce'
+  | 'healthcare'
+  | 'education'
+  | 'manufacturing'
+  | 'consulting'
+  | 'media_entertainment'
+  | 'retail'
+  | 'logistics'
+  | 'government'
+  | 'energy'
+  | 'telecommunications'
+  | 'hospitality'
+  | 'real_estate'
+  | 'non_profit'
+  | 'agriculture'
+  | 'other';
+
 export const ACTIVE_JOB_STATUSES: readonly ActiveJobStatus[] = [
   'applied',
   'on_progress',
@@ -57,6 +89,40 @@ export const EMPLOYMENT_TYPES: readonly EmploymentType[] = [
 
 export const WORK_MODES: readonly WorkMode[] = ['onsite', 'hybrid', 'remote'] as const;
 
+export const JOB_PLATFORMS: readonly JobPlatform[] = [
+  'linkedin',
+  'jobstreet',
+  'glints',
+  'kalibrr',
+  'dealls',
+  'indeed',
+  'tech_in_asia',
+  'company_website',
+  'referral',
+  'other',
+] as const;
+
+export const JOB_INDUSTRIES: readonly JobIndustry[] = [
+  'technology',
+  'finance_banking',
+  'ecommerce',
+  'healthcare',
+  'education',
+  'manufacturing',
+  'consulting',
+  'media_entertainment',
+  'retail',
+  'logistics',
+  'government',
+  'energy',
+  'telecommunications',
+  'hospitality',
+  'real_estate',
+  'non_profit',
+  'agriculture',
+  'other',
+] as const;
+
 export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   applied: 'Applied',
   on_progress: 'On progress',
@@ -87,6 +153,40 @@ export const WORK_MODE_LABELS: Record<WorkMode, string> = {
   onsite: 'On-site',
   hybrid: 'Hybrid',
   remote: 'Remote',
+};
+
+export const JOB_PLATFORM_LABELS: Record<JobPlatform, string> = {
+  linkedin: 'LinkedIn',
+  jobstreet: 'JobStreet',
+  glints: 'Glints',
+  kalibrr: 'Kalibrr',
+  dealls: 'Dealls',
+  indeed: 'Indeed',
+  tech_in_asia: 'Tech in Asia',
+  company_website: 'Company website',
+  referral: 'Referral',
+  other: 'Other',
+};
+
+export const JOB_INDUSTRY_LABELS: Record<JobIndustry, string> = {
+  technology: 'Technology',
+  finance_banking: 'Finance & banking',
+  ecommerce: 'E-commerce',
+  healthcare: 'Healthcare',
+  education: 'Education',
+  manufacturing: 'Manufacturing',
+  consulting: 'Consulting',
+  media_entertainment: 'Media & entertainment',
+  retail: 'Retail',
+  logistics: 'Logistics',
+  government: 'Government',
+  energy: 'Energy',
+  telecommunications: 'Telecommunications',
+  hospitality: 'Hospitality',
+  real_estate: 'Real estate',
+  non_profit: 'Non-profit',
+  agriculture: 'Agriculture',
+  other: 'Other',
 };
 
 export const normalizeJobStatus = (value?: string | null): JobStatus => {
@@ -121,6 +221,20 @@ export const normalizeWorkMode = (value?: string | null): WorkMode => {
   return 'onsite';
 };
 
+export const normalizeJobPlatform = (value?: string | null): JobPlatform | undefined => {
+  if (value && (JOB_PLATFORMS as readonly string[]).includes(value)) {
+    return value as JobPlatform;
+  }
+  return undefined;
+};
+
+export const normalizeJobIndustry = (value?: string | null): JobIndustry | undefined => {
+  if (value && (JOB_INDUSTRIES as readonly string[]).includes(value)) {
+    return value as JobIndustry;
+  }
+  return undefined;
+};
+
 export interface JobApplication {
   id: string;
   company: string;
@@ -130,9 +244,14 @@ export interface JobApplication {
   employmentType: EmploymentType;
   workMode: WorkMode;
   location: string;
+  provinceCode?: string;
+  regencyCode?: string;
+  jobPlatform?: JobPlatform;
+  industry?: JobIndustry;
   salaryRange: string;
   jobUrl: string;
   appliedDate?: string; // ISO date YYYY-MM-DD
+  interviewDate?: string; // ISO date YYYY-MM-DD
   resumeId?: string;
   jobDescription: string;
   notes: string;
@@ -149,9 +268,14 @@ export interface JobApplicationInput {
   employmentType?: EmploymentType;
   workMode?: WorkMode;
   location?: string;
+  provinceCode?: string;
+  regencyCode?: string;
+  jobPlatform?: JobPlatform;
+  industry?: JobIndustry;
   salaryRange?: string;
   jobUrl?: string;
   appliedDate?: string;
+  interviewDate?: string;
   resumeId?: string;
   jobDescription?: string;
   notes?: string;

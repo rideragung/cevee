@@ -119,13 +119,14 @@ function PickerMenu({
         >
           {items.map((item, index) => {
             const isSelected = item.value === selectedValue;
+            const hasSelection = items.some((entry) => entry.value === selectedValue);
             return (
               <button
                 key={item.value}
                 type="button"
                 role="option"
                 aria-selected={isSelected}
-                autoFocus={isSelected || (selectedValue === undefined && index === 0)}
+                autoFocus={isSelected || (!hasSelection && index === 0)}
                 onClick={() => {
                   onSelect(item.value);
                   close();
@@ -219,8 +220,10 @@ function DatePicker({
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
-    if (next) {
-      updateMonth(startOfMonth(value ?? endDate));
+    // A selected date always needs to be on screen when the popover opens.
+    // With no date selected, keep whatever month the user was browsing.
+    if (next && value) {
+      updateMonth(startOfMonth(value));
     }
   };
 
@@ -236,7 +239,11 @@ function DatePicker({
     updateMonth(next.getFullYear() > maxYear ? endMonth : next);
   };
 
-  const isTodayUnavailable = endDate.getDate() !== new Date().getDate();
+  const isTodayUnavailable = React.useMemo(() => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    return todayStart.getTime() > endDate.getTime();
+  }, [endDate]);
 
   return (
     <div className={cn('relative inline-flex', className)}>
@@ -249,10 +256,11 @@ function DatePicker({
             disabled={disabled}
             aria-label={ariaLabel}
             className={cn(
-              'h-8 min-w-[7.25rem] justify-start gap-1.5 rounded-xl px-2.5 text-xs font-medium tabular-nums',
+              'h-8 min-w-[7.5rem] gap-1.5 rounded-xl px-2.5 text-xs font-medium tabular-nums',
               value
-                ? 'border-primary/30 bg-accent pr-7 font-semibold text-primary'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'border-primary/30 bg-accent font-semibold text-primary'
+                : 'text-muted-foreground hover:text-foreground',
+              value && !disabled && 'pr-7'
             )}
           >
             <CalendarIcon className="size-3.5 shrink-0" aria-hidden="true" />

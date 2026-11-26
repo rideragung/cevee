@@ -12,11 +12,17 @@ import {
   EMPLOYMENT_TYPE_LABELS,
   EMPLOYMENT_TYPES,
   EmploymentType,
+  JOB_INDUSTRIES,
+  JOB_INDUSTRY_LABELS,
+  JOB_PLATFORM_LABELS,
+  JOB_PLATFORMS,
   JOB_PROGRESS_STAGE_LABELS,
   JOB_PROGRESS_STAGES,
   JOB_STATUS_LABELS,
   JobApplication,
   JobApplicationInput,
+  JobIndustry,
+  JobPlatform,
   JobProgressStage,
   JobStatus,
   WORK_MODE_LABELS,
@@ -25,10 +31,23 @@ import {
 } from '../../types/job';
 import { ResumeDocument } from '../../types/resume';
 import { matchJobToResume } from '../../lib/domain/jdMatch';
+import { detectJobPlatform } from '../../lib/domain/jobPlatform';
+import {
+  getProvinceName,
+  getRegencyName,
+  INDONESIA_PROVINCES,
+  INDONESIA_REGENCY_BY_PROVINCE,
+} from '../../data/indonesiaRegions';
+import {
+  describeWageSource,
+  formatRupiah,
+  formatWageEffectiveDate,
+  resolveMinimumWage,
+} from '../../lib/wagesService';
+import { useMinimumWageDataset } from '../../hooks/useMinimumWageDataset';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -37,6 +56,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+
+const MANUAL_LOCATION_VALUE = 'manual';
 
 interface JobFormDialogProps {
   isOpen: boolean;
@@ -65,10 +86,17 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
   const [progressStage, setProgressStage] = useState<JobProgressStage>('hr_interview');
   const [employmentType, setEmploymentType] = useState<EmploymentType>('full_time');
   const [workMode, setWorkMode] = useState<WorkMode>('onsite');
-  const [location, setLocation] = useState('');
+  const [provinceCode, setProvinceCode] = useState('');
+  const [regencyCode, setRegencyCode] = useState('');
+  const [manualLocation, setManualLocation] = useState('');
+  const [jobPlatform, setJobPlatform] = useState<JobPlatform | ''>('');
+  const [industry, setIndustry] = useState<JobIndustry | ''>('');
+  const [platformTouched, setPlatformTouched] = useState(false);
+  const [autoDetectedPlatform, setAutoDetectedPlatform] = useState<JobPlatform | ''>('');
   const [salaryRange, setSalaryRange] = useState('');
   const [jobUrl, setJobUrl] = useState('');
   const [appliedDate, setAppliedDate] = useState('');
+  const [interviewDate, setInterviewDate] = useState('');
   const [resumeId, setResumeId] = useState<string>('');
   const [jobDescription, setJobDescription] = useState('');
   const [notes, setNotes] = useState('');
@@ -83,16 +111,33 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
     setFieldErrors({});
     setTailorNotice(null);
     if (initialJob) {
+      const initialProvince = getProvinceName(initialJob.provinceCode)
+        ? initialJob.provinceCode ?? ''
+        : '';
+      const initialPlatform =
+        initialJob.jobPlatform ?? detectJobPlatform(initialJob.jobUrl) ?? '';
+
       setCompany(initialJob.company);
       setRole(initialJob.role);
       setStatus(initialJob.status);
       setProgressStage(initialJob.progressStage || 'hr_interview');
       setEmploymentType(initialJob.employmentType || 'full_time');
       setWorkMode(initialJob.workMode);
-      setLocation(initialJob.location);
+      setProvinceCode(
+        initialProvince || (initialJob.location ? MANUAL_LOCATION_VALUE : '')
+      );
+      setRegencyCode(initialProvince ? initialJob.regencyCode ?? '' : '');
+      setManualLocation(initialProvince ? '' : initialJob.location);
+      setJobPlatform(initialPlatform);
+      setIndustry(initialJob.industry ?? '');
+      setPlatformTouched(Boolean(initialJob.jobPlatform));
+      setAutoDetectedPlatform(
+        initialJob.jobPlatform || !initialPlatform ? '' : initialPlatform
+      );
       setSalaryRange(initialJob.salaryRange);
       setJobUrl(initialJob.jobUrl);
       setAppliedDate(initialJob.appliedDate || '');
+      setInterviewDate(initialJob.interviewDate || '');
       setResumeId(initialJob.resumeId || '');
       setJobDescription(initialJob.jobDescription);
       setNotes(initialJob.notes);
@@ -103,10 +148,17 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
       setProgressStage('hr_interview');
       setEmploymentType('full_time');
       setWorkMode('onsite');
-      setLocation('');
+      setProvinceCode('');
+      setRegencyCode('');
+      setManualLocation('');
+      setJobPlatform('');
+      setIndustry('');
+      setPlatformTouched(false);
+      setAutoDetectedPlatform('');
       setSalaryRange('');
       setJobUrl('');
       setAppliedDate(new Date().toISOString().slice(0, 10));
+      setInterviewDate('');
       setResumeId(resumes[0]?.id || '');
       setJobDescription('');
       setNotes('');
@@ -122,6 +174,92 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
     if (!linkedResume || !jobDescription.trim()) return null;
     return matchJobToResume(jobDescription, role, linkedResume);
   }, [jobDescription, role, linkedResume]);
+
+  const wageDataset = useMinimumWageDataset(isOpen);
+
+  const regencyOptions = useMemo(
+    () =>
+      provinceCode && provinceCode !== MANUAL_LOCATION_VALUE
+        ? INDONESIA_REGENCY_BY_PROVINCE[provinceCode] ?? []
+        : [],
+    [provinceCode]
+  );
+
+  const minimumWage = useMemo(
+    () =>
+      resolveMinimumWage(
+        wageDataset,
+        provinceCode === MANUAL_LOCATION_VALUE ? null : provinceCode,
+        regencyCode
+      ),
+    [wageDataset, provinceCode, regencyCode]
+  );
+
+  const resolvedLocation = useMemo(() => {
+    if (provinceCode === MANUAL_LOCATION_VALUE) return manualLocation.trim();
+    if (provinceCode) {
+      return [getRegencyName(regencyCode), getProvinceName(provinceCode)]
+        .filter(Boolean)
+        .join(', ');
+    }
+    return manualLocation.trim();
+  }, [provinceCode, regencyCode, manualLocation]);
+
+  const handleProvinceChange = (nextProvince: string) => {
+    setProvinceCode(nextProvince);
+    setRegencyCode('');
+    if (nextProvince === MANUAL_LOCATION_VALUE) {
+      setManualLocation(resolvedLocation);
+    }
+  };
+
+  const handlePlatformChange = (value: string) => {
+    setJobPlatform(value as JobPlatform | '');
+    setPlatformTouched(Boolean(value));
+    setAutoDetectedPlatform('');
+  };
+
+  const handleJobUrlChange = (value: string) => {
+    setJobUrl(value);
+    if (platformTouched) return;
+
+    const detected = detectJobPlatform(value);
+    if (detected) {
+      setJobPlatform(detected);
+      setAutoDetectedPlatform(detected);
+      return;
+    }
+
+    if (autoDetectedPlatform) {
+      setJobPlatform('');
+      setAutoDetectedPlatform('');
+    }
+  };
+
+  const buildInput = (): JobApplicationInput => ({
+    company: company.trim(),
+    role: role.trim(),
+    status,
+    progressStage: status === 'on_progress' ? progressStage : undefined,
+    employmentType,
+    workMode,
+    location: resolvedLocation,
+    provinceCode:
+      provinceCode && provinceCode !== MANUAL_LOCATION_VALUE ? provinceCode : undefined,
+    regencyCode:
+      provinceCode && provinceCode !== MANUAL_LOCATION_VALUE
+        ? regencyCode || undefined
+        : undefined,
+    jobPlatform: jobPlatform || undefined,
+    industry: industry || undefined,
+    salaryRange: salaryRange.trim(),
+    jobUrl: jobUrl.trim(),
+    appliedDate: appliedDate.trim() || undefined,
+    interviewDate: interviewDate.trim() || undefined,
+    resumeId: resumeId || undefined,
+    jobDescription,
+    notes,
+  });
 
   const handleTailorDuplicate = () => {
     if (!onTailorResume) return;
@@ -154,24 +292,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
       return;
     }
 
-    onSave(
-      {
-        company: company.trim(),
-        role: role.trim(),
-        status,
-        progressStage: status === 'on_progress' ? progressStage : undefined,
-        employmentType,
-        workMode,
-        location: location.trim(),
-        salaryRange: salaryRange.trim(),
-        jobUrl: jobUrl.trim(),
-        appliedDate: appliedDate.trim() || undefined,
-        resumeId: resumeId || undefined,
-        jobDescription,
-        notes,
-      },
-      initialJob?.id
-    );
+    onSave(buildInput(), initialJob?.id);
     onClose();
   };
 
@@ -182,12 +303,9 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
           <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
             {initialJob ? 'Edit application' : 'Add job application'}
           </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-            Record the role details, link the resume version you sent, and paste the job description to check keyword coverage.
-          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} noValidate className="space-y-4 mt-2">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4 mt-2 min-w-0">
           {/* Row 1: Company & Role */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div className="space-y-1.5">
@@ -210,7 +328,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                 aria-invalid={Boolean(fieldErrors.company)}
                 aria-describedby={fieldErrors.company ? 'job-company-error' : undefined}
                 autoFocus
-                className="h-10 text-sm"
+                className="h-11 text-base sm:text-sm"
               />
               {fieldErrors.company && (
                 <p id="job-company-error" className="text-xs font-medium text-destructive">
@@ -238,7 +356,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                 placeholder="e.g. Senior Frontend Engineer"
                 aria-invalid={Boolean(fieldErrors.role)}
                 aria-describedby={fieldErrors.role ? 'job-role-error' : undefined}
-                className="h-10 text-sm"
+                className="h-11 text-base sm:text-sm"
               />
               {fieldErrors.role && (
                 <p id="job-role-error" className="text-xs font-medium text-destructive">
@@ -267,7 +385,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                     aria-pressed={isSelected}
                     onClick={() => setEmploymentType(type)}
                     className={cn(
-                      'inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      'relative inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring after:absolute after:-inset-y-1.5 after:content-[\'\']',
                       isSelected
                         ? 'border-primary/40 bg-accent text-primary font-semibold'
                         : 'border-border bg-card text-muted-foreground [@media(hover:hover)]:hover:border-foreground/20 [@media(hover:hover)]:hover:text-foreground'
@@ -293,7 +411,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                 onChange={(e) => {
                   setStatus(e.target.value as JobStatus);
                 }}
-                className="flex h-10 w-full rounded-[0.875rem] border border-input bg-card px-3 py-2 text-sm text-foreground shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-11 w-full min-w-0 rounded-[0.875rem] border border-input bg-card px-3 py-2 text-base text-foreground sm:text-sm shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {ACTIVE_JOB_STATUSES.map((st) => (
                   <option key={st} value={st}>
@@ -315,7 +433,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                 name="workMode"
                 value={workMode}
                 onChange={(e) => setWorkMode(e.target.value as WorkMode)}
-                className="flex h-10 w-full rounded-[0.875rem] border border-input bg-card px-3 py-2 text-sm text-foreground shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-11 w-full min-w-0 rounded-[0.875rem] border border-input bg-card px-3 py-2 text-base text-foreground sm:text-sm shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {WORK_MODES.map((wm) => (
                   <option key={wm} value={wm}>
@@ -326,6 +444,29 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             </div>
 
             <div className="space-y-1.5">
+              <label htmlFor="job-industry" className="block text-xs font-semibold text-foreground">
+                Industry
+              </label>
+              <select
+                id="job-industry"
+                name="industry"
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value as JobIndustry | '')}
+                className="flex h-11 w-full min-w-0 rounded-[0.875rem] border border-input bg-card px-3 py-2 text-base text-foreground sm:text-sm shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Select industry</option>
+                {JOB_INDUSTRIES.map((value) => (
+                  <option key={value} value={value}>
+                    {JOB_INDUSTRY_LABELS[value]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Row 4: Applied date & Interview date */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="space-y-1.5">
               <label htmlFor="job-applied-date" className="block text-xs font-semibold text-foreground">
                 Applied date
               </label>
@@ -335,7 +476,21 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                 type="date"
                 value={appliedDate}
                 onChange={(e) => setAppliedDate(e.target.value)}
-                className="h-10 text-sm"
+                className="h-11 text-base sm:text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="job-interview-date" className="block text-xs font-semibold text-foreground">
+                Interview date
+              </label>
+              <Input
+                id="job-interview-date"
+                name="interviewDate"
+                type="date"
+                value={interviewDate}
+                onChange={(e) => setInterviewDate(e.target.value)}
+                className="h-11 text-base sm:text-sm"
               />
             </div>
           </div>
@@ -363,7 +518,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                       aria-pressed={isSelected}
                       onClick={() => setProgressStage(stage)}
                       className={cn(
-                        'inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        'relative inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring after:absolute after:-inset-y-1.5 after:content-[\'\']',
                         isSelected
                           ? 'border-primary bg-primary text-primary-foreground font-semibold'
                           : 'border-border bg-card text-foreground [@media(hover:hover)]:hover:border-primary/40'
@@ -377,53 +532,179 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             </div>
           )}
 
-          {/* Row 4: Location & Salary Range */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div className="space-y-1.5">
-              <label htmlFor="job-location" className="block text-xs font-semibold text-foreground">
-                Location
-              </label>
-              <Input
-                id="job-location"
-                name="location"
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g. Jakarta, Indonesia"
-                className="h-10 text-sm"
-              />
+          {/* Row 4: Province, City/Regency & minimum wage reference */}
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <label htmlFor="job-province" className="block text-xs font-semibold text-foreground">
+                  Province
+                </label>
+                <select
+                  id="job-province"
+                  name="provinceCode"
+                  value={provinceCode}
+                  onChange={(e) => handleProvinceChange(e.target.value)}
+                  className="flex h-11 w-full min-w-0 rounded-[0.875rem] border border-input bg-card px-3 py-2 text-base text-foreground sm:text-sm shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Select province</option>
+                  {INDONESIA_PROVINCES.map((province) => (
+                    <option key={province.code} value={province.code}>
+                      {province.name}
+                    </option>
+                  ))}
+                  <option value={MANUAL_LOCATION_VALUE}>Outside Indonesia / other</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="job-regency" className="block text-xs font-semibold text-foreground">
+                  City / Regency
+                </label>
+                <select
+                  id="job-regency"
+                  name="regencyCode"
+                  value={regencyCode}
+                  onChange={(e) => setRegencyCode(e.target.value)}
+                  disabled={!provinceCode || provinceCode === MANUAL_LOCATION_VALUE}
+                  className="flex h-11 w-full min-w-0 rounded-[0.875rem] border border-input bg-card px-3 py-2 text-base text-foreground sm:text-sm shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <option value="">
+                    {provinceCode && provinceCode !== MANUAL_LOCATION_VALUE
+                      ? 'All cities & regencies'
+                      : 'Select a province first'}
+                  </option>
+                  {regencyOptions.map((regency) => (
+                    <option key={regency.code} value={regency.code}>
+                      {regency.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="job-salary" className="block text-xs font-semibold text-foreground">
-                Salary range
-              </label>
-              <Input
-                id="job-salary"
-                name="salaryRange"
-                type="text"
-                value={salaryRange}
-                onChange={(e) => setSalaryRange(e.target.value)}
-                placeholder="e.g. IDR 15M – 22M / month"
-                className="h-10 text-sm"
-              />
+            {provinceCode === MANUAL_LOCATION_VALUE && (
+              <div className="space-y-1.5">
+                <label htmlFor="job-location" className="block text-xs font-semibold text-foreground">
+                  Location detail
+                </label>
+                <Input
+                  id="job-location"
+                  name="location"
+                  type="text"
+                  value={manualLocation}
+                  onChange={(e) => setManualLocation(e.target.value)}
+                  placeholder="e.g. Singapore, or Remote (APAC)"
+                  className="h-11 text-base sm:text-sm"
+                />
+              </div>
+            )}
+
+            <div role="status" aria-live="polite">
+              {minimumWage && (
+                <div className="rounded-2xl border border-border bg-muted/30 px-3.5 py-2.5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <Badge
+                        variant="secondary"
+                        className="px-2 py-0 text-[11px] font-semibold tabular-nums"
+                      >
+                        {minimumWage.kind} {minimumWage.year}
+                      </Badge>
+                      <span className="truncate text-xs font-semibold text-foreground">
+                        {minimumWage.scopeLabel}
+                      </span>
+                    </div>
+                    <p className="text-sm font-bold tabular-nums text-foreground">
+                      {formatRupiah(minimumWage.amountIdr)}
+                      <span className="ml-1 text-[11px] font-normal text-muted-foreground">
+                        / month
+                      </span>
+                    </p>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                    <span>{describeWageSource(minimumWage.source)}</span>
+                    {minimumWage.source?.effectiveDate && (
+                      <span>
+                        effective {formatWageEffectiveDate(minimumWage.source.effectiveDate)}
+                      </span>
+                    )}
+                    {minimumWage.source?.url && (
+                      <a
+                        href={minimumWage.source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-0.5 font-medium text-primary hover:underline"
+                      >
+                        <span>Source</span>
+                        <ExternalLink className="size-2.5" />
+                      </a>
+                    )}
+                  </div>
+                  {minimumWage.note && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {minimumWage.note}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Row 5: Job URL */}
+          {/* Row 5: Salary range */}
           <div className="space-y-1.5">
-            <label htmlFor="job-url" className="block text-xs font-semibold text-foreground">
-              Job posting link
+            <label htmlFor="job-salary" className="block text-xs font-semibold text-foreground">
+              Salary range
             </label>
             <Input
-              id="job-url"
-              name="jobUrl"
-              type="url"
-              value={jobUrl}
-              onChange={(e) => setJobUrl(e.target.value)}
-              placeholder="https://www.linkedin.com/jobs/view/..."
-              className="h-10 text-sm"
+              id="job-salary"
+              name="salaryRange"
+              type="text"
+              value={salaryRange}
+              onChange={(e) => setSalaryRange(e.target.value)}
+              placeholder="e.g. IDR 15M – 22M / month"
+              className="h-11 text-base sm:text-sm"
             />
+          </div>
+
+          {/* Row 6: Platform & Job URL */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="space-y-1.5">
+              <label htmlFor="job-platform" className="block text-xs font-semibold text-foreground">
+                Job posting platform
+              </label>
+              <select
+                id="job-platform"
+                name="jobPlatform"
+                value={jobPlatform}
+                onChange={(e) => handlePlatformChange(e.target.value)}
+                className="flex h-11 w-full min-w-0 rounded-[0.875rem] border border-input bg-card px-3 py-2 text-base text-foreground sm:text-sm shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Not set</option>
+                {JOB_PLATFORMS.map((platform) => (
+                  <option key={platform} value={platform}>
+                    {JOB_PLATFORM_LABELS[platform]}
+                  </option>
+                ))}
+              </select>
+              {autoDetectedPlatform && jobPlatform === autoDetectedPlatform && (
+                <p className="text-[11px] text-muted-foreground">Detected from the link</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <label htmlFor="job-url" className="block text-xs font-semibold text-foreground">
+                Job posting link
+              </label>
+              <Input
+                id="job-url"
+                name="jobUrl"
+                type="url"
+                value={jobUrl}
+                onChange={(e) => handleJobUrlChange(e.target.value)}
+                placeholder="https://www.linkedin.com/jobs/view/..."
+                className="h-11 text-base sm:text-sm"
+              />
+            </div>
           </div>
 
           {/* Row 6: Linked Resume & 1-Click Tailor */}
@@ -441,7 +722,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                     variant="secondary"
                     size="sm"
                     onClick={handleTailorDuplicate}
-                    className="h-8 gap-1.5 text-xs font-medium"
+                    className="relative h-8 gap-1.5 text-xs font-medium after:absolute after:-inset-y-1.5 after:content-['']"
                     title="Create a duplicate resume tailored for this role"
                   >
                     <Copy className="size-3.5 text-muted-foreground" />
@@ -453,27 +734,18 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => {
+                        const input = buildInput();
                         onSave(
                           {
-                            company: company.trim() || 'Untitled Company',
-                            role: role.trim() || 'Untitled Role',
-                            status,
-                            progressStage: status === 'on_progress' ? progressStage : undefined,
-                            employmentType,
-                            workMode,
-                            location: location.trim(),
-                            salaryRange: salaryRange.trim(),
-                            jobUrl: jobUrl.trim(),
-                            appliedDate: appliedDate.trim() || undefined,
-                            resumeId: resumeId || undefined,
-                            jobDescription,
-                            notes,
+                            ...input,
+                            company: input.company || 'Untitled Company',
+                            role: input.role || 'Untitled Role',
                           },
                           initialJob?.id
                         );
                         onOpenResumeEditor(resumeId);
                       }}
-                      className="h-8 gap-1 text-xs font-medium text-primary hover:text-primary"
+                      className="relative h-8 gap-1 text-xs font-medium text-primary after:absolute after:-inset-y-1.5 after:content-[''] hover:text-primary"
                     >
                       <span>Save & edit resume</span>
                       <ExternalLink className="size-3.5" />
@@ -488,7 +760,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
               name="resumeId"
               value={resumeId}
               onChange={(e) => setResumeId(e.target.value)}
-              className="flex h-10 w-full rounded-[0.875rem] border border-input bg-card px-3 py-2 text-sm text-foreground shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-11 w-full min-w-0 rounded-[0.875rem] border border-input bg-card px-3 py-2 text-base text-foreground sm:text-sm shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="">No resume linked</option>
               {resumes.map((res) => (
@@ -523,7 +795,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
               placeholder="Paste the responsibilities, required skills, and qualifications from the job posting..."
-              className="w-full rounded-[0.875rem] border border-input bg-card px-3 py-2 text-sm text-foreground shadow-2xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-[0.875rem] border border-input bg-card px-3 py-2 text-base text-foreground sm:text-sm shadow-2xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
 
             {/* Live Local ATS Keyword Match Analysis */}
@@ -600,7 +872,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Recruiter name, interview dates, take-home assignment links, or follow-up notes..."
-              className="w-full rounded-[0.875rem] border border-input bg-card px-3 py-2 text-sm text-foreground shadow-2xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-[0.875rem] border border-input bg-card px-3 py-2 text-base text-foreground sm:text-sm shadow-2xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 

@@ -90,6 +90,25 @@ export const formatAppliedDate = (isoDate: string): string => {
   }
 };
 
+export const formatInterviewDate = (isoDate: string, reference = new Date()): string => {
+  try {
+    const parts = isoDate.split('-').map(Number);
+    const date =
+      parts.length === 3 && parts.every((n) => Number.isFinite(n))
+        ? new Date(parts[0], parts[1] - 1, parts[2])
+        : new Date(isoDate);
+    if (Number.isNaN(date.getTime())) return isoDate;
+    const sameYear = date.getFullYear() === reference.getFullYear();
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      ...(sameYear ? {} : { year: 'numeric' }),
+    }).format(date);
+  } catch {
+    return isoDate;
+  }
+};
+
 export const sortJobs = (list: JobApplication[], sortBy: JobSortKey): JobApplication[] => {
   const toTime = (value?: string) => {
     const time = value ? new Date(value).getTime() : NaN;

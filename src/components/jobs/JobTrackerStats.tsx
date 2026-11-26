@@ -323,6 +323,25 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
     onDateFilterChange(iso);
   };
 
+  /**
+   * Browsing a month or year in the picker moves the heatmap without touching
+   * the date filter. A date filter only survives while its year stays on screen,
+   * so switching to another year clears it instead of leaving an invisible filter.
+   */
+  const handlePickerMonthChange = React.useCallback(
+    (nextMonth: Date) => {
+      const nextYear = nextMonth.getFullYear();
+      setSelectedYear(nextYear);
+      setHoveredDay(null);
+      setFocusedIso(null);
+
+      if (selectedDate && Number(selectedDate.slice(0, 4)) !== nextYear) {
+        onDateFilterChange(null);
+      }
+    },
+    [selectedDate, onDateFilterChange]
+  );
+
   const handleGridKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, iso: string) => {
     const idx = selectableIsos.indexOf(iso);
     if (idx === -1) return;
@@ -354,7 +373,7 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
     <div className="mb-6 grid grid-cols-1 lg:grid-cols-[288px_minmax(0,1fr)] gap-3 items-stretch">
       {/* Left Card: Applications by stage + Studio Plan Donut */}
       <Card className="rounded-2xl border border-border bg-card p-4 shadow-2xs flex flex-col justify-between min-w-0">
-        <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="mb-3 flex min-h-8 items-center justify-between gap-2">
           <span className="text-xs font-semibold text-foreground">
             Applications by stage
           </span>
@@ -440,20 +459,21 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
 
       {/* Right Card: Full-Year Jan to Dec Daily Applications Heatmap */}
       <Card className="rounded-2xl border border-border bg-card p-4 shadow-2xs flex flex-col justify-between min-w-0">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-baseline gap-2 min-w-0">
+        <div className="mb-3 flex min-h-8 flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <span className="text-xs font-semibold text-foreground">
               Daily applications
             </span>
-            <span className="text-[11px] text-muted-foreground tabular-nums">
+            <span className="truncate text-[11px] text-muted-foreground tabular-nums">
               {yearCountLabel}
             </span>
           </div>
 
-          {/* Single control: Pillow Light DatePicker with month and year menus */}
+          {/* Single control: browse the year, then optionally filter one date */}
           <DatePicker
             value={selectedDateValue}
             onChange={handleDatePickerChange}
+            onMonthChange={handlePickerMonthChange}
             years={pickerYears}
             placeholder="Pick date"
             maxDate={todayDate}

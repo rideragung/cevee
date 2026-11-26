@@ -6,6 +6,7 @@ import {
   IconArrowLeft as ArrowLeft,
   IconArrowsSort as ArrowUpDown,
   IconBriefcase as Briefcase,
+  IconCalendar as Calendar,
   IconCheck as Check,
   IconChevronDown as ChevronDown,
   IconCopy as Copy,
@@ -31,6 +32,8 @@ import {
   EMPLOYMENT_TYPE_LABELS,
   EMPLOYMENT_TYPES,
   EmploymentType,
+  JOB_INDUSTRY_LABELS,
+  JOB_PLATFORM_LABELS,
   JOB_PROGRESS_STAGE_LABELS,
   JOB_PROGRESS_STAGES,
   JOB_STATUS_LABELS,
@@ -51,6 +54,7 @@ import {
   JOB_SORT_OPTIONS,
   JobSortKey,
   formatAppliedDate,
+  formatInterviewDate,
   getProgressStageIcon,
   getStatusIcon,
   getStatusPillClasses,
@@ -219,7 +223,9 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
       const linkedTitle = job.resumeId ? resumeMap.get(job.resumeId)?.title || '' : '';
       const stageText = job.progressStage ? JOB_PROGRESS_STAGE_LABELS[job.progressStage] : '';
       const typeText = EMPLOYMENT_TYPE_LABELS[job.employmentType] || '';
-      const haystack = `${job.company} ${job.role} ${job.location} ${job.notes} ${linkedTitle} ${stageText} ${typeText}`.toLowerCase();
+      const platformText = job.jobPlatform ? JOB_PLATFORM_LABELS[job.jobPlatform] : '';
+      const industryText = job.industry ? JOB_INDUSTRY_LABELS[job.industry] : '';
+      const haystack = `${job.company} ${job.role} ${job.location} ${job.notes} ${linkedTitle} ${stageText} ${typeText} ${platformText} ${industryText}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
     return sortJobs(filtered, sortBy);
@@ -229,7 +235,9 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
     const filtered = archivedJobs.filter((job) => {
       if (!normalizedQuery) return true;
       const linkedTitle = job.resumeId ? resumeMap.get(job.resumeId)?.title || '' : '';
-      const haystack = `${job.company} ${job.role} ${job.location} ${job.notes} ${linkedTitle}`.toLowerCase();
+      const platformText = job.jobPlatform ? JOB_PLATFORM_LABELS[job.jobPlatform] : '';
+      const industryText = job.industry ? JOB_INDUSTRY_LABELS[job.industry] : '';
+      const haystack = `${job.company} ${job.role} ${job.location} ${job.notes} ${linkedTitle} ${platformText} ${industryText}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
     return sortJobs(filtered, sortBy);
@@ -691,7 +699,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-border text-xs font-medium text-muted-foreground">
                   <div className="col-span-5">Role & company</div>
                   <div className="col-span-3">Linked resume</div>
-                  <div className="col-span-2">Applied</div>
+                  <div className="col-span-2">Dates</div>
                   <div className="col-span-2 text-right">Actions</div>
                 </div>
                 <div className="divide-y divide-border">
@@ -706,18 +714,30 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                         className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-5 py-3.5 items-center transition-colors [@media(hover:hover)]:hover:bg-muted/40"
                       >
                         <div className="col-span-1 md:col-span-5 min-w-0">
-                          <h2 className="text-sm font-bold tracking-tight text-foreground truncate">
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(job)}
-                              className="truncate text-left hover:underline hover:underline-offset-4"
-                            >
-                              {job.role}
-                            </button>
-                          </h2>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <h2 className="min-w-0 text-sm font-bold tracking-tight text-foreground truncate">
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(job)}
+                                className="truncate text-left hover:underline hover:underline-offset-4"
+                              >
+                                {job.role}
+                              </button>
+                            </h2>
+                            {job.jobPlatform && (
+                              <Badge
+                                variant="outline"
+                                className="shrink-0 px-1.5 py-0 text-[11px] font-medium text-muted-foreground"
+                              >
+                                {JOB_PLATFORM_LABELS[job.jobPlatform]}
+                              </Badge>
+                            )}
+                          </div>
                           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                            {job.company} · {EMPLOYMENT_TYPE_LABELS[job.employmentType]} · {WORK_MODE_LABELS[job.workMode]}
-                            {job.location ? ` · ${job.location}` : ''}
+                            {job.company}, {EMPLOYMENT_TYPE_LABELS[job.employmentType]}
+                            {job.industry ? `, ${JOB_INDUSTRY_LABELS[job.industry]}` : ''}
+                            , {WORK_MODE_LABELS[job.workMode]}
+                            {job.location ? `, ${job.location}` : ''}
                           </p>
                         </div>
 
@@ -737,9 +757,26 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                         </div>
 
                         <div className="col-span-1 md:col-span-2 text-xs text-muted-foreground tabular-nums">
-                          {job.appliedDate
-                            ? formatAppliedDate(job.appliedDate)
-                            : formatRelativeTime(job.updatedAt)}
+                          <span className="block">
+                            {job.appliedDate
+                              ? formatAppliedDate(job.appliedDate)
+                              : formatRelativeTime(job.updatedAt)}
+                          </span>
+                          {job.interviewDate && (
+                            <span
+                              className={cn(
+                                'mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium',
+                                job.interviewDate.slice(0, 10) >=
+                                  new Date().toISOString().slice(0, 10)
+                                  ? 'text-primary'
+                                  : 'text-muted-foreground'
+                              )}
+                              title={`Interview on ${formatAppliedDate(job.interviewDate)}`}
+                            >
+                              <Calendar className="size-3 shrink-0" />
+                              <span>Interview {formatInterviewDate(job.interviewDate)}</span>
+                            </span>
+                          )}
                         </div>
 
                         <div className="col-span-1 md:col-span-2 flex items-center justify-end gap-1.5">
@@ -812,7 +849,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by company, role, step, or resume"
+                placeholder="Search by company, role, platform, or resume"
                 aria-label="Search job applications"
                 autoComplete="off"
                 spellCheck={false}
@@ -1164,11 +1201,30 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                 <Badge variant="outline" className="text-[11px] font-normal px-2 py-0 text-muted-foreground">
                                   {WORK_MODE_LABELS[job.workMode]}
                                 </Badge>
+                                {job.industry && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[11px] font-normal px-2 py-0 text-muted-foreground"
+                                  >
+                                    {JOB_INDUSTRY_LABELS[job.industry]}
+                                  </Badge>
+                                )}
                                 {job.location && (
-                                  <span className="inline-flex items-center gap-0.5 truncate max-w-[140px]">
+                                  <span
+                                    className="inline-flex items-center gap-0.5 truncate max-w-[140px]"
+                                    title={job.location}
+                                  >
                                     <MapPin className="size-3 shrink-0" />
                                     <span className="truncate">{job.location}</span>
                                   </span>
+                                )}
+                                {job.jobPlatform && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[11px] font-normal px-2 py-0 text-muted-foreground"
+                                  >
+                                    {JOB_PLATFORM_LABELS[job.jobPlatform]}
+                                  </Badge>
                                 )}
                               </div>
 
@@ -1247,11 +1303,28 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
 
                               {/* 5. Footer: Formatted Applied Date & Quick Stage Mover */}
                               <div className="mt-auto flex items-center justify-between gap-2 pt-1 border-t border-border/60">
-                                <span className="text-[11px] text-muted-foreground tabular-nums truncate">
-                                  {job.appliedDate
-                                    ? formatAppliedDate(job.appliedDate)
-                                    : formatRelativeTime(job.updatedAt)}
-                                </span>
+                                <div className="min-w-0">
+                                  <span className="block truncate text-[11px] text-muted-foreground tabular-nums">
+                                    {job.appliedDate
+                                      ? formatAppliedDate(job.appliedDate)
+                                      : formatRelativeTime(job.updatedAt)}
+                                  </span>
+                                  {job.interviewDate && (
+                                    <span
+                                      className={cn(
+                                        'mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium tabular-nums',
+                                        job.interviewDate.slice(0, 10) >=
+                                          new Date().toISOString().slice(0, 10)
+                                          ? 'text-primary'
+                                          : 'text-muted-foreground'
+                                      )}
+                                      title={`Interview on ${formatAppliedDate(job.interviewDate)}`}
+                                    >
+                                      <Calendar className="size-3 shrink-0" />
+                                      <span>Interview {formatInterviewDate(job.interviewDate)}</span>
+                                    </span>
+                                  )}
+                                </div>
                                 {renderStageDropdown(job)}
                               </div>
                             </Card>
@@ -1292,7 +1365,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                       {/* Role & Company */}
                       <div className="col-span-1 md:col-span-4 min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
-                          <h2 className="text-sm font-bold tracking-tight text-foreground truncate">
+                          <h2 className="min-w-0 text-sm font-bold tracking-tight text-foreground truncate">
                             <button
                               type="button"
                               onClick={() => openEditModal(job)}
@@ -1301,6 +1374,14 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                               {job.role}
                             </button>
                           </h2>
+                          {job.jobPlatform && (
+                            <Badge
+                              variant="outline"
+                              className="shrink-0 px-1.5 py-0 text-[11px] font-medium text-muted-foreground"
+                            >
+                              {JOB_PLATFORM_LABELS[job.jobPlatform]}
+                            </Badge>
+                          )}
                           {job.jobUrl && (
                             <a
                               href={job.jobUrl}
@@ -1315,8 +1396,10 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                           )}
                         </div>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {job.company} · {EMPLOYMENT_TYPE_LABELS[job.employmentType]} · {WORK_MODE_LABELS[job.workMode]}
-                          {job.location ? ` · ${job.location}` : ''}
+                          {job.company}, {EMPLOYMENT_TYPE_LABELS[job.employmentType]}
+                          {job.industry ? `, ${JOB_INDUSTRY_LABELS[job.industry]}` : ''}
+                          , {WORK_MODE_LABELS[job.workMode]}
+                          {job.location ? `, ${job.location}` : ''}
                         </p>
                       </div>
 
@@ -1324,6 +1407,21 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                       <div className="col-span-1 md:col-span-3 flex flex-wrap items-center gap-1.5">
                         {renderStageDropdown(job)}
                         {renderProgressSubStagePill(job)}
+                        {job.interviewDate && (
+                          <span
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium tabular-nums',
+                              job.interviewDate.slice(0, 10) >=
+                                new Date().toISOString().slice(0, 10)
+                                ? 'border-primary/25 bg-accent text-primary'
+                                : 'border-border bg-card text-muted-foreground'
+                            )}
+                            title={`Interview on ${formatAppliedDate(job.interviewDate)}`}
+                          >
+                            <Calendar className="size-3 shrink-0" />
+                            <span>Interview {formatInterviewDate(job.interviewDate)}</span>
+                          </span>
+                        )}
                       </div>
 
                       {/* Linked Resume & Match */}

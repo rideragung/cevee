@@ -2,10 +2,14 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import {
   EMPLOYMENT_TYPES,
+  JOB_INDUSTRIES,
+  JOB_PLATFORMS,
   JOB_PROGRESS_STAGES,
   JOB_STATUSES,
   WORK_MODES,
   normalizeEmploymentType,
+  normalizeJobIndustry,
+  normalizeJobPlatform,
   normalizeJobStatus,
   normalizeProgressStage,
   normalizeWorkMode,
@@ -22,6 +26,8 @@ const jobStatusEnum = z.enum(JOB_STATUSES);
 const progressStageEnum = z.enum(JOB_PROGRESS_STAGES);
 const employmentTypeEnum = z.enum(EMPLOYMENT_TYPES);
 const workModeEnum = z.enum(WORK_MODES);
+const jobPlatformEnum = z.enum(JOB_PLATFORMS);
+const jobIndustryEnum = z.enum(JOB_INDUSTRIES);
 
 export const registerJobTools = (
   server: McpServer,
@@ -38,13 +44,15 @@ export const registerJobTools = (
         status: jobStatusEnum.optional(),
         progressStage: progressStageEnum.optional(),
         employmentType: employmentTypeEnum.optional(),
+        jobPlatform: jobPlatformEnum.optional(),
+        industry: jobIndustryEnum.optional(),
         includeArchived: z.boolean().optional(),
         limit: z.number().int().min(1).max(100).optional(),
         offset: z.number().int().min(0).optional(),
       }),
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
-    async ({ status, progressStage, employmentType, includeArchived, limit, offset }) => {
+    async ({ status, progressStage, employmentType, jobPlatform, industry, includeArchived, limit, offset }) => {
       if (!store.listJobs) {
         return errorResult('Job tracker storage is not available on this store.');
       }
@@ -53,6 +61,8 @@ export const registerJobTools = (
         if (!status && !includeArchived && job.status === 'archived') return false;
         if (progressStage && job.progressStage !== progressStage) return false;
         if (employmentType && job.employmentType !== employmentType) return false;
+        if (jobPlatform && job.jobPlatform !== jobPlatform) return false;
+        if (industry && job.industry !== industry) return false;
         return true;
       });
       return jsonResult(filtered);
@@ -108,9 +118,14 @@ export const registerJobTools = (
         employmentType: employmentTypeEnum.optional(),
         workMode: workModeEnum.optional(),
         location: z.string().optional(),
+        provinceCode: z.string().optional(),
+        regencyCode: z.string().optional(),
+        jobPlatform: jobPlatformEnum.optional(),
+        industry: jobIndustryEnum.optional(),
         salaryRange: z.string().optional(),
         jobUrl: z.string().optional(),
         appliedDate: z.string().optional(),
+        interviewDate: z.string().optional(),
         resumeId: z.string().optional(),
         jobDescription: z.string().optional(),
         notes: z.string().optional(),
@@ -145,9 +160,14 @@ export const registerJobTools = (
         employmentType: employmentTypeEnum.optional(),
         workMode: workModeEnum.optional(),
         location: z.string().optional(),
+        provinceCode: z.string().nullable().optional(),
+        regencyCode: z.string().nullable().optional(),
+        jobPlatform: jobPlatformEnum.nullable().optional(),
+        industry: jobIndustryEnum.nullable().optional(),
         salaryRange: z.string().optional(),
         jobUrl: z.string().optional(),
         appliedDate: z.string().optional(),
+        interviewDate: z.string().nullable().optional(),
         resumeId: z.string().nullable().optional(),
         jobDescription: z.string().optional(),
         notes: z.string().optional(),
@@ -163,9 +183,14 @@ export const registerJobTools = (
       employmentType,
       workMode,
       location,
+      provinceCode,
+      regencyCode,
+      jobPlatform,
+      industry,
       salaryRange,
       jobUrl,
       appliedDate,
+      interviewDate,
       resumeId,
       jobDescription,
       notes,
@@ -211,10 +236,40 @@ export const registerJobTools = (
             : current.employmentType,
         workMode: workMode !== undefined ? normalizeWorkMode(workMode) : current.workMode,
         location: location !== undefined ? location.trim() : current.location,
+        provinceCode:
+          provinceCode === null
+            ? undefined
+            : provinceCode !== undefined
+            ? provinceCode.trim() || undefined
+            : current.provinceCode,
+        regencyCode:
+          regencyCode === null
+            ? undefined
+            : regencyCode !== undefined
+            ? regencyCode.trim() || undefined
+            : current.regencyCode,
+        jobPlatform:
+          jobPlatform === null
+            ? undefined
+            : jobPlatform !== undefined
+            ? normalizeJobPlatform(jobPlatform)
+            : current.jobPlatform,
+        industry:
+          industry === null
+            ? undefined
+            : industry !== undefined
+            ? normalizeJobIndustry(industry)
+            : current.industry,
         salaryRange: salaryRange !== undefined ? salaryRange.trim() : current.salaryRange,
         jobUrl: jobUrl !== undefined ? jobUrl.trim() : current.jobUrl,
         appliedDate:
           appliedDate !== undefined ? appliedDate.trim() || undefined : current.appliedDate,
+        interviewDate:
+          interviewDate === null
+            ? undefined
+            : interviewDate !== undefined
+            ? interviewDate.trim() || undefined
+            : current.interviewDate,
         resumeId:
           resumeId === null
             ? undefined

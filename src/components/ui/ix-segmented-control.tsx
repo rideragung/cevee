@@ -4,7 +4,7 @@
 "use client";
 
 import type { KeyboardEvent, ReactNode } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   animate,
   motion,
@@ -55,6 +55,7 @@ export function SegmentedControl({
     () => defaultValue ?? options[0]?.value ?? "",
   );
   const [hovered, setHovered] = useState(-1);
+  const layoutId = useId();
 
   const controlled = value !== undefined;
   const current = controlled ? value : internal;
@@ -138,95 +139,106 @@ export function SegmentedControl({
       } ${className}`}
     >
       <div
-        className="relative grid"
+        className={`relative grid ${bare ? "gap-2" : ""}`}
         style={{ gridTemplateColumns: template, touchAction: "manipulation" }}
       >
-        {options.map((option, i) => (
-          <span
-            key={option.value}
-            aria-hidden
-            className={`${SEG} pointer-events-none ${
-              option.disabled
-                ? "text-muted-foreground/70"
-                : bare
-                  ? hovered === i && i !== index
-                    ? "rounded-full bg-accent text-accent-foreground"
-                    : "rounded-full text-muted-foreground"
-                  : ink
-                    ? hovered === i && i !== index
-                      ? "rounded-full bg-accent text-foreground"
-                      : "rounded-full text-foreground/80"
-                    : hovered === i && i !== index
-                      ? "text-foreground"
-                      : "text-muted-foreground"
-            }`}
-          >
-            {option.icon && (
-              <span className="inline-flex shrink-0 items-center">{option.icon}</span>
-            )}
-            <span>{option.label}</span>
-          </span>
-        ))}
+        {options.map((option, i) => {
+          const active = i === index;
+          return (
+            <span
+              key={option.value}
+              aria-hidden
+              className={`${SEG} relative pointer-events-none ${
+                option.disabled
+                  ? "text-muted-foreground/70"
+                  : bare
+                    ? active
+                      ? "rounded-full text-primary-foreground"
+                      : hovered === i && i !== index
+                        ? "rounded-full bg-accent text-accent-foreground"
+                        : "rounded-full text-muted-foreground"
+                    : ink
+                      ? hovered === i && i !== index
+                        ? "rounded-full bg-accent text-foreground"
+                        : "rounded-full text-foreground/80"
+                      : hovered === i && i !== index
+                        ? "text-foreground"
+                        : "text-muted-foreground"
+              }`}
+            >
+              {bare && active && (
+                <motion.span
+                  layoutId={`segmented-active-${layoutId}`}
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 rounded-full bg-primary shadow-sm"
+                  transition={CELL}
+                />
+              )}
+              <span
+                className={`${
+                  bare ? "relative z-10 " : ""
+                }inline-flex items-center gap-1.5`}
+              >
+                {option.icon && (
+                  <span className="inline-flex shrink-0 items-center">{option.icon}</span>
+                )}
+                <span>{option.label}</span>
+              </span>
+            </span>
+          );
+        })}
 
-        <motion.div
-          aria-hidden
-          className={`pointer-events-none absolute inset-y-0 left-0 overflow-hidden ${
-            bare
-              ? "rounded-full bg-primary shadow-sm"
-              : ink
+        {!bare && (
+          <motion.div
+            aria-hidden
+            className={`pointer-events-none absolute inset-y-0 left-0 overflow-hidden ${
+              ink
                 ? "rounded-full bg-foreground shadow-sm"
                 : quiet
                   ? "rounded-md border border-primary bg-primary/10 shadow-none"
                   : "rounded-md bg-primary shadow-sm"
-          }`}
-          style={{ width: `${100 / count}%`, x: thumbX }}
-          initial={false}
-        >
-          <motion.div
-            className="absolute inset-0"
-            style={{ x: maskX }}
+            }`}
+            style={{ width: `${100 / count}%`, x: thumbX }}
             initial={false}
           >
-            <div
-              className="absolute inset-y-0 left-0 grid"
-              style={{ width: `${count * 100}%`, gridTemplateColumns: template }}
+            <motion.div
+              className="absolute inset-0"
+              style={{ x: maskX }}
+              initial={false}
             >
-              {options.map((option) => (
-                <span
-                  key={option.value}
-                  className={`${SEG} ${
-                    bare
-                      ? "text-primary-foreground"
-                      : ink
+              <div
+                className="absolute inset-y-0 left-0 grid"
+                style={{ width: `${count * 100}%`, gridTemplateColumns: template }}
+              >
+                {options.map((option) => (
+                  <span
+                    key={option.value}
+                    className={`${SEG} ${
+                      ink
                         ? "text-background"
                         : quiet
                           ? "text-foreground"
                           : "text-primary-foreground"
-                  }`}
-                >
-                  {option.icon && (
-                    <span
-                      className={`inline-flex shrink-0 items-center ${
-                        bare
-                          ? "text-primary-foreground"
-                          : ink
-                            ? "text-background"
-                            : quiet
-                              ? "text-primary"
-                              : "text-primary-foreground"
-                      }`}
-                    >
-                      {option.icon}
-                    </span>
-                  )}
-                  <span>{option.label}</span>
-                </span>
-              ))}
-            </div>
+                    }`}
+                  >
+                    {option.icon && (
+                      <span
+                        className={`inline-flex shrink-0 items-center ${
+                          ink ? "text-background" : quiet ? "text-primary" : "text-primary-foreground"
+                        }`}
+                      >
+                        {option.icon}
+                      </span>
+                    )}
+                    <span>{option.label}</span>
+                  </span>
+                ))}
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
+        )}
         <div
-          className="absolute inset-0 grid"
+          className={`absolute inset-0 grid ${bare ? "gap-2" : ""}`}
           style={{ gridTemplateColumns: template }}
           onPointerLeave={() => setHovered(-1)}
         >

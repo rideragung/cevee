@@ -2,6 +2,8 @@ import {
   JobApplication,
   JobApplicationInput,
   normalizeEmploymentType,
+  normalizeJobIndustry,
+  normalizeJobPlatform,
   normalizeJobStatus,
   normalizeProgressStage,
   normalizeWorkMode,
@@ -18,9 +20,14 @@ export interface JobRow {
   employment_type?: string | null;
   work_mode?: string | null;
   location?: string | null;
+  province_code?: string | null;
+  regency_code?: string | null;
+  job_platform?: string | null;
+  industry?: string | null;
   salary_range?: string | null;
   job_url?: string | null;
   applied_date?: string | null;
+  interview_date?: string | null;
   job_description?: string | null;
   notes?: string | null;
   version?: number | null;
@@ -43,9 +50,14 @@ export const mapJobRowToDocument = (row: JobRow): JobApplication => {
     employmentType: normalizeEmploymentType(row.employment_type),
     workMode: normalizeWorkMode(row.work_mode),
     location: row.location ?? '',
+    provinceCode: row.province_code ?? undefined,
+    regencyCode: row.regency_code ?? undefined,
+    jobPlatform: normalizeJobPlatform(row.job_platform),
+    industry: normalizeJobIndustry(row.industry),
     salaryRange: row.salary_range ?? '',
     jobUrl: row.job_url ?? '',
     appliedDate: row.applied_date ?? undefined,
+    interviewDate: row.interview_date ?? undefined,
     resumeId: row.resume_id ?? undefined,
     jobDescription: row.job_description ?? '',
     notes: row.notes ?? '',
@@ -76,9 +88,14 @@ export const buildJobRowPayload = (
     employment_type: normalizeEmploymentType(job.employmentType),
     work_mode: normalizeWorkMode(job.workMode),
     location: job.location.trim(),
+    province_code: (job.provinceCode ?? '').trim(),
+    regency_code: (job.regencyCode ?? '').trim(),
+    job_platform: normalizeJobPlatform(job.jobPlatform) ?? '',
+    industry: normalizeJobIndustry(job.industry) ?? '',
     salary_range: job.salaryRange.trim(),
     job_url: job.jobUrl.trim(),
     applied_date: job.appliedDate?.trim() ? job.appliedDate.trim() : null,
+    interview_date: job.interviewDate?.trim() ? job.interviewDate.trim() : null,
     job_description: job.jobDescription,
     notes: job.notes,
     updated_at: new Date().toISOString(),
@@ -113,9 +130,14 @@ export const createJobApplication = (
     employmentType: normalizeEmploymentType(input.employmentType),
     workMode: normalizeWorkMode(input.workMode),
     location: (input.location ?? '').trim(),
+    provinceCode: (input.provinceCode ?? '').trim() || undefined,
+    regencyCode: (input.regencyCode ?? '').trim() || undefined,
+    jobPlatform: normalizeJobPlatform(input.jobPlatform),
+    industry: normalizeJobIndustry(input.industry),
     salaryRange: (input.salaryRange ?? '').trim(),
     jobUrl: (input.jobUrl ?? '').trim(),
     appliedDate: defaultAppliedDate,
+    interviewDate: input.interviewDate?.trim() || undefined,
     resumeId: input.resumeId?.trim() || undefined,
     jobDescription: input.jobDescription ?? '',
     notes: input.notes ?? '',

@@ -304,7 +304,12 @@ describe('MCP tools', () => {
           status: 'applied',
           employmentType: 'internship',
           workMode: 'remote',
-          location: 'Jakarta',
+          location: 'Kota Bandung, Jawa Barat',
+          provinceCode: '32',
+          regencyCode: '32.73',
+          jobPlatform: 'linkedin',
+          industry: 'technology',
+          interviewDate: '2026-12-03',
           resumeId: resumeForJob.id,
           jobDescription:
             'We are looking for a Frontend Engineer with React, TypeScript, Tailwind CSS, and GraphQL.',
@@ -316,12 +321,21 @@ describe('MCP tools', () => {
     expect(createdJob.company).toBe('Acme Corp');
     expect(createdJob.status).toBe('applied');
     expect(createdJob.employmentType).toBe('internship');
+    expect(createdJob.provinceCode).toBe('32');
+    expect(createdJob.regencyCode).toBe('32.73');
+    expect(createdJob.jobPlatform).toBe('linkedin');
+    expect(createdJob.industry).toBe('technology');
+    expect(createdJob.interviewDate).toBe('2026-12-03');
     expect(createdJob.version).toBe(1);
 
     const listedJobs = parseResult(
       await client.callTool({
         name: 'list_jobs',
-        arguments: { status: 'applied', employmentType: 'internship' },
+        arguments: {
+          status: 'applied',
+          employmentType: 'internship',
+          jobPlatform: 'linkedin',
+        },
       })
     ) as unknown as Array<{ id: string }>;
     expect(listedJobs.some((j) => j.id === createdJob.id)).toBe(true);
@@ -342,12 +356,16 @@ describe('MCP tools', () => {
           expectedVersion: 1,
           status: 'on_progress',
           progressStage: 'technical_test',
+          jobPlatform: 'glints',
+          industry: 'ecommerce',
           notes: 'Take-home React test sent',
         },
       })
     );
     expect(updatedJob.status).toBe('on_progress');
     expect(updatedJob.progressStage).toBe('technical_test');
+    expect(updatedJob.jobPlatform).toBe('glints');
+    expect(updatedJob.industry).toBe('ecommerce');
     expect(updatedJob.version).toBe(2);
 
     const archivedJob = parseResult(

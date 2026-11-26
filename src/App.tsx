@@ -55,6 +55,8 @@ import {
   JobProgressStage,
   JobStatus,
   normalizeEmploymentType,
+  normalizeJobIndustry,
+  normalizeJobPlatform,
   normalizeJobStatus,
   normalizeProgressStage,
   normalizeWorkMode,
@@ -209,6 +211,8 @@ export function App() {
                   (status === 'on_progress' ? 'hr_interview' : undefined),
                 employmentType: normalizeEmploymentType(j.employmentType),
                 workMode: normalizeWorkMode(j.workMode),
+                jobPlatform: normalizeJobPlatform(j.jobPlatform),
+                industry: normalizeJobIndustry(j.industry),
               };
             })
           : [];
@@ -1068,9 +1072,14 @@ export function App() {
         employmentType: normalizeEmploymentType(input.employmentType),
         workMode: normalizeWorkMode(input.workMode),
         location: (input.location ?? '').trim(),
+        provinceCode: (input.provinceCode ?? '').trim() || undefined,
+        regencyCode: (input.regencyCode ?? '').trim() || undefined,
+        jobPlatform: normalizeJobPlatform(input.jobPlatform),
+        industry: normalizeJobIndustry(input.industry),
         salaryRange: (input.salaryRange ?? '').trim(),
         jobUrl: (input.jobUrl ?? '').trim(),
         appliedDate: input.appliedDate?.trim() || undefined,
+        interviewDate: input.interviewDate?.trim() || undefined,
         resumeId: input.resumeId?.trim() || undefined,
         jobDescription: input.jobDescription ?? '',
         notes: input.notes ?? '',
