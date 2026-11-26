@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import React, { useMemo, useState } from 'react';
 import {
   ActiveJobStatus,
   JOB_STATUS_LABELS,
+  JobApplication,
 } from '../../types/job';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -17,169 +17,297 @@ export interface JobPipelineStats {
 
 interface JobTrackerStatsProps {
   stats: JobPipelineStats;
+  jobs: JobApplication[];
   activeFilter: ActiveJobStatus | 'all';
   onFilterChange: (nextFilter: ActiveJobStatus | 'all') => void;
 }
 
-interface StageSegment {
-  key: ActiveJobStatus;
+interface HeatmapDay {
+  iso: string;
   label: string;
   count: number;
-  pct: number;
-  barClass: string;
-  dotClass: string;
+  level: 0 | 1 | 2 | 3 | 4;
+  isFuture: boolean;
 }
 
-const SPRING_TRANSITION = {
-  type: 'spring' as const,
-  stiffness: 300,
-  damping: 35,
+const WEEKS_TO_SHOW = 16;
+
+const toLocalIsoDate = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+const formatFullDate = (date: Date): string =>
+  new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+
+const formatShortMonth = (date: Date): string =>
+  new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date);
+
+const getHeatLevel = (count: number): 0 | 1 | 2 | 3 | 4 => {
+  if (count <= 0) return 0;
+  if (count === 1) return 1;
+  if (count === 2) return 2;
+  if (count === 3) return 3;
+  return 4;
+};
+
+const HEAT_LEVEL_CLASSES: Record<0 | 1 | 2 | 3 | 4, string> = {
+  0: 'bg-muted',
+  1: 'bg-primary/20',
+  2: 'bg-primary/45',
+  3: 'bg-primary/75',
+  4: 'bg-primary',
 };
 
 export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
   stats,
+  jobs,
   activeFilter,
   onFilterChange,
 }) => {
-  const [hoveredStage, setHoveredStage] = useState<ActiveJobStatus | null>(null);
-  const prefersReducedMotion = useReducedMotion();
+  const [selectedDay, setSelectedDay] = useState<HeatmapDay | null>(null);
 
-  const total = stats.total;
-  const toPct = (count: number) => (total > 0 ? Math.round((count / total) * 100) : 0);
+  const { weeks, monthLabels, last7DaysCount } = useMemo(() => {
+    const countsByDate = new Map<string, number>();
+    for (const job of jobs) {
+      const rawDate = (job.appliedDate || job.createdAt || '').slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+        countsByDate.set(rawDate, (countsByDate.get(rawDate) ?? 0) + 1);
+      }
+    }
 
-  const responseCount = stats.onProgress + stats.offering;
-  const responseRate = toPct(responseCount);
-  const offerRate = toPct(stats.offering);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayIso = toLocalIsoDate(today);
 
-  const segments: StageSegment[] = [
-    {
-      key: 'applied',
-      label: JOB_STATUS_LABELS.applied,
-      count: stats.applied,
-      pct: toPct(stats.applied),
-      barClass: 'bg-slate-300',
-      dotClass: 'bg-slate-400',
-    },
-    {
-      key: 'on_progress',
-      label: JOB_STATUS_LABELS.on_progress,
-      count: stats.onProgress,
-      pct: toPct(stats.onProgress),
-      barClass: 'bg-primary',
-      dotClass: 'bg-primary',
-    },
-    {
-      key: 'offering',
-      label: JOB_STATUS_LABELS.offering,
-      count: stats.offering,
-      pct: toPct(stats.offering),
-      barClass: 'bg-emerald-500',
-      dotClass: 'bg-emerald-500',
-    },
-    {
-      key: 'rejected',
-      label: JOB_STATUS_LABELS.rejected,
-      count: stats.rejected,
-      pct: toPct(stats.rejected),
-      barClass: 'bg-rose-500',
-      dotClass: 'bg-rose-500',
-    },
+    // Align grid to Monday..Sunday ending on current week's Sunday
+    const dayOfWeek = (today.getDay() + 6) % 7; // Mon=0 .. Sun=6
+    const currentWeekMonday = new Date(today);
+    currentWeekMonday.setDate(today.getDate() - dayOfWeek);
+
+    const startMonday = new Date(currentWeekMonday);
+    startMonday.setDate(currentWeekMonday.getDate() - (WEEKS_TO_SHOW - 1) * 7);
+
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 6);
+    const sevenDaysAgoIso = toLocalIsoDate(sevenDaysAgo);
+
+    let recent7 = 0;
+    const builtWeeks: HeatmapDay[][] = [];
+    const labels: { colIndex: number; text: string }[] = [];
+    let lastMonth = -1;
+
+    for (let w = 0; w < WEEKS_TO_SHOW; w += 1) {
+      const col: HeatmapDay[] = [];
+      for (let d = 0; d < 7; d += 1) {
+        const cellDate = new Date(startMonday);
+        cellDate.setDate(startMonday.getDate() + w * 7 + d);
+        const iso = toLocalIsoDate(cellDate);
+        const isFuture = iso > todayIso;
+        const count = isFuture ? 0 : countsByDate.get(iso) ?? 0;
+
+        if (!isFuture && iso >= sevenDaysAgoIso) {
+          recent7 += count;
+        }
+
+        if (d === 0 && cellDate.getMonth() !== lastMonth) {
+          labels.push({ colIndex: w, text: formatShortMonth(cellDate) });
+          lastMonth = cellDate.getMonth();
+        }
+
+        col.push({
+          iso,
+          label: formatFullDate(cellDate),
+          count,
+          level: getHeatLevel(count),
+          isFuture,
+        });
+      }
+      builtWeeks.push(col);
+    }
+
+    return { weeks: builtWeeks, monthLabels: labels, last7DaysCount: recent7 };
+  }, [jobs]);
+
+  const stageRows: {
+    key: ActiveJobStatus;
+    label: string;
+    count: number;
+    dotClass: string;
+  }[] = [
+    { key: 'applied', label: JOB_STATUS_LABELS.applied, count: stats.applied, dotClass: 'bg-slate-400' },
+    { key: 'on_progress', label: JOB_STATUS_LABELS.on_progress, count: stats.onProgress, dotClass: 'bg-primary' },
+    { key: 'offering', label: JOB_STATUS_LABELS.offering, count: stats.offering, dotClass: 'bg-emerald-500' },
+    { key: 'rejected', label: JOB_STATUS_LABELS.rejected, count: stats.rejected, dotClass: 'bg-rose-500' },
   ];
-
-  const focusedStage = hoveredStage ?? (activeFilter !== 'all' ? activeFilter : null);
 
   const handleToggleStage = (stage: ActiveJobStatus) => {
     onFilterChange(activeFilter === stage ? 'all' : stage);
   };
 
   return (
-    <Card className="mb-6 rounded-2xl border border-border bg-card px-5 pt-5 pb-4 shadow-2xs">
-      {/* Top Row: Hero Total + Key Rates */}
-      <div className="mb-3.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <div className="flex items-baseline gap-2">
-          <span className="text-[1.75rem] font-bold leading-none tracking-tight text-foreground tabular-nums">
-            {total}
-          </span>
-          <span className="text-xs sm:text-sm font-medium text-muted-foreground">
-            Total applications
-          </span>
+    <Card className="mb-6 rounded-2xl border border-border bg-card p-5 shadow-2xs">
+      <div className="grid grid-cols-1 md:grid-cols-[12.5rem_minmax(0,1fr)] gap-5 md:gap-6 items-center">
+        {/* Left: Compact Clickable Stage Counters */}
+        <div className="flex flex-col gap-1.5">
+          <button
+            type="button"
+            onClick={() => onFilterChange('all')}
+            aria-pressed={activeFilter === 'all'}
+            className="mb-1 flex items-baseline gap-2 rounded-lg px-2 py-1 text-left transition-colors [@media(hover:hover)]:hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            title="Show all active stages"
+          >
+            <span className="text-[1.75rem] font-bold leading-none tracking-tight text-foreground tabular-nums">
+              {stats.total}
+            </span>
+            <span className="text-xs font-medium text-muted-foreground">
+              Total applications
+            </span>
+          </button>
+
+          <div role="group" aria-label="Filter applications by stage" className="flex flex-col gap-0.5">
+            {stageRows.map((row) => {
+              const isActive = activeFilter === row.key;
+              return (
+                <button
+                  key={row.key}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => handleToggleStage(row.key)}
+                  className={cn(
+                    'flex items-center justify-between rounded-lg border px-2 py-1 text-xs transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    isActive
+                      ? 'border-primary/25 bg-accent text-foreground font-semibold'
+                      : 'border-transparent text-muted-foreground [@media(hover:hover)]:hover:bg-muted/60 [@media(hover:hover)]:hover:text-foreground'
+                  )}
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className={cn('size-2 rounded-full shrink-0', row.dotClass)} aria-hidden="true" />
+                    <span className="truncate">{row.label}</span>
+                  </span>
+                  <span className="font-semibold text-foreground tabular-nums">
+                    {row.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <p className="text-xs text-muted-foreground tabular-nums">
-          <span className="font-semibold text-foreground">{responseRate}%</span> response
-          <span className="mx-1.5 text-border" aria-hidden="true">
-            ·
-          </span>
-          <span className="font-semibold text-foreground">{offerRate}%</span> offer
-        </p>
-      </div>
+        {/* Right: 16-Week Daily Application Activity Heatmap */}
+        <div className="min-w-0 border-t border-border/70 pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-6">
+          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="font-semibold text-foreground">
+              Application activity
+            </span>
+            <span className="text-muted-foreground tabular-nums">
+              <span className="font-semibold text-foreground">{last7DaysCount}</span> in the last 7 days
+            </span>
+          </div>
 
-      {/* 8px Segmented Distribution Bar */}
-      <div
-        role="img"
-        aria-label={`Pipeline distribution: ${stats.applied} applied, ${stats.onProgress} on progress, ${stats.offering} offering, ${stats.rejected} rejected`}
-        className="mb-4 flex h-2 w-full gap-1 overflow-hidden rounded-full bg-muted"
-      >
-        {segments.map((seg) => {
-          if (seg.count === 0 || total === 0) return null;
-          const widthPct = (seg.count / total) * 100;
-          const isDimmed = Boolean(focusedStage && focusedStage !== seg.key);
+          {/* Month Labels Row */}
+          <div className="overflow-x-auto pb-1">
+            <div className="min-w-[300px]">
+              <div
+                className="mb-1.5 grid gap-1 text-[10px] font-medium text-muted-foreground"
+                style={{ gridTemplateColumns: `repeat(${WEEKS_TO_SHOW}, minmax(0, 1fr))` }}
+                aria-hidden="true"
+              >
+                {Array.from({ length: WEEKS_TO_SHOW }).map((_, colIdx) => {
+                  const label = monthLabels.find((m) => m.colIndex === colIdx);
+                  return (
+                    <span key={colIdx} className="truncate">
+                      {label ? label.text : ''}
+                    </span>
+                  );
+                })}
+              </div>
 
-          return (
-            <motion.div
-              key={seg.key}
-              initial={prefersReducedMotion ? false : { scaleX: 0 }}
-              animate={{ scaleX: 1, opacity: isDimmed ? 0.25 : 1 }}
-              transition={
-                prefersReducedMotion
-                  ? { duration: 0 }
-                  : { scaleX: SPRING_TRANSITION, opacity: { duration: 0.15 } }
-              }
-              style={{ width: `${widthPct}%`, transformOrigin: 'left center' }}
-              className={cn('h-full rounded-full', seg.barClass)}
-            />
-          );
-        })}
-      </div>
+              {/* 16 Weeks x 7 Days Grid */}
+              <div
+                className="grid gap-1"
+                style={{ gridTemplateColumns: `repeat(${WEEKS_TO_SHOW}, minmax(0, 1fr))` }}
+                role="grid"
+                aria-label="Daily job applications over the last 16 weeks"
+                onMouseLeave={() => setSelectedDay(null)}
+              >
+                {weeks.map((week, weekIdx) => (
+                  <div key={weekIdx} className="flex flex-col gap-1" role="row">
+                    {week.map((day) => {
+                      const countText =
+                        day.count === 1 ? '1 application' : `${day.count} applications`;
+                      const isSelected = selectedDay?.iso === day.iso;
 
-      {/* 4 Flat Clickable Metric Segments */}
-      <div
-        role="group"
-        aria-label="Filter applications by stage"
-        className="grid grid-cols-2 sm:grid-cols-4 gap-1.5"
-      >
-        {segments.map((seg) => {
-          const isActive = activeFilter === seg.key;
-          return (
-            <button
-              key={seg.key}
-              type="button"
-              aria-pressed={isActive}
-              onClick={() => handleToggleStage(seg.key)}
-              onMouseEnter={() => setHoveredStage(seg.key)}
-              onMouseLeave={() => setHoveredStage(null)}
-              onFocus={() => setHoveredStage(seg.key)}
-              onBlur={() => setHoveredStage(null)}
-              className={cn(
-                'flex flex-col items-start gap-1 rounded-xl border px-2.5 py-2 text-left transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                isActive
-                  ? 'border-primary/25 bg-accent'
-                  : 'border-transparent bg-transparent [@media(hover:hover)]:hover:bg-muted/60'
+                      if (day.isFuture) {
+                        return (
+                          <div
+                            key={day.iso}
+                            aria-hidden="true"
+                            className="aspect-square w-full rounded-[4px] bg-transparent"
+                          />
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={day.iso}
+                          type="button"
+                          onMouseEnter={() => setSelectedDay(day)}
+                          onFocus={() => setSelectedDay(day)}
+                          onBlur={() => setSelectedDay(null)}
+                          onClick={() =>
+                            setSelectedDay((prev) => (prev?.iso === day.iso ? null : day))
+                          }
+                          aria-label={`${day.label}: ${countText}`}
+                          title={`${day.label} — ${countText}`}
+                          className={cn(
+                            'aspect-square w-full rounded-[4px] transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                            HEAT_LEVEL_CLASSES[day.level],
+                            isSelected && 'ring-1 ring-foreground/40'
+                          )}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Row: Exact Hover/Tap Readout + 4-Level Legend */}
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
+            <span role="status" aria-live="polite" className="tabular-nums truncate">
+              {selectedDay ? (
+                <>
+                  <span className="font-semibold text-foreground">{selectedDay.label}</span>
+                  {' · '}
+                  {selectedDay.count === 1
+                    ? '1 application'
+                    : `${selectedDay.count} applications`}
+                </>
+              ) : (
+                'Last 16 weeks · Select a day for count'
               )}
-            >
-              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <span className={cn('size-2 rounded-full shrink-0', seg.dotClass)} aria-hidden="true" />
-                <span className="truncate">{seg.label}</span>
-              </span>
-              <span className="flex items-baseline gap-1.5 tabular-nums">
-                <span className="text-lg font-bold leading-tight tracking-tight text-foreground">
-                  {seg.count}
-                </span>
-                <span className="text-xs text-muted-foreground">{seg.pct}%</span>
-              </span>
-            </button>
-          );
-        })}
+            </span>
+
+            <div className="flex items-center gap-1.5 shrink-0" aria-hidden="true">
+              <span>Less</span>
+              {([0, 1, 2, 3, 4] as const).map((lvl) => (
+                <span
+                  key={lvl}
+                  className={cn('size-2.5 rounded-[3px]', HEAT_LEVEL_CLASSES[lvl])}
+                />
+              ))}
+              <span>More</span>
+            </div>
+          </div>
+        </div>
       </div>
     </Card>
   );

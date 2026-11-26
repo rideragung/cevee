@@ -784,9 +784,10 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         </div>
       ) : (
         <>
-          {/* Unified Calm Pipeline Summary Bar */}
+          {/* Application Activity Heatmap + Stage Counters */}
           <JobTrackerStats
             stats={stats}
+            jobs={jobs}
             activeFilter={statusFilter}
             onFilterChange={setStatusFilter}
           />
