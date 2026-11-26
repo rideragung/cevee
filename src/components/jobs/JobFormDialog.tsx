@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   IconAlertCircle as AlertCircle,
   IconCheck as Check,
@@ -8,9 +8,16 @@ import {
 } from '@tabler/icons-react';
 import {
   ACTIVE_JOB_STATUSES,
+  ActiveJobStatus,
+  EMPLOYMENT_TYPE_LABELS,
+  EMPLOYMENT_TYPES,
+  EmploymentType,
+  JOB_PROGRESS_STAGE_LABELS,
+  JOB_PROGRESS_STAGES,
   JOB_STATUS_LABELS,
   JobApplication,
   JobApplicationInput,
+  JobProgressStage,
   JobStatus,
   WORK_MODE_LABELS,
   WORK_MODES,
@@ -29,12 +36,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface JobFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   initialJob?: JobApplication | null;
-  defaultStatus?: JobStatus;
+  defaultStatus?: ActiveJobStatus;
   resumes: ResumeDocument[];
   onSave: (input: JobApplicationInput, existingId?: string) => void;
   onTailorResume?: (baseResumeId: string, company: string, role: string) => string | null;
@@ -45,7 +53,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
   isOpen,
   onClose,
   initialJob,
-  defaultStatus = 'on_progress',
+  defaultStatus = 'applied',
   resumes,
   onSave,
   onTailorResume,
@@ -54,6 +62,8 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
   const [company, setCompany] = useState('');
   const [role, setRole] = useState('');
   const [status, setStatus] = useState<JobStatus>(defaultStatus);
+  const [progressStage, setProgressStage] = useState<JobProgressStage>('hr_interview');
+  const [employmentType, setEmploymentType] = useState<EmploymentType>('full_time');
   const [workMode, setWorkMode] = useState<WorkMode>('onsite');
   const [location, setLocation] = useState('');
   const [salaryRange, setSalaryRange] = useState('');
@@ -63,16 +73,21 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
   const [jobDescription, setJobDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [tailorNotice, setTailorNotice] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ company?: string; role?: string }>({});
+
+  const companyInputRef = useRef<HTMLInputElement>(null);
+  const roleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
-    setErrorMsg(null);
+    setFieldErrors({});
     setTailorNotice(null);
     if (initialJob) {
       setCompany(initialJob.company);
       setRole(initialJob.role);
       setStatus(initialJob.status);
+      setProgressStage(initialJob.progressStage || 'hr_interview');
+      setEmploymentType(initialJob.employmentType || 'full_time');
       setWorkMode(initialJob.workMode);
       setLocation(initialJob.location);
       setSalaryRange(initialJob.salaryRange);
@@ -85,6 +100,8 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
       setCompany('');
       setRole('');
       setStatus(defaultStatus);
+      setProgressStage('hr_interview');
+      setEmploymentType('full_time');
       setWorkMode('onsite');
       setLocation('');
       setSalaryRange('');
@@ -119,8 +136,21 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!company.trim() || !role.trim()) {
-      setErrorMsg('Enter both the company name and role title.');
+    const nextErrors: { company?: string; role?: string } = {};
+    if (!company.trim()) {
+      nextErrors.company = 'Enter the company name.';
+    }
+    if (!role.trim()) {
+      nextErrors.role = 'Enter the role title.';
+    }
+
+    if (nextErrors.company || nextErrors.role) {
+      setFieldErrors(nextErrors);
+      if (nextErrors.company) {
+        companyInputRef.current?.focus();
+      } else if (nextErrors.role) {
+        roleInputRef.current?.focus();
+      }
       return;
     }
 
@@ -129,6 +159,8 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
         company: company.trim(),
         role: role.trim(),
         status,
+        progressStage: status === 'on_progress' ? progressStage : undefined,
+        employmentType,
         workMode,
         location: location.trim(),
         salaryRange: salaryRange.trim(),
@@ -151,21 +183,11 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             {initialJob ? 'Edit application' : 'Add job application'}
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-            Record the role details, link the resume version you used, and paste the job description to check keyword coverage.
+            Record the role details, link the resume version you sent, and paste the job description to check keyword coverage.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          {errorMsg && (
-            <div
-              role="alert"
-              className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-xs font-medium text-destructive"
-            >
-              <AlertCircle className="size-4 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
+        <form onSubmit={handleSubmit} noValidate className="space-y-4 mt-2">
           {/* Row 1: Company & Role */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div className="space-y-1.5">
@@ -173,15 +195,28 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                 Company <span className="text-destructive">*</span>
               </label>
               <Input
+                ref={companyInputRef}
                 id="job-company"
+                name="company"
                 type="text"
                 value={company}
-                onChange={(e) => setCompany(e.target.value)}
+                onChange={(e) => {
+                  setCompany(e.target.value);
+                  if (fieldErrors.company) {
+                    setFieldErrors((prev) => ({ ...prev, company: undefined }));
+                  }
+                }}
                 placeholder="e.g. Stripe, Tokopedia, GoTo"
-                required
+                aria-invalid={Boolean(fieldErrors.company)}
+                aria-describedby={fieldErrors.company ? 'job-company-error' : undefined}
                 autoFocus
                 className="h-10 text-sm"
               />
+              {fieldErrors.company && (
+                <p id="job-company-error" className="text-xs font-medium text-destructive">
+                  {fieldErrors.company}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -189,18 +224,63 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                 Role title <span className="text-destructive">*</span>
               </label>
               <Input
+                ref={roleInputRef}
                 id="job-role"
+                name="role"
                 type="text"
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
+                onChange={(e) => {
+                  setRole(e.target.value);
+                  if (fieldErrors.role) {
+                    setFieldErrors((prev) => ({ ...prev, role: undefined }));
+                  }
+                }}
                 placeholder="e.g. Senior Frontend Engineer"
-                required
+                aria-invalid={Boolean(fieldErrors.role)}
+                aria-describedby={fieldErrors.role ? 'job-role-error' : undefined}
                 className="h-10 text-sm"
               />
+              {fieldErrors.role && (
+                <p id="job-role-error" className="text-xs font-medium text-destructive">
+                  {fieldErrors.role}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Row 2: Stage, Work mode, Applied date */}
+          {/* Row 2: Employment Type (1-Click Chips) */}
+          <div className="space-y-1.5">
+            <span id="job-employment-type-label" className="block text-xs font-semibold text-foreground">
+              Employment type
+            </span>
+            <div
+              role="group"
+              aria-labelledby="job-employment-type-label"
+              className="flex flex-wrap gap-1.5"
+            >
+              {EMPLOYMENT_TYPES.map((type) => {
+                const isSelected = employmentType === type;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setEmploymentType(type)}
+                    className={cn(
+                      'inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      isSelected
+                        ? 'border-primary/40 bg-accent text-primary font-semibold'
+                        : 'border-border bg-card text-muted-foreground [@media(hover:hover)]:hover:border-foreground/20 [@media(hover:hover)]:hover:text-foreground'
+                    )}
+                  >
+                    {EMPLOYMENT_TYPE_LABELS[type]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Row 3: Stage, Work mode, Applied date */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div className="space-y-1.5">
               <label htmlFor="job-status" className="block text-xs font-semibold text-foreground">
@@ -208,6 +288,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
               </label>
               <select
                 id="job-status"
+                name="status"
                 value={status}
                 onChange={(e) => {
                   setStatus(e.target.value as JobStatus);
@@ -231,6 +312,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
               </label>
               <select
                 id="job-work-mode"
+                name="workMode"
                 value={workMode}
                 onChange={(e) => setWorkMode(e.target.value as WorkMode)}
                 className="flex h-10 w-full rounded-[0.875rem] border border-input bg-card px-3 py-2 text-sm text-foreground shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -249,6 +331,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
               </label>
               <Input
                 id="job-applied-date"
+                name="appliedDate"
                 type="date"
                 value={appliedDate}
                 onChange={(e) => setAppliedDate(e.target.value)}
@@ -257,7 +340,44 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             </div>
           </div>
 
-          {/* Row 3: Location & Salary Range */}
+          {/* Conditional Sub-Stage Selector when Stage = On progress */}
+          {status === 'on_progress' && (
+            <div className="rounded-2xl border border-primary/20 bg-accent/40 p-3.5 space-y-2">
+              <span
+                id="job-progress-stage-label"
+                className="block text-xs font-semibold text-foreground"
+              >
+                Current progress step
+              </span>
+              <div
+                role="group"
+                aria-labelledby="job-progress-stage-label"
+                className="flex flex-wrap gap-1.5"
+              >
+                {JOB_PROGRESS_STAGES.map((stage) => {
+                  const isSelected = progressStage === stage;
+                  return (
+                    <button
+                      key={stage}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => setProgressStage(stage)}
+                      className={cn(
+                        'inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        isSelected
+                          ? 'border-primary bg-primary text-primary-foreground font-semibold'
+                          : 'border-border bg-card text-foreground [@media(hover:hover)]:hover:border-primary/40'
+                      )}
+                    >
+                      {JOB_PROGRESS_STAGE_LABELS[stage]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Row 4: Location & Salary Range */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div className="space-y-1.5">
               <label htmlFor="job-location" className="block text-xs font-semibold text-foreground">
@@ -265,6 +385,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
               </label>
               <Input
                 id="job-location"
+                name="location"
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -279,6 +400,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
               </label>
               <Input
                 id="job-salary"
+                name="salaryRange"
                 type="text"
                 value={salaryRange}
                 onChange={(e) => setSalaryRange(e.target.value)}
@@ -288,13 +410,14 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             </div>
           </div>
 
-          {/* Row 4: Job URL */}
+          {/* Row 5: Job URL */}
           <div className="space-y-1.5">
             <label htmlFor="job-url" className="block text-xs font-semibold text-foreground">
               Job posting link
             </label>
             <Input
               id="job-url"
+              name="jobUrl"
               type="url"
               value={jobUrl}
               onChange={(e) => setJobUrl(e.target.value)}
@@ -303,7 +426,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             />
           </div>
 
-          {/* Row 5: Linked Resume & 1-Click Tailor */}
+          {/* Row 6: Linked Resume & 1-Click Tailor */}
           <div className="rounded-2xl border border-border bg-muted/30 p-3.5 space-y-2.5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <label htmlFor="job-resume" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
@@ -335,6 +458,8 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                             company: company.trim() || 'Untitled Company',
                             role: role.trim() || 'Untitled Role',
                             status,
+                            progressStage: status === 'on_progress' ? progressStage : undefined,
+                            employmentType,
                             workMode,
                             location: location.trim(),
                             salaryRange: salaryRange.trim(),
@@ -360,6 +485,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
 
             <select
               id="job-resume"
+              name="resumeId"
               value={resumeId}
               onChange={(e) => setResumeId(e.target.value)}
               className="flex h-10 w-full rounded-[0.875rem] border border-input bg-card px-3 py-2 text-sm text-foreground shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -373,14 +499,14 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             </select>
 
             {tailorNotice && (
-              <p className="text-xs text-emerald-700 flex items-center gap-1.5">
+              <p role="status" className="text-xs text-emerald-700 flex items-center gap-1.5">
                 <Check className="size-3.5 shrink-0" />
                 <span>{tailorNotice}</span>
               </p>
             )}
           </div>
 
-          {/* Row 6: Job Description & Local Keyword Match */}
+          {/* Row 7: Job Description & Local Keyword Match */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label htmlFor="job-description" className="block text-xs font-semibold text-foreground">
@@ -392,6 +518,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             </div>
             <textarea
               id="job-description"
+              name="jobDescription"
               rows={4}
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
@@ -403,7 +530,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             {jdMatch && (
               <div className="mt-2 rounded-2xl border border-border bg-card p-3.5 space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Badge
                       variant={jdMatch.score >= 70 ? 'secondary' : 'outline'}
                       className="gap-1.5 text-xs font-semibold tabular-nums"
@@ -461,13 +588,14 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             )}
           </div>
 
-          {/* Row 7: Notes */}
+          {/* Row 8: Notes */}
           <div className="space-y-1.5">
             <label htmlFor="job-notes" className="block text-xs font-semibold text-foreground">
               Notes & interview log
             </label>
             <textarea
               id="job-notes"
+              name="notes"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

@@ -301,7 +301,8 @@ describe('MCP tools', () => {
         arguments: {
           company: 'Acme Corp',
           role: 'Frontend Engineer',
-          status: 'on_progress',
+          status: 'applied',
+          employmentType: 'internship',
           workMode: 'remote',
           location: 'Jakarta',
           resumeId: resumeForJob.id,
@@ -313,13 +314,14 @@ describe('MCP tools', () => {
 
     expect(createdJob.id).toBeTruthy();
     expect(createdJob.company).toBe('Acme Corp');
-    expect(createdJob.status).toBe('on_progress');
+    expect(createdJob.status).toBe('applied');
+    expect(createdJob.employmentType).toBe('internship');
     expect(createdJob.version).toBe(1);
 
     const listedJobs = parseResult(
       await client.callTool({
         name: 'list_jobs',
-        arguments: { status: 'on_progress' },
+        arguments: { status: 'applied', employmentType: 'internship' },
       })
     ) as unknown as Array<{ id: string }>;
     expect(listedJobs.some((j) => j.id === createdJob.id)).toBe(true);
@@ -338,12 +340,14 @@ describe('MCP tools', () => {
         arguments: {
           jobId: createdJob.id,
           expectedVersion: 1,
-          status: 'offering',
-          notes: 'Received verbal offer',
+          status: 'on_progress',
+          progressStage: 'technical_test',
+          notes: 'Take-home React test sent',
         },
       })
     );
-    expect(updatedJob.status).toBe('offering');
+    expect(updatedJob.status).toBe('on_progress');
+    expect(updatedJob.progressStage).toBe('technical_test');
     expect(updatedJob.version).toBe(2);
 
     const archivedJob = parseResult(

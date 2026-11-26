@@ -1,5 +1,5 @@
 -- Cevee Job Tracker migration.
--- Creates the job_applications table with Row Level Security and optimistic concurrency.
+-- Creates (or upgrades) the job_applications table with Row Level Security and optimistic concurrency.
 
 create table if not exists public.job_applications (
   id text primary key,
@@ -7,7 +7,9 @@ create table if not exists public.job_applications (
   resume_id text,
   company text not null,
   role text not null,
-  status text not null default 'on_progress',
+  status text not null default 'applied',
+  progress_stage text,
+  employment_type text not null default 'full_time',
   work_mode text not null default 'onsite',
   location text not null default '',
   salary_range text not null default '',
@@ -19,6 +21,13 @@ create table if not exists public.job_applications (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Additive upgrades for existing deployments
+alter table public.job_applications
+  add column if not exists progress_stage text;
+
+alter table public.job_applications
+  add column if not exists employment_type text not null default 'full_time';
 
 create index if not exists idx_job_applications_user_id
   on public.job_applications(user_id);

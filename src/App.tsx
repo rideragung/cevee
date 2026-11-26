@@ -52,8 +52,11 @@ import { createJobApplication } from './lib/domain/jobRow';
 import {
   JobApplication,
   JobApplicationInput,
+  JobProgressStage,
   JobStatus,
+  normalizeEmploymentType,
   normalizeJobStatus,
+  normalizeProgressStage,
   normalizeWorkMode,
 } from './types/job';
 import { DEFAULT_LAYOUT_ID, normalizeLayoutId } from './layouts/registry';
@@ -168,11 +171,18 @@ export function App() {
       try {
         const parsed = JSON.parse(saved) as JobApplication[];
         return Array.isArray(parsed)
-          ? parsed.map((j) => ({
-              ...j,
-              status: normalizeJobStatus(j.status),
-              workMode: normalizeWorkMode(j.workMode),
-            }))
+          ? parsed.map((j) => {
+              const status = normalizeJobStatus(j.status);
+              return {
+                ...j,
+                status,
+                progressStage:
+                  normalizeProgressStage(j.progressStage) ??
+                  (status === 'on_progress' ? 'hr_interview' : undefined),
+                employmentType: normalizeEmploymentType(j.employmentType),
+                workMode: normalizeWorkMode(j.workMode),
+              };
+            })
           : [];
       } catch (e) {
         console.error('Failed to parse saved job applications', e);
@@ -966,11 +976,17 @@ export function App() {
     if (existingId) {
       const existing = jobsRef.current.find((j) => j.id === existingId);
       if (!existing) return;
+      const nextStatus = normalizeJobStatus(input.status);
       const updatedJob: JobApplication = {
         ...existing,
         company: input.company.trim(),
         role: input.role.trim(),
-        status: normalizeJobStatus(input.status),
+        status: nextStatus,
+        progressStage:
+          nextStatus === 'on_progress'
+            ? normalizeProgressStage(input.progressStage) ?? existing.progressStage ?? 'hr_interview'
+            : normalizeProgressStage(input.progressStage) ?? existing.progressStage,
+        employmentType: normalizeEmploymentType(input.employmentType),
         workMode: normalizeWorkMode(input.workMode),
         location: (input.location ?? '').trim(),
         salaryRange: (input.salaryRange ?? '').trim(),
@@ -1019,9 +1035,25 @@ export function App() {
     }
   };
 
-  const handleUpdateJobStatus = (jobId: string, nextStatus: JobStatus) => {
+  const handleUpdateJobStatus = (
+    jobId: string,
+    nextStatus: JobStatus,
+    nextProgressStage?: JobProgressStage
+  ) => {
     const existing = jobsRef.current.find((j) => j.id === jobId);
-    if (!existing || existing.status === nextStatus) return;
+    if (!existing) return;
+
+    const resolvedProgressStage =
+      nextStatus === 'on_progress'
+        ? nextProgressStage ?? existing.progressStage ?? 'hr_interview'
+        : existing.progressStage;
+
+    if (
+      existing.status === nextStatus &&
+      existing.progressStage === resolvedProgressStage
+    ) {
+      return;
+    }
 
     const now = new Date().toISOString();
     const shouldStampAppliedDate = !existing.appliedDate && nextStatus !== 'archived';
@@ -1029,6 +1061,7 @@ export function App() {
     const updatedJob: JobApplication = {
       ...existing,
       status: nextStatus,
+      progressStage: resolvedProgressStage,
       appliedDate: shouldStampAppliedDate ? now.slice(0, 10) : existing.appliedDate,
       updatedAt: now,
     };

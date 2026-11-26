@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   IconAlertCircle as AlertCircle,
   IconAlertTriangle as AlertTriangle,
@@ -29,10 +29,17 @@ import {
 } from '@tabler/icons-react';
 import {
   ACTIVE_JOB_STATUSES,
+  ActiveJobStatus,
   BOARD_JOB_STATUSES,
+  EMPLOYMENT_TYPE_LABELS,
+  EMPLOYMENT_TYPES,
+  EmploymentType,
+  JOB_PROGRESS_STAGE_LABELS,
+  JOB_PROGRESS_STAGES,
   JOB_STATUS_LABELS,
   JobApplication,
   JobApplicationInput,
+  JobProgressStage,
   JobStatus,
   WORK_MODE_LABELS,
 } from '../../types/job';
@@ -42,6 +49,15 @@ import { formatRelativeTime } from '../../utils/relativeTime';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { JobEmptyState } from './JobEmptyState';
 import { JobFormDialog } from './JobFormDialog';
+import {
+  JOB_SORT_OPTIONS,
+  JobSortKey,
+  formatAppliedDate,
+  getProgressStageIcon,
+  getStatusIcon,
+  getStatusPillClasses,
+  sortJobs,
+} from './jobUiMeta';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +66,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -59,7 +76,11 @@ interface JobTrackerViewProps {
   jobs: JobApplication[];
   resumes: ResumeDocument[];
   onSaveJob: (input: JobApplicationInput, existingId?: string) => void;
-  onUpdateJobStatus: (jobId: string, nextStatus: JobStatus) => void;
+  onUpdateJobStatus: (
+    jobId: string,
+    nextStatus: JobStatus,
+    nextProgressStage?: JobProgressStage
+  ) => void;
   onDeleteJob: (jobId: string) => void;
   onTailorResumeForJob: (
     baseResumeId: string,
@@ -73,21 +94,11 @@ interface JobTrackerViewProps {
   isCloudUser?: boolean;
 }
 
-type ActiveJobStatus = Exclude<JobStatus, 'archived'>;
 type JobViewMode = 'board' | 'list';
-type JobSortKey = 'updated' | 'applied' | 'company';
-
 const JOB_VIEW_STORAGE_KEY = 'cevee.jobs.view';
 const JOB_SORT_STORAGE_KEY = 'cevee.jobs.sort';
-
 const JOB_VIEW_MODES: readonly JobViewMode[] = ['board', 'list'];
 const JOB_SORT_KEYS: readonly JobSortKey[] = ['updated', 'applied', 'company'];
-
-const JOB_SORT_OPTIONS: { key: JobSortKey; label: string }[] = [
-  { key: 'updated', label: 'Last updated' },
-  { key: 'applied', label: 'Applied date' },
-  { key: 'company', label: 'Company (A–Z)' },
-];
 
 const readStoredValue = <T extends string>(
   key: string,
@@ -110,56 +121,6 @@ const writeStoredValue = (key: string, value: string) => {
   }
 };
 
-const sortJobs = (list: JobApplication[], sortBy: JobSortKey): JobApplication[] => {
-  const toTime = (value?: string) => {
-    const time = value ? new Date(value).getTime() : NaN;
-    return Number.isNaN(time) ? 0 : time;
-  };
-
-  const sorted = [...list];
-  switch (sortBy) {
-    case 'applied':
-      sorted.sort(
-        (a, b) =>
-          toTime(b.appliedDate || b.createdAt || b.updatedAt) -
-          toTime(a.appliedDate || a.createdAt || a.updatedAt)
-      );
-      break;
-    case 'company':
-      sorted.sort((a, b) => a.company.localeCompare(b.company));
-      break;
-    default:
-      sorted.sort((a, b) => toTime(b.updatedAt) - toTime(a.updatedAt));
-  }
-  return sorted;
-};
-
-const getStatusIcon = (status: JobStatus, className = 'size-3.5 shrink-0') => {
-  switch (status) {
-    case 'on_progress':
-      return <Clock className={className} />;
-    case 'rejected':
-      return <CircleX className={className} />;
-    case 'offering':
-      return <CircleCheck className={className} />;
-    case 'archived':
-      return <Archive className={className} />;
-  }
-};
-
-const getStatusPillClasses = (status: JobStatus): string => {
-  switch (status) {
-    case 'on_progress':
-      return 'border-primary/25 bg-accent text-primary';
-    case 'rejected':
-      return 'border-rose-200 bg-rose-50 text-rose-800';
-    case 'offering':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-800';
-    case 'archived':
-      return 'border-border bg-muted text-muted-foreground';
-  }
-};
-
 export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   jobs,
   resumes,
@@ -179,14 +140,23 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
     readStoredValue(JOB_SORT_STORAGE_KEY, JOB_SORT_KEYS, 'updated')
   );
   const [statusFilter, setStatusFilter] = useState<ActiveJobStatus | 'all'>('all');
+  const [employmentFilter, setEmploymentFilter] = useState<EmploymentType | 'all'>('all');
   const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<JobApplication | null>(null);
-  const [defaultFormStatus, setDefaultFormStatus] = useState<ActiveJobStatus>('on_progress');
+  const [defaultFormStatus, setDefaultFormStatus] = useState<ActiveJobStatus>('applied');
   const [deletingJob, setDeletingJob] = useState<JobApplication | null>(null);
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<ActiveJobStatus | null>(null);
+  const [lastArchived, setLastArchived] = useState<{
+    id: string;
+    label: string;
+    prevStatus: ActiveJobStatus;
+    prevProgressStage?: JobProgressStage;
+  } | null>(null);
+
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     writeStoredValue(JOB_VIEW_STORAGE_KEY, viewMode);
@@ -195,6 +165,14 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   useEffect(() => {
     writeStoredValue(JOB_SORT_STORAGE_KEY, sortBy);
   }, [sortBy]);
+
+  const switchArchivedView = (nextArchived: boolean) => {
+    setShowArchivedView(nextArchived);
+    setSearchQuery('');
+    requestAnimationFrame(() => {
+      headingRef.current?.focus();
+    });
+  };
 
   const resumeMap = useMemo(() => {
     const map = new Map<string, ResumeDocument>();
@@ -218,35 +196,29 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
     let onProgress = 0;
     let rejected = 0;
     let offering = 0;
-
     for (const job of activeJobs) {
       if (job.status === 'on_progress') onProgress += 1;
       if (job.status === 'rejected') rejected += 1;
       if (job.status === 'offering') offering += 1;
     }
-
-    return {
-      total: activeJobs.length,
-      onProgress,
-      rejected,
-      offering,
-    };
+    return { total: activeJobs.length, onProgress, rejected, offering };
   }, [activeJobs]);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
   const visibleActiveJobs = useMemo(() => {
     const filtered = activeJobs.filter((job) => {
-      if (statusFilter !== 'all' && job.status !== statusFilter) {
-        return false;
-      }
+      if (statusFilter !== 'all' && job.status !== statusFilter) return false;
+      if (employmentFilter !== 'all' && job.employmentType !== employmentFilter) return false;
       if (!normalizedQuery) return true;
       const linkedTitle = job.resumeId ? resumeMap.get(job.resumeId)?.title || '' : '';
-      const haystack = `${job.company} ${job.role} ${job.location} ${job.notes} ${linkedTitle}`.toLowerCase();
+      const stageText = job.progressStage ? JOB_PROGRESS_STAGE_LABELS[job.progressStage] : '';
+      const typeText = EMPLOYMENT_TYPE_LABELS[job.employmentType] || '';
+      const haystack = `${job.company} ${job.role} ${job.location} ${job.notes} ${linkedTitle} ${stageText} ${typeText}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
     return sortJobs(filtered, sortBy);
-  }, [activeJobs, statusFilter, normalizedQuery, sortBy, resumeMap]);
+  }, [activeJobs, statusFilter, employmentFilter, normalizedQuery, sortBy, resumeMap]);
 
   const visibleArchivedJobs = useMemo(() => {
     const filtered = archivedJobs.filter((job) => {
@@ -258,14 +230,12 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
     return sortJobs(filtered, sortBy);
   }, [archivedJobs, normalizedQuery, sortBy, resumeMap]);
 
-  const boardColumns: readonly ActiveJobStatus[] = useMemo(() => {
-    if (statusFilter !== 'all') {
-      return [statusFilter];
-    }
-    return BOARD_JOB_STATUSES;
-  }, [statusFilter]);
+  const boardColumns: readonly ActiveJobStatus[] = useMemo(
+    () => (statusFilter !== 'all' ? [statusFilter] : BOARD_JOB_STATUSES),
+    [statusFilter]
+  );
 
-  const openCreateModal = (initialStage: ActiveJobStatus = 'on_progress') => {
+  const openCreateModal = (initialStage: ActiveJobStatus = 'applied') => {
     setEditingJob(null);
     setDefaultFormStatus(initialStage);
     setIsFormOpen(true);
@@ -273,15 +243,79 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
 
   const openEditModal = (job: JobApplication) => {
     setEditingJob(job);
-    setDefaultFormStatus(job.status === 'archived' ? 'on_progress' : job.status);
+    setDefaultFormStatus(job.status === 'archived' ? 'applied' : job.status);
     setIsFormOpen(true);
+  };
+
+  const handleArchiveJob = (job: JobApplication) => {
+    if (job.status === 'archived') return;
+    setLastArchived({
+      id: job.id,
+      label: `${job.role} at ${job.company}`,
+      prevStatus: job.status,
+      prevProgressStage: job.progressStage,
+    });
+    onUpdateJobStatus(job.id, 'archived');
+  };
+
+  const handleUndoArchive = () => {
+    if (!lastArchived) return;
+    onUpdateJobStatus(
+      lastArchived.id,
+      lastArchived.prevStatus,
+      lastArchived.prevProgressStage
+    );
+    setLastArchived(null);
   };
 
   const currentSortLabel =
     JOB_SORT_OPTIONS.find((opt) => opt.key === sortBy)?.label ?? 'Last updated';
-
   const currentFilterLabel =
     statusFilter === 'all' ? 'All stages' : JOB_STATUS_LABELS[statusFilter];
+  const currentTypeFilterLabel =
+    employmentFilter === 'all' ? 'All types' : EMPLOYMENT_TYPE_LABELS[employmentFilter];
+  const hasActiveFilters =
+    Boolean(normalizedQuery) || statusFilter !== 'all' || employmentFilter !== 'all';
+
+  const renderProgressSubStagePill = (job: JobApplication) => {
+    if (job.status !== 'on_progress') return null;
+    const currentStage: JobProgressStage = job.progressStage || 'hr_interview';
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="relative inline-flex max-w-full items-center gap-1.5 rounded-full border border-primary/25 bg-accent px-2.5 py-0.5 text-[11px] font-semibold text-primary transition-colors [@media(hover:hover)]:hover:border-primary/45 after:absolute after:-inset-1.5 after:content-['']"
+            title={`Progress step: ${JOB_PROGRESS_STAGE_LABELS[currentStage]}. Select to change`}
+            aria-label={`Change progress step for ${job.role} at ${job.company}, currently ${JOB_PROGRESS_STAGE_LABELS[currentStage]}`}
+          >
+            {getProgressStageIcon(currentStage, 'size-3 shrink-0')}
+            <span className="truncate">{JOB_PROGRESS_STAGE_LABELS[currentStage]}</span>
+            <ChevronDown className="size-3 opacity-70 shrink-0" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-48">
+          <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">
+            On progress step
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {JOB_PROGRESS_STAGES.map((stage) => (
+            <DropdownMenuItem
+              key={stage}
+              onClick={() => onUpdateJobStatus(job.id, 'on_progress', stage)}
+              className="flex items-center justify-between text-xs cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                {getProgressStageIcon(stage, 'size-3.5 text-muted-foreground')}
+                <span>{JOB_PROGRESS_STAGE_LABELS[stage]}</span>
+              </span>
+              {currentStage === stage && <Check className="size-3.5 text-primary" />}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
 
   const renderStageDropdown = (job: JobApplication) => (
     <DropdownMenu>
@@ -289,22 +323,31 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         <button
           type="button"
           className={cn(
-            'relative inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors after:absolute after:-inset-1.5 after:content-[""]',
+            'relative inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors after:absolute after:-inset-1.5 after:content-[""]',
             getStatusPillClasses(job.status)
           )}
-          title={`Stage: ${JOB_STATUS_LABELS[job.status]}. Click to change`}
-          aria-label={`Change stage for ${job.role} at ${job.company}, currently ${JOB_STATUS_LABELS[job.status]}`}
+          title={`Stage: ${JOB_STATUS_LABELS[job.status]}. Select to move`}
+          aria-label={`Move ${job.role} at ${job.company}, currently ${JOB_STATUS_LABELS[job.status]}`}
         >
           {getStatusIcon(job.status, 'size-3 shrink-0')}
           <span>{JOB_STATUS_LABELS[job.status]}</span>
           <ChevronDown className="size-3 opacity-70 shrink-0" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-44">
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">
+          Move to stage
+        </DropdownMenuLabel>
         {ACTIVE_JOB_STATUSES.map((st) => (
           <DropdownMenuItem
             key={st}
-            onClick={() => onUpdateJobStatus(job.id, st)}
+            onClick={() =>
+              onUpdateJobStatus(
+                job.id,
+                st,
+                st === 'on_progress' ? job.progressStage || 'hr_interview' : undefined
+              )
+            }
             className="flex items-center justify-between text-xs cursor-pointer"
           >
             <span className="flex items-center gap-2">
@@ -314,6 +357,25 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             {job.status === st && <Check className="size-3.5 text-primary" />}
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">
+          On progress steps
+        </DropdownMenuLabel>
+        {JOB_PROGRESS_STAGES.map((stage) => (
+          <DropdownMenuItem
+            key={stage}
+            onClick={() => onUpdateJobStatus(job.id, 'on_progress', stage)}
+            className="flex items-center justify-between text-xs cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              {getProgressStageIcon(stage, 'size-3.5 text-muted-foreground')}
+              <span>{JOB_PROGRESS_STAGE_LABELS[stage]}</span>
+            </span>
+            {job.status === 'on_progress' && (job.progressStage || 'hr_interview') === stage && (
+              <Check className="size-3.5 text-primary" />
+            )}
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -321,18 +383,17 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   const renderJobActionsMenu = (job: JobApplication) => {
     const baseResumeId = job.resumeId || resumes[0]?.id;
     const isArchived = job.status === 'archived';
-
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="secondary"
             size="icon"
-            className="relative size-8 shrink-0 text-muted-foreground after:absolute after:-inset-1.5 after:content-[''] hover:text-foreground"
+            className="relative size-7 shrink-0 text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:text-foreground"
             title="More actions"
             aria-label={`More actions for ${job.role} at ${job.company}`}
           >
-            <MoreVertical className="size-4" />
+            <MoreVertical className="size-3.5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
@@ -366,15 +427,15 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
           <DropdownMenuSeparator />
           {isArchived ? (
             <DropdownMenuItem
-              onClick={() => onUpdateJobStatus(job.id, 'on_progress')}
+              onClick={() => onUpdateJobStatus(job.id, 'applied')}
               className="gap-2 text-xs cursor-pointer"
             >
               <Restore className="size-3.5 text-muted-foreground" />
-              <span>Restore to on progress</span>
+              <span>Restore to applied</span>
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem
-              onClick={() => onUpdateJobStatus(job.id, 'archived')}
+              onClick={() => handleArchiveJob(job)}
               className="gap-2 text-xs cursor-pointer"
             >
               <Archive className="size-3.5 text-muted-foreground" />
@@ -405,17 +466,18 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setShowArchivedView(false);
-                    setSearchQuery('');
-                  }}
+                  onClick={() => switchArchivedView(false)}
                   className="-ml-2 h-8 gap-1.5 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
                 >
                   <ArrowLeft className="size-3.5" />
                   <span>Back to job tracker</span>
                 </Button>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              <h1
+                ref={headingRef}
+                tabIndex={-1}
+                className="text-2xl font-bold tracking-tight text-foreground focus:outline-none"
+              >
                 Archived applications
                 <span className="ml-2 text-lg font-normal text-muted-foreground tabular-nums" aria-live="polite">
                   {normalizedQuery
@@ -424,21 +486,25 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 </span>
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Archived applications are hidden from the active board. Restore one anytime.
+                Archived applications stay out of the active board. Restore one anytime.
               </p>
             </>
           ) : (
             <>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              <h1
+                ref={headingRef}
+                tabIndex={-1}
+                className="text-2xl font-bold tracking-tight text-foreground focus:outline-none"
+              >
                 Job tracker
                 <span className="ml-2 text-lg font-normal text-muted-foreground tabular-nums" aria-live="polite">
-                  {normalizedQuery || statusFilter !== 'all'
+                  {hasActiveFilters
                     ? `(${visibleActiveJobs.length} of ${activeJobs.length})`
                     : `(${activeJobs.length})`}
                 </span>
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Track applications, link the resume you sent, and compare job descriptions.
+                Track applications, progress steps, linked resumes, and job description match.
               </p>
             </>
           )}
@@ -449,10 +515,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             <Button
               type="button"
               variant="secondary"
-              onClick={() => {
-                setShowArchivedView(true);
-                setSearchQuery('');
-              }}
+              onClick={() => switchArchivedView(true)}
               className="relative gap-2 px-4 font-medium after:absolute after:-inset-2 after:content-['']"
               title="View archived applications"
             >
@@ -465,12 +528,44 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
 
             <Button
               variant="default"
-              onClick={() => openCreateModal('on_progress')}
+              onClick={() => openCreateModal('applied')}
               className="relative inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
             >
               <Plus className="size-4" />
               <span>Add application</span>
             </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Polite Status Region: Archive Undo Banner */}
+      <div role="status" aria-live="polite">
+        {lastArchived && !showArchivedView && (
+          <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-xs shadow-2xs">
+            <span className="text-foreground truncate">
+              Archived <span className="font-semibold">{lastArchived.label}</span>.
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleUndoArchive}
+                className="h-7 px-2.5 text-xs font-semibold"
+              >
+                Undo
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setLastArchived(null)}
+                aria-label="Dismiss archive notice"
+                className="size-7 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -486,7 +581,6 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
       )}
 
       {showArchivedView ? (
-        /* Dedicated Archived View */
         archivedJobs.length === 0 ? (
           <Card className="mx-auto my-6 max-w-xl rounded-2xl border border-border bg-card px-6 py-14 text-center">
             <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
@@ -496,13 +590,13 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
               No archived applications
             </h2>
             <p className="mx-auto mt-1 max-w-sm text-xs sm:text-sm text-muted-foreground">
-              When you archive an application from the board or list, it will be stored here out of your active pipeline.
+              When you archive an application from the board or list, it stays here out of your active pipeline.
             </p>
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              onClick={() => setShowArchivedView(false)}
+              onClick={() => switchArchivedView(false)}
               className="mt-5 gap-1.5"
             >
               <ArrowLeft className="size-3.5" />
@@ -511,7 +605,6 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
           </Card>
         ) : (
           <>
-            {/* Search & Sort Toolbar for Archived */}
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
               <div className="relative w-full sm:flex-1 sm:min-w-0">
                 <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
@@ -588,7 +681,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-border text-xs font-medium text-muted-foreground">
                   <div className="col-span-5">Role & company</div>
                   <div className="col-span-3">Linked resume</div>
-                  <div className="col-span-2">Timeline</div>
+                  <div className="col-span-2">Applied</div>
                   <div className="col-span-2 text-right">Actions</div>
                 </div>
                 <div className="divide-y divide-border">
@@ -613,7 +706,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                             </button>
                           </h2>
                           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                            {job.company} · {WORK_MODE_LABELS[job.workMode]}
+                            {job.company} · {EMPLOYMENT_TYPE_LABELS[job.employmentType]} · {WORK_MODE_LABELS[job.workMode]}
                             {job.location ? ` · ${job.location}` : ''}
                           </p>
                         </div>
@@ -635,7 +728,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
 
                         <div className="col-span-1 md:col-span-2 text-xs text-muted-foreground tabular-nums">
                           {job.appliedDate
-                            ? `Applied ${job.appliedDate}`
+                            ? formatAppliedDate(job.appliedDate)
                             : formatRelativeTime(job.updatedAt)}
                         </div>
 
@@ -644,9 +737,9 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                             type="button"
                             variant="secondary"
                             size="sm"
-                            onClick={() => onUpdateJobStatus(job.id, 'on_progress')}
+                            onClick={() => onUpdateJobStatus(job.id, 'applied')}
                             className="h-8 gap-1.5 text-xs font-medium"
-                            title="Restore to on progress"
+                            title="Restore to applied"
                           >
                             <Restore className="size-3.5" />
                             <span>Restore</span>
@@ -673,14 +766,14 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         )
       ) : activeJobs.length === 0 ? (
         <div className="space-y-4">
-          <JobEmptyState onCreateJob={() => openCreateModal('on_progress')} />
+          <JobEmptyState onCreateJob={() => openCreateModal('applied')} />
           {archivedJobs.length > 0 && (
             <div className="text-center">
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                onClick={() => setShowArchivedView(true)}
+                onClick={() => switchArchivedView(true)}
                 className="gap-2 text-xs"
               >
                 <Archive className="size-3.5 text-muted-foreground" />
@@ -742,7 +835,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by company, role, location, or resume"
+                placeholder="Search by company, role, step, or resume"
                 aria-label="Search job applications"
                 autoComplete="off"
                 spellCheck={false}
@@ -764,15 +857,11 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 shrink-0">
-              {/* Mobile Archived Menu Button */}
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                onClick={() => {
-                  setShowArchivedView(true);
-                  setSearchQuery('');
-                }}
+                onClick={() => switchArchivedView(true)}
                 className="relative h-9 gap-1.5 text-xs font-medium text-foreground sm:hidden after:absolute after:-inset-2 after:content-['']"
                 title="View archived applications"
               >
@@ -780,7 +869,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 <span>Archived ({archivedJobs.length})</span>
               </Button>
 
-              {/* Stage Filter (Active stages only) */}
+              {/* Stage Filter */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -814,6 +903,42 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                         <span>{JOB_STATUS_LABELS[st]}</span>
                       </span>
                       {statusFilter === st && <Check className="size-3.5 text-primary" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Employment Type Filter */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="relative h-9 gap-2 text-xs font-medium text-foreground after:absolute after:-inset-2 after:content-['']"
+                    title="Filter by employment type"
+                    aria-label={`Filter by employment type, currently ${currentTypeFilterLabel}`}
+                  >
+                    <Briefcase className="size-3.5 text-muted-foreground" />
+                    <span>{currentTypeFilterLabel}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem
+                    onClick={() => setEmploymentFilter('all')}
+                    className="flex items-center justify-between text-xs cursor-pointer"
+                  >
+                    <span>All types</span>
+                    {employmentFilter === 'all' && <Check className="size-3.5 text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {EMPLOYMENT_TYPES.map((type) => (
+                    <DropdownMenuItem
+                      key={type}
+                      onClick={() => setEmploymentFilter(type)}
+                      className="flex items-center justify-between text-xs cursor-pointer"
+                    >
+                      <span>{EMPLOYMENT_TYPE_LABELS[type]}</span>
+                      {employmentFilter === type && <Check className="size-3.5 text-primary" />}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -900,7 +1025,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 No applications match your filter
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Try clearing the search query or selecting all stages.
+                Try clearing the search query or resetting stage and type filters.
               </p>
               <Button
                 type="button"
@@ -909,6 +1034,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 onClick={() => {
                   setSearchQuery('');
                   setStatusFilter('all');
+                  setEmploymentFilter('all');
                 }}
                 className="mt-3 text-xs"
               >
@@ -916,11 +1042,11 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
               </Button>
             </Card>
           ) : viewMode === 'board' ? (
-            /* Kanban Board View (3 Active Columns: On progress, Rejected, Offering) */
+            /* Kanban Board View (4 Active Columns: Applied, On progress, Offering, Rejected) */
             <div
               className={cn(
                 'grid grid-cols-1 gap-4 items-start',
-                boardColumns.length === 1 ? 'max-w-xl' : 'lg:grid-cols-3'
+                boardColumns.length === 1 ? 'max-w-xl' : 'md:grid-cols-2 xl:grid-cols-4'
               )}
             >
               {boardColumns.map((colStatus) => {
@@ -985,7 +1111,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                     </div>
 
                     {/* Column Cards */}
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2.5">
                       {colJobs.length === 0 ? (
                         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 px-3 py-10 text-center">
                           <p className="text-xs text-muted-foreground">
@@ -1011,9 +1137,9 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                 setDraggedJobId(null);
                                 setDragOverStatus(null);
                               }}
-                              className="group relative flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 transition-[border-color,box-shadow] duration-150 ease-out [@media(hover:hover)]:hover:border-foreground/20 [@media(hover:hover)]:hover:shadow-sm"
+                              className="group relative flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-3.5 transition-[border-color,box-shadow] duration-150 ease-out [@media(hover:hover)]:hover:border-foreground/20 [@media(hover:hover)]:hover:shadow-sm"
                             >
-                              {/* Header: Role & Company + Actions */}
+                              {/* 1. Role, Company & Actions */}
                               <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0 flex-1">
                                   <h3 className="text-sm font-bold tracking-tight text-foreground">
@@ -1037,7 +1163,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                         aria-label={`Open job posting for ${job.role} at ${job.company}`}
                                         className="relative inline-flex text-muted-foreground hover:text-primary after:absolute after:-inset-1.5 after:content-['']"
                                       >
-                                        <ExternalLink className="size-3.5 shrink-0" />
+                                        <ExternalLink className="size-3 shrink-0" />
                                       </a>
                                     )}
                                   </div>
@@ -1045,52 +1171,77 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                 {renderJobActionsMenu(job)}
                               </div>
 
-                              {/* Meta Chips: Work mode, Location, Salary */}
+                              {/* 2. On Progress Sub-Stage Pill (1-click interactive) */}
+                              {job.status === 'on_progress' && (
+                                <div className="flex items-center">
+                                  {renderProgressSubStagePill(job)}
+                                </div>
+                              )}
+
+                              {/* 3. Meta Row: Employment Type, Work Mode, Location */}
                               <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                                 <Badge variant="secondary" className="text-[11px] font-medium px-2 py-0">
+                                  {EMPLOYMENT_TYPE_LABELS[job.employmentType]}
+                                </Badge>
+                                <Badge variant="outline" className="text-[11px] font-normal px-2 py-0 text-muted-foreground">
                                   {WORK_MODE_LABELS[job.workMode]}
                                 </Badge>
                                 {job.location && (
-                                  <span className="inline-flex items-center gap-1 truncate max-w-[160px]">
+                                  <span className="inline-flex items-center gap-0.5 truncate max-w-[140px]">
                                     <MapPin className="size-3 shrink-0" />
                                     <span className="truncate">{job.location}</span>
                                   </span>
                                 )}
-                                {job.salaryRange && (
-                                  <span className="truncate font-medium text-foreground/80">
-                                    {job.salaryRange}
-                                  </span>
-                                )}
                               </div>
 
-                              {/* Linked Resume & JD Match Box */}
-                              <div className="rounded-xl border border-border/80 bg-muted/25 p-2.5 space-y-2">
+                              {/* 4. Compact Linked Resume & JD Match Line */}
+                              <div className="flex items-center justify-between gap-2 rounded-xl bg-muted/40 px-2.5 py-1.5">
                                 {linkedResume ? (
-                                  <div className="flex items-center justify-between gap-1.5">
+                                  <>
                                     <button
                                       type="button"
                                       onClick={() => onSelectResume(linkedResume.id)}
                                       title={`Edit resume: ${linkedResume.title}`}
-                                      className="flex items-center gap-1.5 min-w-0 text-xs font-semibold text-foreground hover:text-primary transition-colors"
+                                      className="flex items-center gap-1.5 min-w-0 text-[11px] font-semibold text-foreground hover:text-primary transition-colors"
                                     >
                                       <FileText className="size-3.5 text-primary shrink-0" />
                                       <span className="truncate">{linkedResume.title}</span>
                                     </button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => onPreviewResume(linkedResume.id)}
-                                      className="relative size-6 shrink-0 text-muted-foreground hover:text-foreground after:absolute after:-inset-2 after:content-['']"
-                                      title={`Quick preview ${linkedResume.title}`}
-                                      aria-label={`Quick preview ${linkedResume.title}`}
-                                    >
-                                      <Eye className="size-3.5" />
-                                    </Button>
-                                  </div>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      {matchResult && (
+                                        <span
+                                          className={cn(
+                                            'inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums',
+                                            matchResult.score >= 70
+                                              ? 'text-emerald-700'
+                                              : 'text-amber-700'
+                                          )}
+                                          title={`${matchResult.matchedKeywords.length} of ${matchResult.totalKeywords} JD keywords matched`}
+                                        >
+                                          {matchResult.score >= 70 ? (
+                                            <Check className="size-3 shrink-0" />
+                                          ) : (
+                                            <AlertCircle className="size-3 shrink-0" />
+                                          )}
+                                          <span>{matchResult.score}%</span>
+                                        </span>
+                                      )}
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => onPreviewResume(linkedResume.id)}
+                                        className="relative size-6 shrink-0 text-muted-foreground hover:text-foreground after:absolute after:-inset-2 after:content-['']"
+                                        title={`Quick preview ${linkedResume.title}`}
+                                        aria-label={`Quick preview ${linkedResume.title}`}
+                                      >
+                                        <Eye className="size-3.5" />
+                                      </Button>
+                                    </div>
+                                  </>
                                 ) : resumes.length > 0 ? (
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="text-[11px] text-muted-foreground">
+                                  <>
+                                    <span className="text-[11px] text-muted-foreground truncate">
                                       No resume linked
                                     </span>
                                     <button
@@ -1103,50 +1254,25 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                           job.id
                                         )
                                       }
-                                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline shrink-0"
                                     >
                                       <Copy className="size-3" />
-                                      <span>Tailor copy</span>
+                                      <span>Tailor</span>
                                     </button>
-                                  </div>
+                                  </>
                                 ) : (
                                   <span className="text-[11px] text-muted-foreground">
                                     Create a resume to link
                                   </span>
                                 )}
-
-                                {matchResult && (
-                                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/60">
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold tabular-nums text-foreground">
-                                      {matchResult.score >= 70 ? (
-                                        <Check className="size-3 text-emerald-600 shrink-0" />
-                                      ) : (
-                                        <AlertCircle className="size-3 text-amber-600 shrink-0" />
-                                      )}
-                                      <span>{matchResult.score}% JD match</span>
-                                    </span>
-                                    <span className="text-[11px] text-muted-foreground tabular-nums">
-                                      {matchResult.matchedKeywords.length}/{matchResult.totalKeywords} terms
-                                    </span>
-                                  </div>
-                                )}
                               </div>
 
-                              {job.notes.trim() && (
-                                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                                  {job.notes.trim()}
-                                </p>
-                              )}
-
-                              {/* Card Footer: Date & Quick Stage Selector */}
+                              {/* 5. Footer: Formatted Applied Date & Quick Stage Mover */}
                               <div className="mt-auto flex items-center justify-between gap-2 pt-1 border-t border-border/60">
-                                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums truncate">
-                                  <Clock className="size-3 shrink-0" />
-                                  <span className="truncate">
-                                    {job.appliedDate
-                                      ? `Applied ${job.appliedDate}`
-                                      : formatRelativeTime(job.updatedAt)}
-                                  </span>
+                                <span className="text-[11px] text-muted-foreground tabular-nums truncate">
+                                  {job.appliedDate
+                                    ? formatAppliedDate(job.appliedDate)
+                                    : formatRelativeTime(job.updatedAt)}
                                 </span>
                                 {renderStageDropdown(job)}
                               </div>
@@ -1164,9 +1290,9 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             <Card className="overflow-hidden rounded-2xl border border-border bg-card">
               <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-border text-xs font-medium text-muted-foreground">
                 <div className="col-span-4">Role & company</div>
-                <div className="col-span-2">Stage</div>
-                <div className="col-span-3">Linked resume & JD match</div>
-                <div className="col-span-2">Timeline</div>
+                <div className="col-span-3">Stage & progress step</div>
+                <div className="col-span-3">Linked resume & match</div>
+                <div className="col-span-1">Applied</div>
                 <div className="col-span-1 text-right">Actions</div>
               </div>
 
@@ -1211,18 +1337,18 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                           )}
                         </div>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {job.company} · {WORK_MODE_LABELS[job.workMode]}
+                          {job.company} · {EMPLOYMENT_TYPE_LABELS[job.employmentType]} · {WORK_MODE_LABELS[job.workMode]}
                           {job.location ? ` · ${job.location}` : ''}
-                          {job.salaryRange ? ` · ${job.salaryRange}` : ''}
                         </p>
                       </div>
 
-                      {/* Stage */}
-                      <div className="col-span-1 md:col-span-2 flex items-center">
+                      {/* Stage & Sub-stage */}
+                      <div className="col-span-1 md:col-span-3 flex flex-wrap items-center gap-1.5">
                         {renderStageDropdown(job)}
+                        {renderProgressSubStagePill(job)}
                       </div>
 
-                      {/* Linked Resume & JD Match */}
+                      {/* Linked Resume & Match */}
                       <div className="col-span-1 md:col-span-3 flex flex-wrap items-center gap-2 min-w-0">
                         {linkedResume ? (
                           <button
@@ -1264,18 +1390,16 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                             ) : (
                               <AlertCircle className="size-3 text-amber-600" />
                             )}
-                            <span>{matchResult.score}% match</span>
+                            <span>{matchResult.score}%</span>
                           </Badge>
                         )}
                       </div>
 
-                      {/* Timeline */}
-                      <div className="col-span-1 md:col-span-2 text-xs text-muted-foreground tabular-nums">
-                        <div>
-                          {job.appliedDate
-                            ? `Applied ${job.appliedDate}`
-                            : formatRelativeTime(job.updatedAt)}
-                        </div>
+                      {/* Applied Date */}
+                      <div className="col-span-1 md:col-span-1 text-xs text-muted-foreground tabular-nums">
+                        {job.appliedDate
+                          ? formatAppliedDate(job.appliedDate)
+                          : formatRelativeTime(job.updatedAt)}
                       </div>
 
                       {/* Actions */}
@@ -1309,7 +1433,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 p-3 backdrop-blur-md sm:hidden">
           <Button
             variant="default"
-            onClick={() => openCreateModal('on_progress')}
+            onClick={() => openCreateModal('applied')}
             className="w-full gap-2 font-semibold"
           >
             <Plus className="size-4" />

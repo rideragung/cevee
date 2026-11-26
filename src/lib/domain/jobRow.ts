@@ -1,7 +1,9 @@
 import {
   JobApplication,
   JobApplicationInput,
+  normalizeEmploymentType,
   normalizeJobStatus,
+  normalizeProgressStage,
   normalizeWorkMode,
 } from '../../types/job';
 
@@ -12,6 +14,8 @@ export interface JobRow {
   company: string;
   role: string;
   status?: string | null;
+  progress_stage?: string | null;
+  employment_type?: string | null;
   work_mode?: string | null;
   location?: string | null;
   salary_range?: string | null;
@@ -24,35 +28,52 @@ export interface JobRow {
   updated_at: string;
 }
 
-export const mapJobRowToDocument = (row: JobRow): JobApplication => ({
-  id: row.id,
-  company: row.company || '',
-  role: row.role || '',
-  status: normalizeJobStatus(row.status),
-  workMode: normalizeWorkMode(row.work_mode),
-  location: row.location ?? '',
-  salaryRange: row.salary_range ?? '',
-  jobUrl: row.job_url ?? '',
-  appliedDate: row.applied_date ?? undefined,
-  resumeId: row.resume_id ?? undefined,
-  jobDescription: row.job_description ?? '',
-  notes: row.notes ?? '',
-  createdAt: row.created_at ?? row.updated_at,
-  updatedAt: row.updated_at,
-  version: typeof row.version === 'number' ? row.version : 1,
-});
+export const mapJobRowToDocument = (row: JobRow): JobApplication => {
+  const status = normalizeJobStatus(row.status);
+  const progressStage =
+    normalizeProgressStage(row.progress_stage) ??
+    (status === 'on_progress' ? 'hr_interview' : undefined);
+
+  return {
+    id: row.id,
+    company: row.company || '',
+    role: row.role || '',
+    status,
+    progressStage,
+    employmentType: normalizeEmploymentType(row.employment_type),
+    workMode: normalizeWorkMode(row.work_mode),
+    location: row.location ?? '',
+    salaryRange: row.salary_range ?? '',
+    jobUrl: row.job_url ?? '',
+    appliedDate: row.applied_date ?? undefined,
+    resumeId: row.resume_id ?? undefined,
+    jobDescription: row.job_description ?? '',
+    notes: row.notes ?? '',
+    createdAt: row.created_at ?? row.updated_at,
+    updatedAt: row.updated_at,
+    version: typeof row.version === 'number' ? row.version : 1,
+  };
+};
 
 export const buildJobRowPayload = (
   job: JobApplication,
   version: number,
   userId?: string
 ): Record<string, unknown> => {
+  const status = normalizeJobStatus(job.status);
+  const progressStage =
+    status === 'on_progress'
+      ? normalizeProgressStage(job.progressStage) ?? 'hr_interview'
+      : normalizeProgressStage(job.progressStage) ?? null;
+
   const payload: Record<string, unknown> = {
     id: job.id,
     resume_id: job.resumeId?.trim() ? job.resumeId.trim() : null,
     company: job.company.trim(),
     role: job.role.trim(),
-    status: normalizeJobStatus(job.status),
+    status,
+    progress_stage: progressStage,
+    employment_type: normalizeEmploymentType(job.employmentType),
     work_mode: normalizeWorkMode(job.workMode),
     location: job.location.trim(),
     salary_range: job.salaryRange.trim(),
@@ -77,6 +98,10 @@ export const createJobApplication = (
 ): JobApplication => {
   const now = new Date().toISOString();
   const status = normalizeJobStatus(input.status);
+  const progressStage =
+    status === 'on_progress'
+      ? normalizeProgressStage(input.progressStage) ?? 'hr_interview'
+      : normalizeProgressStage(input.progressStage);
   const defaultAppliedDate = input.appliedDate?.trim() || now.slice(0, 10);
 
   return {
@@ -84,6 +109,8 @@ export const createJobApplication = (
     company: input.company.trim(),
     role: input.role.trim(),
     status,
+    progressStage,
+    employmentType: normalizeEmploymentType(input.employmentType),
     workMode: normalizeWorkMode(input.workMode),
     location: (input.location ?? '').trim(),
     salaryRange: (input.salaryRange ?? '').trim(),

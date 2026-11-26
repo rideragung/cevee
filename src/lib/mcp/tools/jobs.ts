@@ -1,9 +1,13 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import {
+  EMPLOYMENT_TYPES,
+  JOB_PROGRESS_STAGES,
   JOB_STATUSES,
   WORK_MODES,
+  normalizeEmploymentType,
   normalizeJobStatus,
+  normalizeProgressStage,
   normalizeWorkMode,
   type JobApplication,
 } from '../../../types/job';
@@ -15,6 +19,8 @@ import { ensureWrite } from './mutate';
 import { errorResult, jsonResult } from './result';
 
 const jobStatusEnum = z.enum(JOB_STATUSES);
+const progressStageEnum = z.enum(JOB_PROGRESS_STAGES);
+const employmentTypeEnum = z.enum(EMPLOYMENT_TYPES);
 const workModeEnum = z.enum(WORK_MODES);
 
 export const registerJobTools = (
@@ -30,21 +36,25 @@ export const registerJobTools = (
         'List tracked job applications (active non-archived applications by default; pass status "archived" or includeArchived: true to view archived ones).',
       inputSchema: z.object({
         status: jobStatusEnum.optional(),
+        progressStage: progressStageEnum.optional(),
+        employmentType: employmentTypeEnum.optional(),
         includeArchived: z.boolean().optional(),
         limit: z.number().int().min(1).max(100).optional(),
         offset: z.number().int().min(0).optional(),
       }),
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
-    async ({ status, includeArchived, limit, offset }) => {
+    async ({ status, progressStage, employmentType, includeArchived, limit, offset }) => {
       if (!store.listJobs) {
         return errorResult('Job tracker storage is not available on this store.');
       }
       const jobs = await store.listJobs({ status, limit, offset });
-      const filtered =
-        status || includeArchived
-          ? jobs
-          : jobs.filter((job) => job.status !== 'archived');
+      const filtered = jobs.filter((job) => {
+        if (!status && !includeArchived && job.status === 'archived') return false;
+        if (progressStage && job.progressStage !== progressStage) return false;
+        if (employmentType && job.employmentType !== employmentType) return false;
+        return true;
+      });
       return jsonResult(filtered);
     }
   );
@@ -94,6 +104,8 @@ export const registerJobTools = (
         company: z.string().min(1),
         role: z.string().min(1),
         status: jobStatusEnum.optional(),
+        progressStage: progressStageEnum.optional(),
+        employmentType: employmentTypeEnum.optional(),
         workMode: workModeEnum.optional(),
         location: z.string().optional(),
         salaryRange: z.string().optional(),
@@ -129,6 +141,8 @@ export const registerJobTools = (
         company: z.string().min(1).optional(),
         role: z.string().min(1).optional(),
         status: jobStatusEnum.optional(),
+        progressStage: progressStageEnum.nullable().optional(),
+        employmentType: employmentTypeEnum.optional(),
         workMode: workModeEnum.optional(),
         location: z.string().optional(),
         salaryRange: z.string().optional(),
@@ -145,6 +159,8 @@ export const registerJobTools = (
       company,
       role,
       status,
+      progressStage,
+      employmentType,
       workMode,
       location,
       salaryRange,
@@ -173,11 +189,26 @@ export const registerJobTools = (
         );
       }
 
+      const nextStatus = status !== undefined ? normalizeJobStatus(status) : current.status;
+      const nextProgressStage =
+        progressStage === null
+          ? undefined
+          : progressStage !== undefined
+          ? normalizeProgressStage(progressStage)
+          : nextStatus === 'on_progress'
+          ? current.progressStage ?? 'hr_interview'
+          : current.progressStage;
+
       const next: JobApplication = {
         ...current,
         company: company !== undefined ? company.trim() : current.company,
         role: role !== undefined ? role.trim() : current.role,
-        status: status !== undefined ? normalizeJobStatus(status) : current.status,
+        status: nextStatus,
+        progressStage: nextProgressStage,
+        employmentType:
+          employmentType !== undefined
+            ? normalizeEmploymentType(employmentType)
+            : current.employmentType,
         workMode: workMode !== undefined ? normalizeWorkMode(workMode) : current.workMode,
         location: location !== undefined ? location.trim() : current.location,
         salaryRange: salaryRange !== undefined ? salaryRange.trim() : current.salaryRange,

@@ -322,14 +322,16 @@ feedback only.
   - When the `Job tracker` workspace is active, the title row carries the single primary CTA `"Add application"` (`Button variant="default"`), matching `"Create resume"` on the Resumes workspace.
 - **Semantic Stage Badges (Icon + Text):**
   - Every pipeline stage pairs a functional Tabler icon with a sentence-case label:
-    - `On progress` (`Clock`, cobalt accent pill)
-    - `Rejected` (`CircleX`, rose pill)
+    - `Applied` (`Send`, neutral secondary pill)
+    - `On progress` (`Clock`, cobalt accent pill) — holds 6 granular sub-stages selectable in 1 click directly on each card or list row: `HR interview` (`UserCheck`), `Assessment test` (`ClipboardCheck`), `Technical test` (`Code`), `User interview` (`Users`), `Preparing interview` (`Notebook`), `Interview finished` (`Checks`)
     - `Offering` (`CircleCheck`, emerald pill)
+    - `Rejected` (`CircleX`, rose pill)
     - `Archived` (`Archive`, muted pill — isolated in a dedicated Archived menu outside the Kanban board)
-- **Kanban Board, List View & Dedicated Archived Menu:**
+- **Kanban Board, List View, Employment Type & Dedicated Archived Menu:**
   - Summary strip uses 4 flat `rounded-2xl` metric cards with `tabular-nums` figures (`Total applications`, `On progress`, `Rejected`, `Offering`).
-  - Board renders 3 active columns (`On progress`, `Rejected`, `Offering`) in `rounded-2xl border bg-muted/35 p-3` holding application cards (`rounded-2xl border border-border bg-card p-4`) with both desktop drag-and-drop and a 1-click stage dropdown on each card for keyboard and touch accessibility.
-  - Archived applications are excluded from the Kanban board and active counts, accessible via a dedicated `Archived (N)` button in the header/toolbar with `Restore` and `Delete` actions.
+  - Board renders 4 active columns (`Applied`, `On progress`, `Offering`, `Rejected`) in `md:grid-cols-2 xl:grid-cols-4` with compact card anatomy (role/company, interactive sub-stage pill for `On progress`, employment type + work mode + location chips, single-line linked resume + match score, and `Intl.DateTimeFormat` applied date + stage mover).
+  - `JobFormDialog` uses 1-click selectable chips for `Employment type` (`Full-time`, `Internship`, `Contract`, `Part-time`, `Freelance`, `Other`), conditional sub-stage chips when `Stage = On progress`, and inline `aria-invalid` / `aria-describedby` field validation.
+  - Archiving an application triggers a polite `role="status"` Undo banner (`Undo` restores previous stage & sub-stage). Archived applications live in a dedicated `Archived (N)` menu with focus management, `Restore`, and `Delete`.
   - Each application card embeds a linked resume box (`bg-muted/25 rounded-xl p-2.5`) with direct actions to open the linked resume in the editor, preview it, or create a tailored duplicate copy (`Duplicate & tailor copy`), plus a live local JD keyword match percentage (`tabular-nums`).
 
 ## Conflict Dialog: Resume Changed Elsewhere (2026-11-26)

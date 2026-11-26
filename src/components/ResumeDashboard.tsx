@@ -27,7 +27,12 @@ import {
   IconX as X,
 } from '@tabler/icons-react';
 import { ResumeDocument } from '../types/resume';
-import { JobApplication, JobApplicationInput, JobStatus } from '../types/job';
+import {
+  JobApplication,
+  JobApplicationInput,
+  JobProgressStage,
+  JobStatus,
+} from '../types/job';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ResumeContentThumbnail } from './ResumeContentThumbnail';
 import { getLayoutById } from '../data/layouts';
@@ -65,7 +70,11 @@ interface ResumeDashboardProps {
   activeTab?: DashboardWorkspaceTab;
   onTabChange?: (tab: DashboardWorkspaceTab) => void;
   onSaveJob?: (input: JobApplicationInput, existingId?: string) => void;
-  onUpdateJobStatus?: (jobId: string, nextStatus: JobStatus) => void;
+  onUpdateJobStatus?: (
+    jobId: string,
+    nextStatus: JobStatus,
+    nextProgressStage?: JobProgressStage
+  ) => void;
   onDeleteJob?: (jobId: string) => void;
   onTailorResumeForJob?: (
     baseResumeId: string,
@@ -572,7 +581,9 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
             jobs={jobs}
             resumes={resumes}
             onSaveJob={(input, existingId) => onSaveJob?.(input, existingId)}
-            onUpdateJobStatus={(jobId, nextStatus) => onUpdateJobStatus?.(jobId, nextStatus)}
+            onUpdateJobStatus={(jobId, nextStatus, nextProgressStage) =>
+              onUpdateJobStatus?.(jobId, nextStatus, nextProgressStage)
+            }
             onDeleteJob={(jobId) => onDeleteJob?.(jobId)}
             onTailorResumeForJob={(baseResumeId, company, role, jobId) =>
               onTailorResumeForJob?.(baseResumeId, company, role, jobId) ?? null
