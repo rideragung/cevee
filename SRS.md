@@ -696,6 +696,7 @@ export interface ResumeDocument {
 ### 1.45.0 — MCP Private Beta: Public Signup, Invite Copy & RLS Two-User Test
 - **Pendaftaran publik:** Sign-up tetap terbuka tanpa allowlist; email confirmation sudah aktif; password minimum dinaikkan dari 6 ke 8 karakter. Tidak ada perubahan pada alur AuthPage.
 - **Connect page:** Mengganti kartu “Manage connected apps” (tautan dashboard owner) dengan panduan “Revoke access” dari AI client; menambahkan kartu “Invite a friend” berisi pesan siap-kirim dan tautan “Create a Cevee account”; snippet `mcp-remote` tetap tersedia.
+- **Dashboard:** Memindahkan akses `Connect AI` ke dropdown profil (item dengan ikon) dan menghapus tombol standalone di header agar fokus tetap pada `Create resume`.
 - **RLS dua user:** Akun uji sementara dibuat dan dihapus otomatis; hasil: owner tidak bisa membaca/mengubah resume user uji, user uji tidak bisa membaca resume owner, dan kedua daftar tidak saling bocor. Test berakhir `rls test: ok`.
 - **Verifikasi:** `npm run build` ✓, `npm run lint` ✓, `npm --prefix mcp run typecheck` ✓, RLS two-user test ✓.
 

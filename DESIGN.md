@@ -311,7 +311,7 @@ feedback only.
   - Judul + “Last updated” + section bernomor untuk terms; section tematik untuk privacy.
   - Footer: kembali ke Cevee, tautan silang Privacy/Terms dan Connect AI.
   - Copy menjelaskan penyimpanan Supabase, RLS, MCP OAuth tanpa service role, pengiriman teks ke Gemini, local draft, dan cara mencabut akses.
-- **Dashboard:** tombol `Connect AI` (`variant="outline"`, ikon `Plug`) berdampingan dengan `Create resume` di header daftar resume; hanya tampil di desktop (`hidden sm:inline-flex`) agar tidak menambah kepadatan mobile.
+- **Dashboard:** item `Connect AI` di dropdown profil (ikon `Plug`, tile `bg-primary/10 text-primary`); tombol standalone di header dihapus agar header tetap fokus pada `Create resume`.
 
 ## Conflict Dialog: Resume Changed Elsewhere (2026-11-26)
 

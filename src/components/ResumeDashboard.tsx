@@ -451,6 +451,23 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
 
                   <DropdownMenuSeparator className="-mx-5 my-4 bg-border/60" />
 
+                  {/* Connect AI Section */}
+                  <DropdownMenuItem
+                    onClick={() => {
+                      window.location.href = '/connect-ai';
+                    }}
+                    className="w-full flex items-center gap-3.5 p-2 rounded-2xl hover:bg-muted/70 focus:bg-muted/70 cursor-pointer transition-all active:scale-[0.98]"
+                  >
+                    <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <Plug className="size-5" />
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">
+                      Connect AI
+                    </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="-mx-5 my-4 bg-border/60" />
+
                   {/* Sign Out Section */}
                   <DropdownMenuItem
                     onClick={() => {
@@ -496,29 +513,15 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
             </p>
           </div>
 
-          {!isLoading && (
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  window.location.href = '/connect-ai';
-                }}
-                className="relative hidden sm:inline-flex gap-2 font-semibold"
-              >
-                <Plug className="size-4" />
-                <span>Connect AI</span>
-              </Button>
-              {onCreateResume && (
-                <Button
-                  variant="default"
-                  onClick={onCreateResume}
-                  className="relative hidden sm:inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
-                >
-                  <Plus className="size-4" />
-                  <span>Create resume</span>
-                </Button>
-              )}
-            </div>
+          {!isLoading && onCreateResume && (
+            <Button
+              variant="default"
+              onClick={onCreateResume}
+              className="relative hidden sm:inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
+            >
+              <Plus className="size-4" />
+              <span>Create resume</span>
+            </Button>
           )}
         </div>
 
