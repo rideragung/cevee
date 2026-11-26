@@ -30,7 +30,7 @@ interface HeatmapDay {
   isFuture: boolean;
 }
 
-const WEEKS_TO_SHOW = 16;
+const WEEKS_TO_SHOW = 32;
 
 const toLocalIsoDate = (date: Date): string => {
   const y = date.getFullYear();
@@ -152,18 +152,18 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
   };
 
   return (
-    <Card className="mb-6 rounded-2xl border border-border bg-card p-5 shadow-2xs">
-      <div className="grid grid-cols-1 md:grid-cols-[12.5rem_minmax(0,1fr)] gap-5 md:gap-6 items-center">
+    <Card className="mb-5 rounded-2xl border border-border bg-card px-4 py-3.5 shadow-2xs">
+      <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-5">
         {/* Left: Compact Clickable Stage Counters */}
-        <div className="flex flex-col gap-1.5">
+        <div className="w-full md:w-[11.5rem] shrink-0 flex flex-col gap-1">
           <button
             type="button"
             onClick={() => onFilterChange('all')}
             aria-pressed={activeFilter === 'all'}
-            className="mb-1 flex items-baseline gap-2 rounded-lg px-2 py-1 text-left transition-colors [@media(hover:hover)]:hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="mb-0.5 flex items-baseline gap-2 rounded-lg px-2 py-0.5 text-left transition-colors [@media(hover:hover)]:hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             title="Show all active stages"
           >
-            <span className="text-[1.75rem] font-bold leading-none tracking-tight text-foreground tabular-nums">
+            <span className="text-2xl font-bold leading-none tracking-tight text-foreground tabular-nums">
               {stats.total}
             </span>
             <span className="text-xs font-medium text-muted-foreground">
@@ -171,7 +171,11 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
             </span>
           </button>
 
-          <div role="group" aria-label="Filter applications by stage" className="flex flex-col gap-0.5">
+          <div
+            role="group"
+            aria-label="Filter applications by stage"
+            className="grid grid-cols-2 md:grid-cols-1 gap-0.5"
+          >
             {stageRows.map((row) => {
               const isActive = activeFilter === row.key;
               return (
@@ -181,14 +185,14 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
                   aria-pressed={isActive}
                   onClick={() => handleToggleStage(row.key)}
                   className={cn(
-                    'flex items-center justify-between rounded-lg border px-2 py-1 text-xs transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'flex items-center justify-between rounded-lg border px-2 py-0.5 text-xs transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     isActive
                       ? 'border-primary/25 bg-accent text-foreground font-semibold'
                       : 'border-transparent text-muted-foreground [@media(hover:hover)]:hover:bg-muted/60 [@media(hover:hover)]:hover:text-foreground'
                   )}
                 >
-                  <span className="flex items-center gap-2 min-w-0">
-                    <span className={cn('size-2 rounded-full shrink-0', row.dotClass)} aria-hidden="true" />
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <span className={cn('size-1.5 rounded-full shrink-0', row.dotClass)} aria-hidden="true" />
                     <span className="truncate">{row.label}</span>
                   </span>
                   <span className="font-semibold text-foreground tabular-nums">
@@ -200,45 +204,45 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
           </div>
         </div>
 
-        {/* Right: 16-Week Daily Application Activity Heatmap */}
-        <div className="min-w-0 border-t border-border/70 pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-6">
-          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+        {/* Right: Compact 32-Week Activity Heatmap (fixed 11px cells) */}
+        <div className="min-w-0 flex-1 border-t border-border/70 pt-3 md:border-t-0 md:border-l md:pt-0 md:pl-5">
+          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="font-semibold text-foreground">
               Application activity
             </span>
-            <span className="text-muted-foreground tabular-nums">
+            <span className="text-[11px] text-muted-foreground tabular-nums">
               <span className="font-semibold text-foreground">{last7DaysCount}</span> in the last 7 days
             </span>
           </div>
 
-          {/* Month Labels Row */}
-          <div className="overflow-x-auto pb-1">
-            <div className="min-w-[300px]">
+          <div className="overflow-x-auto pb-0.5">
+            <div className="inline-block">
+              {/* Month Labels Row */}
               <div
-                className="mb-1.5 grid gap-1 text-[10px] font-medium text-muted-foreground"
-                style={{ gridTemplateColumns: `repeat(${WEEKS_TO_SHOW}, minmax(0, 1fr))` }}
+                className="mb-1 grid gap-[3px] text-[10px] leading-none font-medium text-muted-foreground"
+                style={{ gridTemplateColumns: `repeat(${WEEKS_TO_SHOW}, 11px)` }}
                 aria-hidden="true"
               >
                 {Array.from({ length: WEEKS_TO_SHOW }).map((_, colIdx) => {
                   const label = monthLabels.find((m) => m.colIndex === colIdx);
                   return (
-                    <span key={colIdx} className="truncate">
+                    <span key={colIdx} className="overflow-visible whitespace-nowrap">
                       {label ? label.text : ''}
                     </span>
                   );
                 })}
               </div>
 
-              {/* 16 Weeks x 7 Days Grid */}
+              {/* 32 Weeks x 7 Days Fixed-Size Grid */}
               <div
-                className="grid gap-1"
-                style={{ gridTemplateColumns: `repeat(${WEEKS_TO_SHOW}, minmax(0, 1fr))` }}
+                className="grid gap-[3px]"
+                style={{ gridTemplateColumns: `repeat(${WEEKS_TO_SHOW}, 11px)` }}
                 role="grid"
-                aria-label="Daily job applications over the last 16 weeks"
+                aria-label="Daily job applications over the last 32 weeks"
                 onMouseLeave={() => setSelectedDay(null)}
               >
                 {weeks.map((week, weekIdx) => (
-                  <div key={weekIdx} className="flex flex-col gap-1" role="row">
+                  <div key={weekIdx} className="flex flex-col gap-[3px]" role="row">
                     {week.map((day) => {
                       const countText =
                         day.count === 1 ? '1 application' : `${day.count} applications`;
@@ -249,7 +253,7 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
                           <div
                             key={day.iso}
                             aria-hidden="true"
-                            className="aspect-square w-full rounded-[4px] bg-transparent"
+                            className="size-[11px] rounded-[2.5px] bg-transparent"
                           />
                         );
                       }
@@ -267,9 +271,9 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
                           aria-label={`${day.label}: ${countText}`}
                           title={`${day.label} — ${countText}`}
                           className={cn(
-                            'aspect-square w-full rounded-[4px] transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                            'size-[11px] rounded-[2.5px] transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
                             HEAT_LEVEL_CLASSES[day.level],
-                            isSelected && 'ring-1 ring-foreground/40'
+                            isSelected && 'ring-1 ring-foreground/50'
                           )}
                         />
                       );
@@ -281,7 +285,7 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
           </div>
 
           {/* Bottom Row: Exact Hover/Tap Readout + 4-Level Legend */}
-          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
+          <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
             <span role="status" aria-live="polite" className="tabular-nums truncate">
               {selectedDay ? (
                 <>
@@ -292,16 +296,16 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
                     : `${selectedDay.count} applications`}
                 </>
               ) : (
-                'Last 16 weeks · Select a day for count'
+                'Last 32 weeks · Hover or tap a day'
               )}
             </span>
 
-            <div className="flex items-center gap-1.5 shrink-0" aria-hidden="true">
+            <div className="flex items-center gap-1 shrink-0" aria-hidden="true">
               <span>Less</span>
               {([0, 1, 2, 3, 4] as const).map((lvl) => (
                 <span
                   key={lvl}
-                  className={cn('size-2.5 rounded-[3px]', HEAT_LEVEL_CLASSES[lvl])}
+                  className={cn('size-[10px] rounded-[2px]', HEAT_LEVEL_CLASSES[lvl])}
                 />
               ))}
               <span>More</span>
