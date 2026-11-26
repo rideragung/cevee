@@ -77,11 +77,7 @@ export const createJobApplication = (
 ): JobApplication => {
   const now = new Date().toISOString();
   const status = normalizeJobStatus(input.status);
-  const defaultAppliedDate =
-    input.appliedDate?.trim() ||
-    (status === 'applied' || status === 'interview' || status === 'offer'
-      ? now.slice(0, 10)
-      : undefined);
+  const defaultAppliedDate = input.appliedDate?.trim() || now.slice(0, 10);
 
   return {
     id: id || `job-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,

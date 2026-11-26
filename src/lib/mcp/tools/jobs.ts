@@ -27,20 +27,25 @@ export const registerJobTools = (
     {
       title: 'List tracked job applications',
       description:
-        'List the user tracked job applications with id, company, role, stage, work mode, linked resume id, and version.',
+        'List tracked job applications (active non-archived applications by default; pass status "archived" or includeArchived: true to view archived ones).',
       inputSchema: z.object({
         status: jobStatusEnum.optional(),
+        includeArchived: z.boolean().optional(),
         limit: z.number().int().min(1).max(100).optional(),
         offset: z.number().int().min(0).optional(),
       }),
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
-    async ({ status, limit, offset }) => {
+    async ({ status, includeArchived, limit, offset }) => {
       if (!store.listJobs) {
         return errorResult('Job tracker storage is not available on this store.');
       }
       const jobs = await store.listJobs({ status, limit, offset });
-      return jsonResult(jobs);
+      const filtered =
+        status || includeArchived
+          ? jobs
+          : jobs.filter((job) => job.status !== 'archived');
+      return jsonResult(filtered);
     }
   );
 

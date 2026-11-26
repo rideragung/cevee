@@ -7,8 +7,8 @@ import {
   IconFileText as FileText,
 } from '@tabler/icons-react';
 import {
+  ACTIVE_JOB_STATUSES,
   JOB_STATUS_LABELS,
-  JOB_STATUSES,
   JobApplication,
   JobApplicationInput,
   JobStatus,
@@ -45,7 +45,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
   isOpen,
   onClose,
   initialJob,
-  defaultStatus = 'wishlist',
+  defaultStatus = 'on_progress',
   resumes,
   onSave,
   onTailorResume,
@@ -89,11 +89,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
       setLocation('');
       setSalaryRange('');
       setJobUrl('');
-      setAppliedDate(
-        defaultStatus === 'applied' || defaultStatus === 'interview' || defaultStatus === 'offer'
-          ? new Date().toISOString().slice(0, 10)
-          : ''
-      );
+      setAppliedDate(new Date().toISOString().slice(0, 10));
       setResumeId(resumes[0]?.id || '');
       setJobDescription('');
       setNotes('');
@@ -214,22 +210,18 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                 id="job-status"
                 value={status}
                 onChange={(e) => {
-                  const nextStatus = e.target.value as JobStatus;
-                  setStatus(nextStatus);
-                  if (
-                    !appliedDate &&
-                    (nextStatus === 'applied' || nextStatus === 'interview' || nextStatus === 'offer')
-                  ) {
-                    setAppliedDate(new Date().toISOString().slice(0, 10));
-                  }
+                  setStatus(e.target.value as JobStatus);
                 }}
                 className="flex h-10 w-full rounded-[0.875rem] border border-input bg-card px-3 py-2 text-sm text-foreground shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {JOB_STATUSES.map((st) => (
+                {ACTIVE_JOB_STATUSES.map((st) => (
                   <option key={st} value={st}>
                     {JOB_STATUS_LABELS[st]}
                   </option>
                 ))}
+                {initialJob?.status === 'archived' && (
+                  <option value="archived">{JOB_STATUS_LABELS.archived}</option>
+                )}
               </select>
             </div>
 

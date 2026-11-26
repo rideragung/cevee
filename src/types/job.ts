@@ -1,38 +1,29 @@
-export type JobStatus =
-  | 'wishlist'
-  | 'applied'
-  | 'interview'
-  | 'offer'
-  | 'rejected'
-  | 'archived';
+export type JobStatus = 'on_progress' | 'rejected' | 'offering' | 'archived';
 
 export type WorkMode = 'onsite' | 'hybrid' | 'remote';
 
-export const JOB_STATUSES: readonly JobStatus[] = [
-  'wishlist',
-  'applied',
-  'interview',
-  'offer',
+export const ACTIVE_JOB_STATUSES: readonly Exclude<JobStatus, 'archived'>[] = [
+  'on_progress',
   'rejected',
-  'archived',
+  'offering',
 ] as const;
 
-export const BOARD_JOB_STATUSES: readonly JobStatus[] = [
-  'wishlist',
-  'applied',
-  'interview',
-  'offer',
+export const BOARD_JOB_STATUSES: readonly Exclude<JobStatus, 'archived'>[] =
+  ACTIVE_JOB_STATUSES;
+
+export const JOB_STATUSES: readonly JobStatus[] = [
+  'on_progress',
   'rejected',
+  'offering',
+  'archived',
 ] as const;
 
 export const WORK_MODES: readonly WorkMode[] = ['onsite', 'hybrid', 'remote'] as const;
 
 export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
-  wishlist: 'Saved',
-  applied: 'Applied',
-  interview: 'Interviewing',
-  offer: 'Offer received',
-  rejected: 'Not selected',
+  on_progress: 'On progress',
+  rejected: 'Rejected',
+  offering: 'Offering',
   archived: 'Archived',
 };
 
@@ -46,7 +37,12 @@ export const normalizeJobStatus = (value?: string | null): JobStatus => {
   if (value && (JOB_STATUSES as readonly string[]).includes(value)) {
     return value as JobStatus;
   }
-  return 'wishlist';
+  // Map legacy statuses non-destructively
+  if (value === 'offer') return 'offering';
+  if (value === 'wishlist' || value === 'applied' || value === 'interview') {
+    return 'on_progress';
+  }
+  return 'on_progress';
 };
 
 export const normalizeWorkMode = (value?: string | null): WorkMode => {
@@ -65,7 +61,7 @@ export interface JobApplication {
   location: string;
   salaryRange: string;
   jobUrl: string;
-  appliedDate?: string; // ISO date YYYY-MM-DD or month-year string
+  appliedDate?: string; // ISO date YYYY-MM-DD
   resumeId?: string;
   jobDescription: string;
   notes: string;

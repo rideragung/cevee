@@ -416,7 +416,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
                 <Briefcase className="size-3.5 shrink-0" />
                 <span>Job tracker</span>
                 <span className="hidden sm:inline text-[11px] font-normal text-muted-foreground tabular-nums">
-                  {jobs.length}
+                  {jobs.filter((job) => job.status !== 'archived').length}
                 </span>
               </button>
             </nav>

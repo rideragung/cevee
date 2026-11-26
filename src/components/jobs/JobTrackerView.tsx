@@ -3,8 +3,8 @@ import {
   IconAlertCircle as AlertCircle,
   IconAlertTriangle as AlertTriangle,
   IconArchive as Archive,
+  IconArrowLeft as ArrowLeft,
   IconArrowsSort as ArrowUpDown,
-  IconBookmark as Bookmark,
   IconBriefcase as Briefcase,
   IconCheck as Check,
   IconChevronDown as ChevronDown,
@@ -21,17 +21,16 @@ import {
   IconLayoutKanban as LayoutKanban,
   IconList as List,
   IconMapPin as MapPin,
-  IconMessages as Messages,
   IconPlus as Plus,
+  IconRestore as Restore,
   IconSearch as Search,
-  IconSend as Send,
   IconTrash as Trash2,
   IconX as X,
 } from '@tabler/icons-react';
 import {
+  ACTIVE_JOB_STATUSES,
   BOARD_JOB_STATUSES,
   JOB_STATUS_LABELS,
-  JOB_STATUSES,
   JobApplication,
   JobApplicationInput,
   JobStatus,
@@ -74,6 +73,7 @@ interface JobTrackerViewProps {
   isCloudUser?: boolean;
 }
 
+type ActiveJobStatus = Exclude<JobStatus, 'archived'>;
 type JobViewMode = 'board' | 'list';
 type JobSortKey = 'updated' | 'applied' | 'company';
 
@@ -110,18 +110,38 @@ const writeStoredValue = (key: string, value: string) => {
   }
 };
 
+const sortJobs = (list: JobApplication[], sortBy: JobSortKey): JobApplication[] => {
+  const toTime = (value?: string) => {
+    const time = value ? new Date(value).getTime() : NaN;
+    return Number.isNaN(time) ? 0 : time;
+  };
+
+  const sorted = [...list];
+  switch (sortBy) {
+    case 'applied':
+      sorted.sort(
+        (a, b) =>
+          toTime(b.appliedDate || b.createdAt || b.updatedAt) -
+          toTime(a.appliedDate || a.createdAt || a.updatedAt)
+      );
+      break;
+    case 'company':
+      sorted.sort((a, b) => a.company.localeCompare(b.company));
+      break;
+    default:
+      sorted.sort((a, b) => toTime(b.updatedAt) - toTime(a.updatedAt));
+  }
+  return sorted;
+};
+
 const getStatusIcon = (status: JobStatus, className = 'size-3.5 shrink-0') => {
   switch (status) {
-    case 'wishlist':
-      return <Bookmark className={className} />;
-    case 'applied':
-      return <Send className={className} />;
-    case 'interview':
-      return <Messages className={className} />;
-    case 'offer':
-      return <CircleCheck className={className} />;
+    case 'on_progress':
+      return <Clock className={className} />;
     case 'rejected':
       return <CircleX className={className} />;
+    case 'offering':
+      return <CircleCheck className={className} />;
     case 'archived':
       return <Archive className={className} />;
   }
@@ -129,16 +149,12 @@ const getStatusIcon = (status: JobStatus, className = 'size-3.5 shrink-0') => {
 
 const getStatusPillClasses = (status: JobStatus): string => {
   switch (status) {
-    case 'wishlist':
-      return 'border-border bg-secondary text-foreground';
-    case 'applied':
+    case 'on_progress':
       return 'border-primary/25 bg-accent text-primary';
-    case 'interview':
-      return 'border-amber-200 bg-amber-50 text-amber-800';
-    case 'offer':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-800';
     case 'rejected':
       return 'border-rose-200 bg-rose-50 text-rose-800';
+    case 'offering':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-800';
     case 'archived':
       return 'border-border bg-muted text-muted-foreground';
   }
@@ -162,14 +178,15 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   const [sortBy, setSortBy] = useState<JobSortKey>(() =>
     readStoredValue(JOB_SORT_STORAGE_KEY, JOB_SORT_KEYS, 'updated')
   );
-  const [statusFilter, setStatusFilter] = useState<JobStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<ActiveJobStatus | 'all'>('all');
+  const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<JobApplication | null>(null);
-  const [defaultFormStatus, setDefaultFormStatus] = useState<JobStatus>('wishlist');
+  const [defaultFormStatus, setDefaultFormStatus] = useState<ActiveJobStatus>('on_progress');
   const [deletingJob, setDeletingJob] = useState<JobApplication | null>(null);
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
-  const [dragOverStatus, setDragOverStatus] = useState<JobStatus | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<ActiveJobStatus | null>(null);
 
   useEffect(() => {
     writeStoredValue(JOB_VIEW_STORAGE_KEY, viewMode);
@@ -187,29 +204,39 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
     return map;
   }, [resumes]);
 
-  const stats = useMemo(() => {
-    let active = 0;
-    let interviewing = 0;
-    let offers = 0;
+  const activeJobs = useMemo(
+    () => jobs.filter((job) => job.status !== 'archived'),
+    [jobs]
+  );
 
-    for (const job of jobs) {
-      if (job.status === 'applied' || job.status === 'interview') active += 1;
-      if (job.status === 'interview') interviewing += 1;
-      if (job.status === 'offer') offers += 1;
+  const archivedJobs = useMemo(
+    () => jobs.filter((job) => job.status === 'archived'),
+    [jobs]
+  );
+
+  const stats = useMemo(() => {
+    let onProgress = 0;
+    let rejected = 0;
+    let offering = 0;
+
+    for (const job of activeJobs) {
+      if (job.status === 'on_progress') onProgress += 1;
+      if (job.status === 'rejected') rejected += 1;
+      if (job.status === 'offering') offering += 1;
     }
 
     return {
-      total: jobs.length,
-      active,
-      interviewing,
-      offers,
+      total: activeJobs.length,
+      onProgress,
+      rejected,
+      offering,
     };
-  }, [jobs]);
+  }, [activeJobs]);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  const visibleJobs = useMemo(() => {
-    const filtered = jobs.filter((job) => {
+  const visibleActiveJobs = useMemo(() => {
+    const filtered = activeJobs.filter((job) => {
       if (statusFilter !== 'all' && job.status !== statusFilter) {
         return false;
       }
@@ -218,41 +245,27 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
       const haystack = `${job.company} ${job.role} ${job.location} ${job.notes} ${linkedTitle}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
+    return sortJobs(filtered, sortBy);
+  }, [activeJobs, statusFilter, normalizedQuery, sortBy, resumeMap]);
 
-    const toTime = (value?: string) => {
-      const time = value ? new Date(value).getTime() : NaN;
-      return Number.isNaN(time) ? 0 : time;
-    };
+  const visibleArchivedJobs = useMemo(() => {
+    const filtered = archivedJobs.filter((job) => {
+      if (!normalizedQuery) return true;
+      const linkedTitle = job.resumeId ? resumeMap.get(job.resumeId)?.title || '' : '';
+      const haystack = `${job.company} ${job.role} ${job.location} ${job.notes} ${linkedTitle}`.toLowerCase();
+      return haystack.includes(normalizedQuery);
+    });
+    return sortJobs(filtered, sortBy);
+  }, [archivedJobs, normalizedQuery, sortBy, resumeMap]);
 
-    const sorted = [...filtered];
-    switch (sortBy) {
-      case 'applied':
-        sorted.sort(
-          (a, b) =>
-            toTime(b.appliedDate || b.createdAt || b.updatedAt) -
-            toTime(a.appliedDate || a.createdAt || a.updatedAt)
-        );
-        break;
-      case 'company':
-        sorted.sort((a, b) => a.company.localeCompare(b.company));
-        break;
-      default:
-        sorted.sort((a, b) => toTime(b.updatedAt) - toTime(a.updatedAt));
-    }
-    return sorted;
-  }, [jobs, statusFilter, normalizedQuery, sortBy, resumeMap]);
-
-  const boardColumns = useMemo(() => {
+  const boardColumns: readonly ActiveJobStatus[] = useMemo(() => {
     if (statusFilter !== 'all') {
       return [statusFilter];
     }
-    const hasArchived = visibleJobs.some((j) => j.status === 'archived');
-    return hasArchived
-      ? ([...BOARD_JOB_STATUSES, 'archived'] as JobStatus[])
-      : ([...BOARD_JOB_STATUSES] as JobStatus[]);
-  }, [statusFilter, visibleJobs]);
+    return BOARD_JOB_STATUSES;
+  }, [statusFilter]);
 
-  const openCreateModal = (initialStage: JobStatus = 'wishlist') => {
+  const openCreateModal = (initialStage: ActiveJobStatus = 'on_progress') => {
     setEditingJob(null);
     setDefaultFormStatus(initialStage);
     setIsFormOpen(true);
@@ -260,7 +273,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
 
   const openEditModal = (job: JobApplication) => {
     setEditingJob(job);
-    setDefaultFormStatus(job.status);
+    setDefaultFormStatus(job.status === 'archived' ? 'on_progress' : job.status);
     setIsFormOpen(true);
   };
 
@@ -288,7 +301,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-44">
-        {JOB_STATUSES.map((st) => (
+        {ACTIVE_JOB_STATUSES.map((st) => (
           <DropdownMenuItem
             key={st}
             onClick={() => onUpdateJobStatus(job.id, st)}
@@ -307,6 +320,8 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
 
   const renderJobActionsMenu = (job: JobApplication) => {
     const baseResumeId = job.resumeId || resumes[0]?.id;
+    const isArchived = job.status === 'archived';
+
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -349,6 +364,23 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
+          {isArchived ? (
+            <DropdownMenuItem
+              onClick={() => onUpdateJobStatus(job.id, 'on_progress')}
+              className="gap-2 text-xs cursor-pointer"
+            >
+              <Restore className="size-3.5 text-muted-foreground" />
+              <span>Restore to on progress</span>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              onClick={() => onUpdateJobStatus(job.id, 'archived')}
+              className="gap-2 text-xs cursor-pointer"
+            >
+              <Archive className="size-3.5 text-muted-foreground" />
+              <span>Archive</span>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onClick={() => setDeletingJob(job)}
             className="gap-2 text-xs text-destructive focus:text-destructive cursor-pointer"
@@ -366,27 +398,81 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
       {/* Title Row */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Job tracker
-            <span className="ml-2 text-lg font-normal text-muted-foreground tabular-nums" aria-live="polite">
-              {normalizedQuery || statusFilter !== 'all'
-                ? `(${visibleJobs.length} of ${jobs.length})`
-                : `(${jobs.length})`}
-            </span>
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Track applications, link the resume you sent, and compare job descriptions.
-          </p>
+          {showArchivedView ? (
+            <>
+              <div className="mb-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowArchivedView(false);
+                    setSearchQuery('');
+                  }}
+                  className="-ml-2 h-8 gap-1.5 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowLeft className="size-3.5" />
+                  <span>Back to job tracker</span>
+                </Button>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Archived applications
+                <span className="ml-2 text-lg font-normal text-muted-foreground tabular-nums" aria-live="polite">
+                  {normalizedQuery
+                    ? `(${visibleArchivedJobs.length} of ${archivedJobs.length})`
+                    : `(${archivedJobs.length})`}
+                </span>
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Archived applications are hidden from the active board. Restore one anytime.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Job tracker
+                <span className="ml-2 text-lg font-normal text-muted-foreground tabular-nums" aria-live="polite">
+                  {normalizedQuery || statusFilter !== 'all'
+                    ? `(${visibleActiveJobs.length} of ${activeJobs.length})`
+                    : `(${activeJobs.length})`}
+                </span>
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Track applications, link the resume you sent, and compare job descriptions.
+              </p>
+            </>
+          )}
         </div>
 
-        <Button
-          variant="default"
-          onClick={() => openCreateModal('wishlist')}
-          className="relative hidden sm:inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
-        >
-          <Plus className="size-4" />
-          <span>Add application</span>
-        </Button>
+        {!showArchivedView && (
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setShowArchivedView(true);
+                setSearchQuery('');
+              }}
+              className="relative gap-2 px-4 font-medium after:absolute after:-inset-2 after:content-['']"
+              title="View archived applications"
+            >
+              <Archive className="size-4 text-muted-foreground" />
+              <span>Archived</span>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                ({archivedJobs.length})
+              </span>
+            </Button>
+
+            <Button
+              variant="default"
+              onClick={() => openCreateModal('on_progress')}
+              className="relative inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
+            >
+              <Plus className="size-4" />
+              <span>Add application</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {syncStatus === 'error' && (
@@ -399,15 +485,217 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         </div>
       )}
 
-      {jobs.length === 0 ? (
-        <JobEmptyState onCreateJob={() => openCreateModal('wishlist')} />
+      {showArchivedView ? (
+        /* Dedicated Archived View */
+        archivedJobs.length === 0 ? (
+          <Card className="mx-auto my-6 max-w-xl rounded-2xl border border-border bg-card px-6 py-14 text-center">
+            <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+              <Archive className="size-5" />
+            </div>
+            <h2 className="text-base font-bold tracking-tight text-foreground">
+              No archived applications
+            </h2>
+            <p className="mx-auto mt-1 max-w-sm text-xs sm:text-sm text-muted-foreground">
+              When you archive an application from the board or list, it will be stored here out of your active pipeline.
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowArchivedView(false)}
+              className="mt-5 gap-1.5"
+            >
+              <ArrowLeft className="size-3.5" />
+              <span>Back to job tracker</span>
+            </Button>
+          </Card>
+        ) : (
+          <>
+            {/* Search & Sort Toolbar for Archived */}
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+              <div className="relative w-full sm:flex-1 sm:min-w-0">
+                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
+                <Input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search archived applications"
+                  aria-label="Search archived applications"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="pl-9 pr-9 h-11 text-sm w-full"
+                />
+                {searchQuery && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear search"
+                    title="Clear search"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 size-7 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="size-3.5" />
+                  </Button>
+                )}
+              </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="relative h-9 gap-2 text-xs font-medium text-foreground after:absolute after:-inset-2 after:content-['']"
+                    title="Sort archived applications"
+                    aria-label={`Sort archived applications, currently ${currentSortLabel.toLowerCase()}`}
+                  >
+                    <ArrowUpDown className="size-3.5 text-muted-foreground" />
+                    <span>{currentSortLabel}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  {JOB_SORT_OPTIONS.map((option) => (
+                    <DropdownMenuItem
+                      key={option.key}
+                      onClick={() => setSortBy(option.key)}
+                      className="flex items-center justify-between text-xs cursor-pointer"
+                    >
+                      <span>{option.label}</span>
+                      {sortBy === option.key && <Check className="size-3.5 text-primary" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {visibleArchivedJobs.length === 0 ? (
+              <Card className="px-6 py-16 text-center">
+                <p className="text-sm font-semibold text-foreground">
+                  No archived applications match “{searchQuery.trim()}”
+                </p>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  onClick={() => setSearchQuery('')}
+                  className="mt-2 text-xs"
+                >
+                  Clear search
+                </Button>
+              </Card>
+            ) : (
+              <Card className="overflow-hidden rounded-2xl border border-border bg-card">
+                <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-border text-xs font-medium text-muted-foreground">
+                  <div className="col-span-5">Role & company</div>
+                  <div className="col-span-3">Linked resume</div>
+                  <div className="col-span-2">Timeline</div>
+                  <div className="col-span-2 text-right">Actions</div>
+                </div>
+                <div className="divide-y divide-border">
+                  {visibleArchivedJobs.map((job) => {
+                    const linkedResume = job.resumeId
+                      ? resumeMap.get(job.resumeId) ?? null
+                      : null;
+
+                    return (
+                      <div
+                        key={job.id}
+                        className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-5 py-3.5 items-center transition-colors [@media(hover:hover)]:hover:bg-muted/40"
+                      >
+                        <div className="col-span-1 md:col-span-5 min-w-0">
+                          <h2 className="text-sm font-bold tracking-tight text-foreground truncate">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(job)}
+                              className="truncate text-left hover:underline hover:underline-offset-4"
+                            >
+                              {job.role}
+                            </button>
+                          </h2>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {job.company} · {WORK_MODE_LABELS[job.workMode]}
+                            {job.location ? ` · ${job.location}` : ''}
+                          </p>
+                        </div>
+
+                        <div className="col-span-1 md:col-span-3 min-w-0">
+                          {linkedResume ? (
+                            <button
+                              type="button"
+                              onClick={() => onSelectResume(linkedResume.id)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/70 px-2.5 py-1 text-xs font-medium text-foreground hover:text-primary max-w-full truncate"
+                            >
+                              <FileText className="size-3.5 text-primary shrink-0" />
+                              <span className="truncate">{linkedResume.title}</span>
+                            </button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No resume linked</span>
+                          )}
+                        </div>
+
+                        <div className="col-span-1 md:col-span-2 text-xs text-muted-foreground tabular-nums">
+                          {job.appliedDate
+                            ? `Applied ${job.appliedDate}`
+                            : formatRelativeTime(job.updatedAt)}
+                        </div>
+
+                        <div className="col-span-1 md:col-span-2 flex items-center justify-end gap-1.5">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => onUpdateJobStatus(job.id, 'on_progress')}
+                            className="h-8 gap-1.5 text-xs font-medium"
+                            title="Restore to on progress"
+                          >
+                            <Restore className="size-3.5" />
+                            <span>Restore</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="icon"
+                            onClick={() => setDeletingJob(job)}
+                            className="relative size-8 shrink-0 text-destructive after:absolute after:-inset-1.5 after:content-[''] hover:text-destructive"
+                            title="Delete archived application"
+                            aria-label={`Delete ${job.role} at ${job.company}`}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
+          </>
+        )
+      ) : activeJobs.length === 0 ? (
+        <div className="space-y-4">
+          <JobEmptyState onCreateJob={() => openCreateModal('on_progress')} />
+          {archivedJobs.length > 0 && (
+            <div className="text-center">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowArchivedView(true)}
+                className="gap-2 text-xs"
+              >
+                <Archive className="size-3.5 text-muted-foreground" />
+                <span>View archived applications ({archivedJobs.length})</span>
+              </Button>
+            </div>
+          )}
+        </div>
       ) : (
         <>
-          {/* Summary Strip */}
+          {/* Summary Strip (4 Cards: Total applications, On progress, Rejected, Offering) */}
           <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Card className="rounded-2xl border border-border bg-card p-4">
               <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>Total tracked</span>
+                <span>Total applications</span>
                 <Briefcase className="size-4 text-muted-foreground" />
               </div>
               <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground tabular-nums">
@@ -417,31 +705,31 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
 
             <Card className="rounded-2xl border border-border bg-card p-4">
               <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>Active pipeline</span>
-                <Send className="size-4 text-primary" />
+                <span>On progress</span>
+                <Clock className="size-4 text-primary" />
               </div>
               <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground tabular-nums">
-                {stats.active}
+                {stats.onProgress}
               </p>
             </Card>
 
             <Card className="rounded-2xl border border-border bg-card p-4">
               <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>Interviewing</span>
-                <Messages className="size-4 text-amber-600" />
+                <span>Rejected</span>
+                <CircleX className="size-4 text-rose-600" />
               </div>
               <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground tabular-nums">
-                {stats.interviewing}
+                {stats.rejected}
               </p>
             </Card>
 
             <Card className="rounded-2xl border border-border bg-card p-4">
               <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>Offers received</span>
+                <span>Offering</span>
                 <CircleCheck className="size-4 text-emerald-600" />
               </div>
               <p className="mt-1.5 text-2xl font-bold tracking-tight text-foreground tabular-nums">
-                {stats.offers}
+                {stats.offering}
               </p>
             </Card>
           </div>
@@ -476,7 +764,23 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 shrink-0">
-              {/* Stage Filter */}
+              {/* Mobile Archived Menu Button */}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setShowArchivedView(true);
+                  setSearchQuery('');
+                }}
+                className="relative h-9 gap-1.5 text-xs font-medium text-foreground sm:hidden after:absolute after:-inset-2 after:content-['']"
+                title="View archived applications"
+              >
+                <Archive className="size-3.5 text-muted-foreground" />
+                <span>Archived ({archivedJobs.length})</span>
+              </Button>
+
+              {/* Stage Filter (Active stages only) */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -499,7 +803,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                     {statusFilter === 'all' && <Check className="size-3.5 text-primary" />}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  {JOB_STATUSES.map((st) => (
+                  {ACTIVE_JOB_STATUSES.map((st) => (
                     <DropdownMenuItem
                       key={st}
                       onClick={() => setStatusFilter(st)}
@@ -587,7 +891,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             </div>
           </div>
 
-          {visibleJobs.length === 0 ? (
+          {visibleActiveJobs.length === 0 ? (
             <Card className="px-6 py-16 text-center">
               <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                 <Search className="size-4" />
@@ -612,17 +916,15 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
               </Button>
             </Card>
           ) : viewMode === 'board' ? (
-            /* Kanban Board View */
+            /* Kanban Board View (3 Active Columns: On progress, Rejected, Offering) */
             <div
               className={cn(
                 'grid grid-cols-1 gap-4 items-start',
-                boardColumns.length === 1
-                  ? 'max-w-xl'
-                  : 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'
+                boardColumns.length === 1 ? 'max-w-xl' : 'lg:grid-cols-3'
               )}
             >
               {boardColumns.map((colStatus) => {
-                const colJobs = visibleJobs.filter((j) => j.status === colStatus);
+                const colJobs = visibleActiveJobs.filter((j) => j.status === colStatus);
                 const isDropTarget = dragOverStatus === colStatus;
 
                 return (
@@ -648,7 +950,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                       }
                     }}
                     className={cn(
-                      'flex flex-col rounded-2xl border bg-muted/35 p-3 transition-colors duration-150 ease-out min-h-[220px]',
+                      'flex flex-col rounded-2xl border bg-muted/35 p-3 transition-colors duration-150 ease-out min-h-[240px]',
                       isDropTarget ? 'border-primary bg-accent/40' : 'border-border/80'
                     )}
                   >
@@ -685,7 +987,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                     {/* Column Cards */}
                     <div className="flex flex-col gap-3">
                       {colJobs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 px-3 py-8 text-center">
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 px-3 py-10 text-center">
                           <p className="text-xs text-muted-foreground">
                             No applications in {JOB_STATUS_LABELS[colStatus].toLowerCase()}
                           </p>
@@ -749,7 +1051,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                   {WORK_MODE_LABELS[job.workMode]}
                                 </Badge>
                                 {job.location && (
-                                  <span className="inline-flex items-center gap-1 truncate max-w-[150px]">
+                                  <span className="inline-flex items-center gap-1 truncate max-w-[160px]">
                                     <MapPin className="size-3 shrink-0" />
                                     <span className="truncate">{job.location}</span>
                                   </span>
@@ -869,7 +1171,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
               </div>
 
               <div className="divide-y divide-border">
-                {visibleJobs.map((job) => {
+                {visibleActiveJobs.map((job) => {
                   const linkedResume = job.resumeId
                     ? resumeMap.get(job.resumeId) ?? null
                     : null;
@@ -1003,11 +1305,11 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
       )}
 
       {/* Mobile Primary Action */}
-      {jobs.length > 0 && (
+      {!showArchivedView && activeJobs.length > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 p-3 backdrop-blur-md sm:hidden">
           <Button
             variant="default"
-            onClick={() => openCreateModal('wishlist')}
+            onClick={() => openCreateModal('on_progress')}
             className="w-full gap-2 font-semibold"
           >
             <Plus className="size-4" />

@@ -7,7 +7,7 @@ create table if not exists public.job_applications (
   resume_id text,
   company text not null,
   role text not null,
-  status text not null default 'wishlist',
+  status text not null default 'on_progress',
   work_mode text not null default 'onsite',
   location text not null default '',
   salary_range text not null default '',

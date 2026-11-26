@@ -1024,9 +1024,7 @@ export function App() {
     if (!existing || existing.status === nextStatus) return;
 
     const now = new Date().toISOString();
-    const shouldStampAppliedDate =
-      !existing.appliedDate &&
-      (nextStatus === 'applied' || nextStatus === 'interview' || nextStatus === 'offer');
+    const shouldStampAppliedDate = !existing.appliedDate && nextStatus !== 'archived';
 
     const updatedJob: JobApplication = {
       ...existing,

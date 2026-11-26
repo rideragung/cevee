@@ -322,15 +322,14 @@ feedback only.
   - When the `Job tracker` workspace is active, the title row carries the single primary CTA `"Add application"` (`Button variant="default"`), matching `"Create resume"` on the Resumes workspace.
 - **Semantic Stage Badges (Icon + Text):**
   - Every pipeline stage pairs a functional Tabler icon with a sentence-case label:
-    - `Saved` (`Bookmark`, neutral secondary pill)
-    - `Applied` (`Send`, cobalt accent pill)
-    - `Interviewing` (`Messages`, amber pill)
-    - `Offer received` (`CircleCheck`, emerald pill)
-    - `Not selected` (`CircleX`, rose pill)
-    - `Archived` (`Archive`, muted pill)
-- **Kanban Board & List View:**
-  - Summary strip uses 4 flat `rounded-2xl` metric cards with `tabular-nums` figures.
-  - Board columns (`rounded-2xl border bg-muted/35 p-3`) hold application cards (`rounded-2xl border border-border bg-card p-4`) with both desktop drag-and-drop and a 1-click stage dropdown on each card for keyboard and touch accessibility.
+    - `On progress` (`Clock`, cobalt accent pill)
+    - `Rejected` (`CircleX`, rose pill)
+    - `Offering` (`CircleCheck`, emerald pill)
+    - `Archived` (`Archive`, muted pill — isolated in a dedicated Archived menu outside the Kanban board)
+- **Kanban Board, List View & Dedicated Archived Menu:**
+  - Summary strip uses 4 flat `rounded-2xl` metric cards with `tabular-nums` figures (`Total applications`, `On progress`, `Rejected`, `Offering`).
+  - Board renders 3 active columns (`On progress`, `Rejected`, `Offering`) in `rounded-2xl border bg-muted/35 p-3` holding application cards (`rounded-2xl border border-border bg-card p-4`) with both desktop drag-and-drop and a 1-click stage dropdown on each card for keyboard and touch accessibility.
+  - Archived applications are excluded from the Kanban board and active counts, accessible via a dedicated `Archived (N)` button in the header/toolbar with `Restore` and `Delete` actions.
   - Each application card embeds a linked resume box (`bg-muted/25 rounded-xl p-2.5`) with direct actions to open the linked resume in the editor, preview it, or create a tailored duplicate copy (`Duplicate & tailor copy`), plus a live local JD keyword match percentage (`tabular-nums`).
 
 ## Conflict Dialog: Resume Changed Elsewhere (2026-11-26)

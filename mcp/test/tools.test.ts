@@ -301,7 +301,7 @@ describe('MCP tools', () => {
         arguments: {
           company: 'Acme Corp',
           role: 'Frontend Engineer',
-          status: 'applied',
+          status: 'on_progress',
           workMode: 'remote',
           location: 'Jakarta',
           resumeId: resumeForJob.id,
@@ -313,12 +313,13 @@ describe('MCP tools', () => {
 
     expect(createdJob.id).toBeTruthy();
     expect(createdJob.company).toBe('Acme Corp');
+    expect(createdJob.status).toBe('on_progress');
     expect(createdJob.version).toBe(1);
 
     const listedJobs = parseResult(
       await client.callTool({
         name: 'list_jobs',
-        arguments: { status: 'applied' },
+        arguments: { status: 'on_progress' },
       })
     ) as unknown as Array<{ id: string }>;
     expect(listedJobs.some((j) => j.id === createdJob.id)).toBe(true);
@@ -337,13 +338,33 @@ describe('MCP tools', () => {
         arguments: {
           jobId: createdJob.id,
           expectedVersion: 1,
-          status: 'interview',
-          notes: 'Technical interview scheduled for Friday',
+          status: 'offering',
+          notes: 'Received verbal offer',
         },
       })
     );
-    expect(updatedJob.status).toBe('interview');
+    expect(updatedJob.status).toBe('offering');
     expect(updatedJob.version).toBe(2);
+
+    const archivedJob = parseResult(
+      await client.callTool({
+        name: 'update_job',
+        arguments: {
+          jobId: createdJob.id,
+          expectedVersion: 2,
+          status: 'archived',
+        },
+      })
+    );
+    expect(archivedJob.status).toBe('archived');
+
+    const activeOnly = parseResult(
+      await client.callTool({
+        name: 'list_jobs',
+        arguments: {},
+      })
+    ) as unknown as Array<{ id: string }>;
+    expect(activeOnly.some((j) => j.id === createdJob.id)).toBe(false);
 
     const deletedJob = parseResult(
       await client.callTool({
