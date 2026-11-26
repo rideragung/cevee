@@ -248,8 +248,39 @@ draft after a successful save. Guest mode still uses `localStorage` because
 there is no account to sync to. PDF import sends only the extracted text to
 Google Gemini; the PDF file stays in the browser.
 
-Phase 3 adds the remote Vercel endpoint with Supabase OAuth 2.1. See
-`mcp/README.md` and `SRS.md` (FR-15).
+Phase 3 adds the remote Vercel endpoint with Supabase OAuth 2.1.
+
+### Remote MCP (Vercel + Supabase OAuth)
+
+- **Endpoint:** `https://<domain>/api/mcp`
+- **Discovery:** `https://<domain>/.well-known/oauth-protected-resource`
+- **Consent page:** `https://<domain>/oauth/consent`
+- **Connect page:** `https://<domain>/connect-ai`
+- **Transport:** Streamable HTTP on Vercel Edge.
+- **Auth:** Supabase OAuth 2.1 with dynamic client registration, PKCE S256, and
+  `offline_access`. The resource server verifies the JWT through Supabase JWKS
+  and queries Supabase with the user's own access token, so RLS applies. No
+  service role key is used.
+- **Import:** remote `import_resume` accepts `pdfText` only. `pdfBase64` and
+  `filePath` stay local.
+
+Supabase prerequisites:
+
+1. Authentication → OAuth Server: enabled.
+2. Dynamic client registration: enabled.
+3. Authorization path: `/oauth/consent`.
+4. Site URL: the production domain (`https://cevee.vercel.app` or your custom
+   domain).
+5. JWT signing keys: asymmetric (ES256/RS256) so JWKS verification works.
+
+Vercel environment: the existing `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_ANON_KEY`, plus `GEMINI_API_KEYS` (server-only, no `VITE_`
+prefix) if remote import is enabled. Set `MCP_PUBLIC_ORIGIN` only if the request
+origin is not the public domain.
+
+Deploy with `npx vercel --prod`. Then open `/connect-ai` and add the endpoint to
+Claude.ai, ChatGPT, Cursor, or OpenCode. The endpoint is for AI clients; opening
+it directly in a browser returns `401`.
 
 ## Project Structure
 

@@ -18,6 +18,7 @@ import {
   IconDotsVertical as MoreVertical,
   IconPencil as Pencil,
   IconPlus as Plus,
+  IconPlugConnected as Plug,
   IconSearch as Search,
   IconTrash as Trash2,
   IconUser as User,
@@ -495,15 +496,29 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
             </p>
           </div>
 
-          {!isLoading && onCreateResume && (
-            <Button
-              variant="default"
-              onClick={onCreateResume}
-              className="relative hidden sm:inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
-            >
-              <Plus className="size-4" />
-              <span>Create resume</span>
-            </Button>
+          {!isLoading && (
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  window.location.href = '/connect-ai';
+                }}
+                className="relative hidden sm:inline-flex gap-2 font-semibold"
+              >
+                <Plug className="size-4" />
+                <span>Connect AI</span>
+              </Button>
+              {onCreateResume && (
+                <Button
+                  variant="default"
+                  onClick={onCreateResume}
+                  className="relative hidden sm:inline-flex gap-2 px-5 font-semibold shrink-0 after:absolute after:-inset-2 after:content-['']"
+                >
+                  <Plus className="size-4" />
+                  <span>Create resume</span>
+                </Button>
+              )}
+            </div>
           )}
         </div>
 

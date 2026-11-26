@@ -87,6 +87,25 @@ bullets to safe HTML; it does not accept raw HTML from the agent.
 
 Logs go to stderr only; stdout is reserved for the MCP protocol.
 
+## Remote endpoint (Vercel)
+
+The same tool core is served from `api/mcp.ts` on Vercel Edge:
+
+- Endpoint: `https://<domain>/api/mcp`
+- Discovery: `https://<domain>/.well-known/oauth-protected-resource`
+- Consent page: `/oauth/consent`
+- Connect page: `/connect-ai`
+- Auth: Supabase OAuth 2.1 (DCR + PKCE S256 + `offline_access`). The server
+  verifies the access token through Supabase JWKS, then queries Supabase with
+  that user token so RLS applies. No service role key is used.
+- Remote `import_resume` accepts `pdfText` only; base64/file extraction stays
+  local.
+- `MCP_PUBLIC_ORIGIN` is optional; set it only when the request origin is not
+  the public domain.
+
+Remote requests without a bearer token receive `401` with a
+`WWW-Authenticate` challenge pointing at the protected resource metadata.
+
 ## Tests
 
 `npm --prefix mcp test` builds the server and runs Vitest unit, in-memory tool,

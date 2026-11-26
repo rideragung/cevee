@@ -289,6 +289,22 @@ feedback only.
 - **Local cache policy:** pengguna login tidak lagi menyimpan seluruh library resume di `localStorage`. Hanya draft aktif yang belum tersimpan yang dipersist, lalu dihapus setelah save Supabase berhasil. Guest mode tetap memakai `localStorage` karena tidak ada akun untuk sinkronisasi.
 - **Conflict dialog** tetap menjadi satu-satunya interupsi untuk perubahan bersamaan; draft yang dipulihkan dengan versi sama digabung otomatis tanpa dialog.
 
+## MCP OAuth Consent & Connect Pages (2026-11-26)
+
+- **`/oauth/consent` (`OAuthConsentPage`):**
+  - Full-screen `bg-muted` layout, max width `max-w-lg`, `Card` with `border-border` and `shadow-pillow-secondary`.
+  - Header memakai logo Cevee + label `Authorization request`; ikon utama `ShieldCheck` di tile `bg-primary/10 text-primary`.
+  - Ringkasan client memakai panel `rounded-xl border border-border bg-muted/40` dengan tiga baris: Client, Redirect URI (mono, break-all), Requested access (Badge outline per scope).
+  - Satu paragraf jujur: approve memberi akses baca dan edit ke seluruh resume; bisa dicabut dari akun Supabase.
+  - Aksi: `Deny` (outline) dan `Approve access` (primary). Tidak ada CTA lain.
+  - Jika belum login, render `AuthPage` tanpa tombol guest; setelah sign-in, detail authorization dimuat ulang.
+- **`/connect-ai` (`ConnectAiPage`):**
+  - Halaman publik `bg-muted` dengan `max-w-3xl`, header logo + judul + badge `OAuth 2.1`, `Streamable HTTP`, `Supabase RLS`.
+  - Kartu Server URL dengan tombol copy; kartu langkah Claude.ai/ChatGPT; kartu snippet Cursor/OpenCode dengan `CodeBlock` + copy.
+  - Kartu keamanan memakai ikon `ShieldCheck` di tile `bg-emerald-50 text-emerald-600`, menjelaskan tidak ada service role dan RLS.
+  - Footer kembali ke Cevee; tidak ada CTA menuju login karena halaman ini informasional.
+- **Dashboard:** tombol `Connect AI` (`variant="outline"`, ikon `Plug`) berdampingan dengan `Create resume` di header daftar resume; hanya tampil di desktop (`hidden sm:inline-flex`) agar tidak menambah kepadatan mobile.
+
 ## Conflict Dialog: Resume Changed Elsewhere (2026-11-26)
 
 - Dipicu oleh guard optimistik `version` saat resume aktif berubah di tab lain atau melalui Cevee MCP.

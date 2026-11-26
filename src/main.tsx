@@ -7,6 +7,8 @@ import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
 import App from './App';
+import { OAuthConsentPage } from './components/OAuthConsentPage';
+import { ConnectAiPage } from './components/ConnectAiPage';
 import './index.css';
 import './layouts/standard-ats-v2/standard-ats-v2.css';
 
@@ -22,8 +24,16 @@ if (typeof document !== 'undefined' && 'fonts' in document) {
   ]);
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+const path = window.location.pathname.replace(/\/+$/, '');
+const page =
+  path === '/oauth/consent' ? (
+    <OAuthConsentPage />
+  ) : path === '/connect-ai' ? (
+    <ConnectAiPage />
+  ) : (
     <App />
-  </React.StrictMode>
+  );
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>{page}</React.StrictMode>
 );

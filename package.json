@@ -36,6 +36,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.17",
+    "jose": "^6.2.18",
     "motion": "^12.43.0",
     "pdfjs-dist": "^6.4.299",
     "react": "^18.3.1",
