@@ -2,6 +2,7 @@
 import {
   IconAlertTriangle as AlertTriangle,
   IconArrowsSort as ArrowUpDown,
+  IconBriefcase as Briefcase,
   IconCheck as Check,
   IconChevronDown as ChevronDown,
   IconClock as Clock,
@@ -10,6 +11,7 @@ import {
   IconDownload as Download,
   IconEdit as Edit2,
   IconEye as Eye,
+  IconFileText as FileText,
   IconLayoutGrid as LayoutGrid,
   IconTemplate as LayoutTemplate,
   IconList as List,
@@ -25,12 +27,14 @@ import {
   IconX as X,
 } from '@tabler/icons-react';
 import { ResumeDocument } from '../types/resume';
+import { JobApplication, JobApplicationInput, JobStatus } from '../types/job';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ResumeContentThumbnail } from './ResumeContentThumbnail';
 import { getLayoutById } from '../data/layouts';
 import { formatRelativeTime } from '../utils/relativeTime';
 import { normalizeResumeLanguage } from '../utils/resumeLocale';
 import { ResumeEmptyState } from './ResumeEmptyState';
+import { JobTrackerView } from './jobs/JobTrackerView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +50,8 @@ import {
 import { cn } from '@/lib/utils';
 import { logoIcon } from '@/assets/logo';
 
+export type DashboardWorkspaceTab = 'resumes' | 'jobs';
+
 interface ResumeDashboardProps {
   resumes: ResumeDocument[];
   onSelectResume: (id: string) => void;
@@ -55,6 +61,18 @@ interface ResumeDashboardProps {
   onRenameResume: (id: string, newTitle: string) => void;
   onPreviewResume: (id: string) => void;
   onDownloadResume: (id: string) => void;
+  jobs?: JobApplication[];
+  activeTab?: DashboardWorkspaceTab;
+  onTabChange?: (tab: DashboardWorkspaceTab) => void;
+  onSaveJob?: (input: JobApplicationInput, existingId?: string) => void;
+  onUpdateJobStatus?: (jobId: string, nextStatus: JobStatus) => void;
+  onDeleteJob?: (jobId: string) => void;
+  onTailorResumeForJob?: (
+    baseResumeId: string,
+    company: string,
+    role: string,
+    jobId?: string
+  ) => string | null;
   userEmail?: string | null;
   userName?: string | null;
   userAvatarUrl?: string | null;
@@ -134,6 +152,13 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
   onRenameResume,
   onPreviewResume,
   onDownloadResume,
+  jobs = [],
+  activeTab,
+  onTabChange,
+  onSaveJob,
+  onUpdateJobStatus,
+  onDeleteJob,
+  onTailorResumeForJob,
   userEmail,
   userName,
   userAvatarUrl,
@@ -142,6 +167,12 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
   isLoading = false,
   syncStatus = 'saved',
 }) => {
+  const [internalTab, setInternalTab] = useState<DashboardWorkspaceTab>('resumes');
+  const currentTab = activeTab ?? internalTab;
+  const handleSelectTab = (tab: DashboardWorkspaceTab) => {
+    setInternalTab(tab);
+    onTabChange?.(tab);
+  };
   const [deletingResume, setDeletingResume] = useState<ResumeDocument | null>(null);
   const [isConfirmingSignOut, setIsConfirmingSignOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -339,15 +370,56 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
       {/* Floating Top Header */}
       <header className="sticky top-0 z-30 pt-3 sm:pt-4 px-3 sm:px-6 pointer-events-none">
         <div className="max-w-6xl mx-auto h-16 px-3.5 sm:px-6 flex items-center justify-between rounded-full border border-border/80 bg-background/90 backdrop-blur-md shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08),0_2px_8px_-2px_rgba(15,23,42,0.04)] pointer-events-auto transition-all">
-          <div className="flex items-center gap-3">
-            <span className="font-extrabold text-xl tracking-tight text-foreground flex items-center gap-2.5">
+          <div className="flex items-center gap-3 sm:gap-5">
+            <span className="font-extrabold text-xl tracking-tight text-foreground flex items-center gap-2.5 shrink-0">
               <img
                 src={logoIcon}
                 alt="Cevee"
                 className="size-8 sm:size-9 object-contain drop-shadow-xs"
               />
-              <span className="tracking-tight">Cevee</span>
+              <span className="hidden min-[440px]:inline tracking-tight">Cevee</span>
             </span>
+
+            {/* Workspace Navigation Switcher */}
+            <nav
+              aria-label="Workspace section"
+              className="inline-flex h-10 items-center rounded-full border border-border/80 bg-muted/50 p-1 shadow-2xs"
+            >
+              <button
+                type="button"
+                onClick={() => handleSelectTab('resumes')}
+                aria-current={currentTab === 'resumes' ? 'page' : undefined}
+                className={cn(
+                  'relative inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-[""]',
+                  currentTab === 'resumes'
+                    ? 'bg-card text-foreground shadow-2xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <FileText className="size-3.5 shrink-0" />
+                <span>Resumes</span>
+                <span className="hidden sm:inline text-[11px] font-normal text-muted-foreground tabular-nums">
+                  {resumes.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectTab('jobs')}
+                aria-current={currentTab === 'jobs' ? 'page' : undefined}
+                className={cn(
+                  'relative inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-[""]',
+                  currentTab === 'jobs'
+                    ? 'bg-card text-foreground shadow-2xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Briefcase className="size-3.5 shrink-0" />
+                <span>Job tracker</span>
+                <span className="hidden sm:inline text-[11px] font-normal text-muted-foreground tabular-nums">
+                  {jobs.length}
+                </span>
+              </button>
+            </nav>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -495,6 +567,23 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
 
       {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-24 sm:py-12 flex-1 w-full">
+        {currentTab === 'jobs' ? (
+          <JobTrackerView
+            jobs={jobs}
+            resumes={resumes}
+            onSaveJob={(input, existingId) => onSaveJob?.(input, existingId)}
+            onUpdateJobStatus={(jobId, nextStatus) => onUpdateJobStatus?.(jobId, nextStatus)}
+            onDeleteJob={(jobId) => onDeleteJob?.(jobId)}
+            onTailorResumeForJob={(baseResumeId, company, role, jobId) =>
+              onTailorResumeForJob?.(baseResumeId, company, role, jobId) ?? null
+            }
+            onSelectResume={onSelectResume}
+            onPreviewResume={onPreviewResume}
+            syncStatus={syncStatus}
+            isCloudUser={!isGuest}
+          />
+        ) : (
+          <>
         {/* Title Section */}
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
@@ -861,6 +950,8 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
             )}
           </>
         )}
+          </>
+        )}
       </main>
 
       {/* Confirmation Modal for Resume Deletion */}
@@ -884,7 +975,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
       <ConfirmDialog
         isOpen={isConfirmingSignOut}
         title="Exit guest mode?"
-        description="Your resumes are stored only in this browser while using guest mode. Exiting deletes them permanently. To keep them, use 'Save to cloud' to sign in."
+        description="Your resumes and tracked applications are stored only in this browser while using guest mode. Exiting deletes them permanently. To keep them, use 'Save to cloud' to sign in."
         confirmLabel="Exit and delete"
         cancelLabel="Stay"
         isDestructive={true}
@@ -896,7 +987,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
       />
 
       {/* Mobile Bottom Action Bar */}
-      {!isLoading && resumes.length > 0 && (
+      {!isLoading && currentTab === 'resumes' && resumes.length > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-3 pb-[calc(0.625rem+env(safe-area-inset-bottom))] pt-2.5 shadow-lg backdrop-blur-md sm:hidden">
           <Button
             variant="default"

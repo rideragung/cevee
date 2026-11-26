@@ -313,6 +313,26 @@ feedback only.
   - Copy menjelaskan penyimpanan Supabase, RLS, MCP OAuth tanpa service role, pengiriman teks ke Gemini, local draft, dan cara mencabut akses.
 - **Dashboard:** item `Connect AI` di dropdown profil (ikon `Plug`, tile `bg-primary/10 text-primary`); tombol standalone di header dihapus agar header tetap fokus pada `Create resume`.
 
+## Job Tracker Workspace & Local JD Match (2026-11-26)
+
+- **Workspace Switcher (Floating Top Header):**
+  - Segmented pill (`rounded-full border border-border/80 bg-muted/50 p-1`) next to the Cevee brand mark in the dashboard header, switching between `Resumes` (`FileText`) and `Job tracker` (`Briefcase`) with `tabular-nums` counts.
+  - Adjacent segment buttons use vertical hit-area guards (`after:absolute after:-inset-y-2 after:-inset-x-0.5 after:content-['']`) so touch targets reach 44px vertically without overlapping horizontally.
+- **Primary Action & Title Row:**
+  - When the `Job tracker` workspace is active, the title row carries the single primary CTA `"Add application"` (`Button variant="default"`), matching `"Create resume"` on the Resumes workspace.
+- **Semantic Stage Badges (Icon + Text):**
+  - Every pipeline stage pairs a functional Tabler icon with a sentence-case label:
+    - `Saved` (`Bookmark`, neutral secondary pill)
+    - `Applied` (`Send`, cobalt accent pill)
+    - `Interviewing` (`Messages`, amber pill)
+    - `Offer received` (`CircleCheck`, emerald pill)
+    - `Not selected` (`CircleX`, rose pill)
+    - `Archived` (`Archive`, muted pill)
+- **Kanban Board & List View:**
+  - Summary strip uses 4 flat `rounded-2xl` metric cards with `tabular-nums` figures.
+  - Board columns (`rounded-2xl border bg-muted/35 p-3`) hold application cards (`rounded-2xl border border-border bg-card p-4`) with both desktop drag-and-drop and a 1-click stage dropdown on each card for keyboard and touch accessibility.
+  - Each application card embeds a linked resume box (`bg-muted/25 rounded-xl p-2.5`) with direct actions to open the linked resume in the editor, preview it, or create a tailored duplicate copy (`Duplicate & tailor copy`), plus a live local JD keyword match percentage (`tabular-nums`).
+
 ## Conflict Dialog: Resume Changed Elsewhere (2026-11-26)
 
 - Dipicu oleh guard optimistik `version` saat resume aktif berubah di tab lain atau melalui Cevee MCP.

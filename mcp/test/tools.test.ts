@@ -283,4 +283,74 @@ describe('MCP tools', () => {
     );
     expect(deleted.deleted).toBe(true);
   });
+
+  it('creates, updates, matches, and deletes a tracked job application', async () => {
+    const resumeForJob = parseResult(
+      await client.callTool({
+        name: 'create_resume',
+        arguments: {
+          title: 'Frontend Engineer Resume',
+          targetRole: 'Frontend Engineer',
+        },
+      })
+    ) as unknown as ResumeDocument;
+
+    const createdJob = parseResult(
+      await client.callTool({
+        name: 'create_job',
+        arguments: {
+          company: 'Acme Corp',
+          role: 'Frontend Engineer',
+          status: 'applied',
+          workMode: 'remote',
+          location: 'Jakarta',
+          resumeId: resumeForJob.id,
+          jobDescription:
+            'We are looking for a Frontend Engineer with React, TypeScript, Tailwind CSS, and GraphQL.',
+        },
+      })
+    );
+
+    expect(createdJob.id).toBeTruthy();
+    expect(createdJob.company).toBe('Acme Corp');
+    expect(createdJob.version).toBe(1);
+
+    const listedJobs = parseResult(
+      await client.callTool({
+        name: 'list_jobs',
+        arguments: { status: 'applied' },
+      })
+    ) as unknown as Array<{ id: string }>;
+    expect(listedJobs.some((j) => j.id === createdJob.id)).toBe(true);
+
+    const fetchedJob = parseResult(
+      await client.callTool({
+        name: 'get_job',
+        arguments: { jobId: createdJob.id },
+      })
+    );
+    expect(fetchedJob.jdMatch).toBeTruthy();
+
+    const updatedJob = parseResult(
+      await client.callTool({
+        name: 'update_job',
+        arguments: {
+          jobId: createdJob.id,
+          expectedVersion: 1,
+          status: 'interview',
+          notes: 'Technical interview scheduled for Friday',
+        },
+      })
+    );
+    expect(updatedJob.status).toBe('interview');
+    expect(updatedJob.version).toBe(2);
+
+    const deletedJob = parseResult(
+      await client.callTool({
+        name: 'delete_job',
+        arguments: { jobId: createdJob.id, confirm: true },
+      })
+    );
+    expect(deletedJob.deleted).toBe(true);
+  });
 });

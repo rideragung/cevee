@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.45.0  
+**Dokumen Versi:** 1.46.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Responsive: Desktop, Tablet & Mobile)  
@@ -37,6 +37,7 @@ Cevee memungkinkan pengguna:
 12. Mengedit CV secara penuh dari perangkat mobile (tata letak responsif penuh tanpa *horizontal scroll*), dengan kanvas A4 yang mengalir ulang sesuai lebar layar di bawah ambang `900px`.
 13. Memilih format layout saat membuat CV baru dan mengganti layout secara fleksibel langsung dari kanvas editor dengan preservasi konten 100%.
 14. Memilih dan mengganti bahasa dokumen resume per-CV (`English` / `Bahasa Indonesia`) tanpa mengubah bahasa antarmuka aplikasi web (yang tetap English US).
+15. Melacak lamaran kerja melalui fitur **Job Tracker** terintegrasi (tampilan Kanban Board & List View), menautkan versi CV spesifik ke setiap lamaran, menduplikasi & menyesuaikan CV dengan 1 klik (*Duplicate & tailor copy*), serta mencocokkan kata kunci *Job Description* secara lokal (*Zero-Cost Local JD Keyword Matcher*) maupun melalui Cevee MCP Server.
 
 ### 1.3 Batasan Biaya & Keamanan Infrastruktur AI (Strict Constraints)
 - **Zero Cost (Rp 0):** Seluruh infrastruktur wajib berjalan di tingkat gratis permanen (*free tier*) tanpa kewajiban kartu kredit (Supabase, Vercel Serverless, Google AI Studio / Gemini API free tier).
@@ -692,6 +693,22 @@ export interface ResumeDocument {
 ---
 
 ## 7. RIWAYAT VERSI (CHANGELOG)
+
+### 1.46.0 — Integrated Resume-Centric Job Tracker (Kanban + List, Local JD Match & MCP Tools)
+- **Skema Database & Hybrid Persistence (`supabase/migrations/20261127_add_job_applications.sql`, `src/types/job.ts`, `src/lib/domain/jobRow.ts`, `src/lib/jobService.ts`):**
+  - Menambahkan tabel `public.job_applications` di Supabase dengan RLS (`auth.uid() = user_id`), token *optimistic concurrency* `version`, dan fallback graceful degradation jika tabel belum dimigrasikan.
+  - Menyediakan penyimpanan lokal `localStorage` (`cevee_job_applications_v1`) untuk pengguna Guest serta migrasi otomatis Guest-to-Cloud saat login di `src/App.tsx`.
+  - Ketika sebuah resume dihapus, lamaran yang tertaut ke `resume_id` tersebut otomatis dilepas tautannya (`resumeId: undefined`) tanpa menghapus riwayat lamaran.
+- **Mesin Pencocokan Kata Kunci JD Lokal (`src/lib/domain/jdMatch.ts`):**
+  - Mengekstrak kata kunci teknis dan istilah domain dari *Job Description* + *Role title* secara deterministik 100% di sisi klien (Rp 0 biaya API) dan membandingkannya dengan teks penuh `ResumeDocument` yang tertaut (`matchJobToResume`), menghasilkan persentase kecocokan (`score`), `matchedKeywords`, dan `missingKeywords`.
+- **Antarmuka Job Tracker Pillow Light (`src/components/jobs/JobTrackerView.tsx`, `JobFormDialog.tsx`, `JobEmptyState.tsx`, `ResumeDashboard.tsx`):**
+  - Menambahkan switcher navigasi ruang kerja (`Resumes` | `Job tracker`) di bilah Floating Top Header.
+  - Menyediakan 4 kartu ringkasan metrik berformat `tabular-nums` (*Total tracked*, *Active pipeline*, *Interviewing*, *Offers received*), pencarian instan (`h-11`), filter tahap lamaran, pengurutan, serta toggle **Board View (Kanban)** dan **List View** (tersimpan di `localStorage`).
+  - Mendukung drag-and-drop antar kolom Kanban di desktop sekaligus dropdown pemindah tahap 1-klik di setiap kartu/baris untuk aksesibilitas keyboard dan perangkat sentuh.
+  - Menyediakan tombol **Duplicate & tailor copy** untuk menggandakan CV dasar menjadi variasi khusus perusahaan/posisi tujuan dan langsung menautkannya ke lamaran.
+- **Ekstensi Cevee MCP Server (`src/lib/mcp/tools/jobs.ts`, `src/lib/mcp/store/*`):**
+  - Menambahkan tools MCP `list_jobs`, `get_job`, `create_job`, `update_job`, `delete_job`, dan `match_job_resume` pada `SupabaseResumeStore` dan `MemoryStore`.
+- **Verifikasi:** `npm run lint` ✓, `npm run build` ✓, `npm run typecheck:api` ✓, `npm run mcp:build` ✓, `npm run mcp:test` ✓ (22 test lulus).
 
 ### 1.45.0 — MCP Private Beta: Public Signup, Invite Copy & RLS Two-User Test
 - **Pendaftaran publik:** Sign-up tetap terbuka tanpa allowlist; email confirmation sudah aktif; password minimum dinaikkan dari 6 ke 8 karakter. Tidak ada perubahan pada alur AuthPage.

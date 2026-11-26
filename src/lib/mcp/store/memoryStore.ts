@@ -1,9 +1,12 @@
 import type { ResumeDocument } from '../../../types/resume';
+import type { JobApplication } from '../../../types/job';
 import { normalizeLayoutId } from '../../../layouts/ids';
 import type {
+  ListJobsOptions,
   ListResumesOptions,
   ResumeStore,
   ResumeSummary,
+  StoreJobUpdateResult,
   StoreUpdateResult,
 } from './types';
 
@@ -24,10 +27,14 @@ const toSummary = (resume: ResumeDocument): ResumeSummary => ({
  */
 export class MemoryStore implements ResumeStore {
   private readonly resumes = new Map<string, ResumeDocument>();
+  private readonly jobs = new Map<string, JobApplication>();
 
-  constructor(seed: ResumeDocument[] = []) {
+  constructor(seed: ResumeDocument[] = [], jobSeed: JobApplication[] = []) {
     for (const resume of seed) {
       this.resumes.set(resume.id, structuredClone(resume));
+    }
+    for (const job of jobSeed) {
+      this.jobs.set(job.id, structuredClone(job));
     }
   }
 
@@ -85,6 +92,74 @@ export class MemoryStore implements ResumeStore {
   }
 
   async deleteResume(id: string): Promise<boolean> {
-    return this.resumes.delete(id);
+    const deleted = this.resumes.delete(id);
+    if (deleted) {
+      for (const [jobId, job] of this.jobs.entries()) {
+        if (job.resumeId === id) {
+          this.jobs.set(jobId, { ...job, resumeId: undefined });
+        }
+      }
+    }
+    return deleted;
+  }
+
+  async listJobs(options: ListJobsOptions = {}): Promise<JobApplication[]> {
+    const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
+    const offset = Math.max(options.offset ?? 0, 0);
+
+    return Array.from(this.jobs.values())
+      .filter((job) => (options.status ? job.status === options.status : true))
+      .sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      )
+      .slice(offset, offset + limit)
+      .map((job) => structuredClone(job));
+  }
+
+  async getJob(id: string): Promise<JobApplication | null> {
+    const job = this.jobs.get(id);
+    return job ? structuredClone(job) : null;
+  }
+
+  async createJob(job: JobApplication): Promise<JobApplication> {
+    if (this.jobs.has(job.id)) {
+      throw new Error(`Job application "${job.id}" already exists.`);
+    }
+    const now = new Date().toISOString();
+    const created: JobApplication = {
+      ...structuredClone(job),
+      version: 1,
+      createdAt: job.createdAt || now,
+      updatedAt: now,
+    };
+    this.jobs.set(created.id, created);
+    return structuredClone(created);
+  }
+
+  async updateJob(
+    job: JobApplication,
+    expectedVersion: number
+  ): Promise<StoreJobUpdateResult> {
+    const current = this.jobs.get(job.id);
+    if (!current) {
+      return { ok: false, reason: 'conflict', latest: null };
+    }
+
+    const currentVersion = current.version ?? 1;
+    if (currentVersion !== expectedVersion) {
+      return { ok: false, reason: 'conflict', latest: structuredClone(current) };
+    }
+
+    const updated: JobApplication = {
+      ...structuredClone(job),
+      version: expectedVersion + 1,
+      updatedAt: new Date().toISOString(),
+    };
+    this.jobs.set(updated.id, updated);
+    return { ok: true, job: structuredClone(updated) };
+  }
+
+  async deleteJob(id: string): Promise<boolean> {
+    return this.jobs.delete(id);
   }
 }

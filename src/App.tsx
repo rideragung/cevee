@@ -29,7 +29,7 @@ import { CustomSection } from './components/sections/CustomSection';
 import { AddSectionBar } from './components/AddSectionBar';
 import { PreviewModal } from './components/PreviewModal';
 import { PaginatedResumeView } from './components/PaginatedResumeView';
-import { ResumeDashboard } from './components/ResumeDashboard';
+import { ResumeDashboard, type DashboardWorkspaceTab } from './components/ResumeDashboard';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { ConflictDialog } from './components/ConflictDialog';
 import { LayoutSelectModal } from './components/LayoutSelectModal';
@@ -42,6 +42,20 @@ import {
   saveUserResumes,
   deleteUserResume,
 } from './lib/resumeService';
+import {
+  fetchUserJobs,
+  saveUserJob,
+  saveUserJobs,
+  deleteUserJob,
+} from './lib/jobService';
+import { createJobApplication } from './lib/domain/jobRow';
+import {
+  JobApplication,
+  JobApplicationInput,
+  JobStatus,
+  normalizeJobStatus,
+  normalizeWorkMode,
+} from './types/job';
 import { DEFAULT_LAYOUT_ID, normalizeLayoutId } from './layouts/registry';
 import { Dialog, DialogContent } from './components/ui/dialog';
 import { User } from '@supabase/supabase-js';
@@ -52,6 +66,7 @@ const ACTIVE_RESUME_KEY = 'cevee_active_resume_id_v3';
 const GUEST_DATA_FLAG_KEY = 'cevee_has_guest_data_v3';
 const IS_GUEST_KEY = 'cevee_is_guest_v3';
 const PENDING_DRAFT_KEY = 'cevee_pending_drafts_v1';
+const JOBS_STORAGE_KEY = 'cevee_job_applications_v1';
 
 interface PendingDraftEntry {
   resume: ResumeDocument;
@@ -146,6 +161,27 @@ export function App() {
 
   // Default view is 'dashboard' so user always lands on the resume list first!
   const [currentView, setCurrentView] = useState<'dashboard' | 'editor'>('dashboard');
+  const [dashboardTab, setDashboardTab] = useState<DashboardWorkspaceTab>('resumes');
+  const [jobs, setJobs] = useState<JobApplication[]>(() => {
+    const saved = localStorage.getItem(JOBS_STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as JobApplication[];
+        return Array.isArray(parsed)
+          ? parsed.map((j) => ({
+              ...j,
+              status: normalizeJobStatus(j.status),
+              workMode: normalizeWorkMode(j.workMode),
+            }))
+          : [];
+      } catch (e) {
+        console.error('Failed to parse saved job applications', e);
+      }
+    }
+    return [];
+  });
+  const jobsRef = useRef(jobs);
+  jobsRef.current = jobs;
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [layoutModal, setLayoutModal] = useState<{ isOpen: boolean; mode: 'create' | 'switch' }>({
     isOpen: false,
@@ -255,8 +291,10 @@ export function App() {
     setUser(null);
     setIsGuest(false);
     setResumes([]);
+    setJobs([]);
     setActiveResumeId('');
     setCurrentView('dashboard');
+    setDashboardTab('resumes');
     lastSavedAtRef.current = {};
     setConflict(null);
     localStorage.removeItem(LOCAL_STORAGE_KEY);
@@ -264,6 +302,7 @@ export function App() {
     localStorage.removeItem(GUEST_DATA_FLAG_KEY);
     localStorage.removeItem(IS_GUEST_KEY);
     localStorage.removeItem(PENDING_DRAFT_KEY);
+    localStorage.removeItem(JOBS_STORAGE_KEY);
   };
 
   const handleContinueAsGuest = () => {
@@ -289,11 +328,26 @@ export function App() {
     let isMounted = true;
     setResumesLoadedForUser(null);
     setSyncStatus('saving');
-    fetchUserResumes()
-      .then(async (dbResumes) => {
+    Promise.all([fetchUserResumes(), fetchUserJobs()])
+      .then(async ([dbResumes, dbJobs]) => {
         if (!isMounted) return;
 
         const hasGuestFlag = localStorage.getItem(GUEST_DATA_FLAG_KEY) === 'true';
+
+        // Sync & merge any Guest Job Applications
+        const localJobs = jobsRef.current;
+        const cloudJobs = dbJobs || [];
+        if ((hasGuestFlag || isGuest) && localJobs.length > 0) {
+          const cloudJobIds = new Set(cloudJobs.map((j) => j.id));
+          const newJobsToUpload = localJobs.filter((j) => !cloudJobIds.has(j.id));
+          if (newJobsToUpload.length > 0) {
+            await saveUserJobs(newJobsToUpload);
+          }
+          setJobs([...newJobsToUpload, ...cloudJobs]);
+        } else if (dbJobs) {
+          setJobs(dbJobs);
+        }
+
         let localResumes: ResumeDocument[] = resumesRef.current;
         if (!localResumes || localResumes.length === 0) {
           const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -455,6 +509,14 @@ export function App() {
     }
     localStorage.removeItem(LOCAL_STORAGE_KEY);
   }, [resumes, user]);
+
+  // Keep tracked job applications in localStorage for Guest mode and offline fallback
+  useEffect(() => {
+    localStorage.setItem(JOBS_STORAGE_KEY, JSON.stringify(jobs));
+    if (!user && jobs.length > 0) {
+      localStorage.setItem(GUEST_DATA_FLAG_KEY, 'true');
+    }
+  }, [jobs, user]);
 
   // Persist only the active unsaved draft for signed-in users.
   useEffect(() => {
@@ -880,6 +942,199 @@ export function App() {
       setActiveResumeId('');
       setCurrentView('dashboard');
     }
+
+    // Unlink any job applications referencing the deleted resume
+    setJobs((prevJobs) =>
+      prevJobs.map((job) => {
+        if (job.resumeId !== id) return job;
+        const updatedJob: JobApplication = {
+          ...job,
+          resumeId: undefined,
+          updatedAt: new Date().toISOString(),
+        };
+        if (user) {
+          void saveUserJob(updatedJob, updatedJob.version ?? 1);
+        }
+        return updatedJob;
+      })
+    );
+  };
+
+  // Job Tracker CRUD & Resume Tailoring Handlers
+  const handleSaveJob = (input: JobApplicationInput, existingId?: string) => {
+    const now = new Date().toISOString();
+    if (existingId) {
+      const existing = jobsRef.current.find((j) => j.id === existingId);
+      if (!existing) return;
+      const updatedJob: JobApplication = {
+        ...existing,
+        company: input.company.trim(),
+        role: input.role.trim(),
+        status: normalizeJobStatus(input.status),
+        workMode: normalizeWorkMode(input.workMode),
+        location: (input.location ?? '').trim(),
+        salaryRange: (input.salaryRange ?? '').trim(),
+        jobUrl: (input.jobUrl ?? '').trim(),
+        appliedDate: input.appliedDate?.trim() || undefined,
+        resumeId: input.resumeId?.trim() || undefined,
+        jobDescription: input.jobDescription ?? '',
+        notes: input.notes ?? '',
+        updatedAt: now,
+      };
+      setJobs((prev) => prev.map((j) => (j.id === existingId ? updatedJob : j)));
+      if (user) {
+        setSyncStatus('saving');
+        void saveUserJob(updatedJob, existing.version ?? 1).then((result) => {
+          if (result.ok) {
+            setJobs((prev) =>
+              prev.map((j) => (j.id === existingId ? { ...j, version: result.version } : j))
+            );
+            setSyncStatus('saved');
+          } else if (result.reason === 'missing_table') {
+            setSyncStatus('saved');
+          } else {
+            setSyncStatus('error');
+          }
+        });
+      }
+      return;
+    }
+
+    const newJob = createJobApplication(input);
+    setJobs((prev) => [newJob, ...prev]);
+    if (user) {
+      setSyncStatus('saving');
+      void saveUserJob(newJob).then((result) => {
+        if (result.ok) {
+          setJobs((prev) =>
+            prev.map((j) => (j.id === newJob.id ? { ...j, version: result.version } : j))
+          );
+          setSyncStatus('saved');
+        } else if (result.reason === 'missing_table') {
+          setSyncStatus('saved');
+        } else {
+          setSyncStatus('error');
+        }
+      });
+    }
+  };
+
+  const handleUpdateJobStatus = (jobId: string, nextStatus: JobStatus) => {
+    const existing = jobsRef.current.find((j) => j.id === jobId);
+    if (!existing || existing.status === nextStatus) return;
+
+    const now = new Date().toISOString();
+    const shouldStampAppliedDate =
+      !existing.appliedDate &&
+      (nextStatus === 'applied' || nextStatus === 'interview' || nextStatus === 'offer');
+
+    const updatedJob: JobApplication = {
+      ...existing,
+      status: nextStatus,
+      appliedDate: shouldStampAppliedDate ? now.slice(0, 10) : existing.appliedDate,
+      updatedAt: now,
+    };
+
+    setJobs((prev) => prev.map((j) => (j.id === jobId ? updatedJob : j)));
+    if (user) {
+      setSyncStatus('saving');
+      void saveUserJob(updatedJob, existing.version ?? 1).then((result) => {
+        if (result.ok) {
+          setJobs((prev) =>
+            prev.map((j) => (j.id === jobId ? { ...j, version: result.version } : j))
+          );
+          setSyncStatus('saved');
+        } else if (result.reason === 'missing_table') {
+          setSyncStatus('saved');
+        } else {
+          setSyncStatus('error');
+        }
+      });
+    }
+  };
+
+  const handleDeleteJob = async (jobId: string) => {
+    const target = jobsRef.current.find((j) => j.id === jobId);
+    if (!target) return;
+
+    setJobs((prev) => prev.filter((j) => j.id !== jobId));
+    if (user) {
+      const deleted = await deleteUserJob(jobId);
+      if (!deleted) {
+        setJobs((prev) => [target, ...prev.filter((j) => j.id !== jobId)]);
+        setSyncStatus('error');
+      }
+    }
+  };
+
+  const handleTailorResumeForJob = (
+    baseResumeId: string,
+    company: string,
+    role: string,
+    jobId?: string
+  ): string | null => {
+    const target = resumesRef.current.find((r) => r.id === baseResumeId) || resumesRef.current[0];
+    if (!target) return null;
+
+    const newId = `resume-${Date.now()}`;
+    const cleanCompany = company.trim();
+    const cleanRole = role.trim();
+    const customTitle =
+      cleanRole && cleanCompany
+        ? `${cleanRole} — ${cleanCompany}`
+        : cleanCompany
+        ? `${target.title} (${cleanCompany})`
+        : cleanRole
+        ? `${target.title} (${cleanRole})`
+        : `${target.title} (Tailored)`;
+
+    const duplicated: ResumeDocument = {
+      ...JSON.parse(JSON.stringify(target)),
+      id: newId,
+      title: customTitle,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      version: 1,
+    };
+
+    // If role was provided, prepend or set it in the header roles if not already present
+    if (cleanRole) {
+      const existingRoles = duplicated.content.header.roles || [];
+      if (
+        !existingRoles.some((r) => r.toLowerCase() === cleanRole.toLowerCase()) &&
+        existingRoles.length < 4
+      ) {
+        duplicated.content.header.roles = [cleanRole, ...existingRoles].slice(0, 4);
+      }
+    }
+
+    setResumes((prev) => [duplicated, ...prev]);
+    setActiveResumeId(newId);
+
+    if (user) {
+      void saveUserResume(duplicated).then((result) => {
+        if (result.ok) {
+          lastSavedAtRef.current[duplicated.id] = duplicated.updatedAt;
+        }
+      });
+    }
+
+    if (jobId) {
+      const existingJob = jobsRef.current.find((j) => j.id === jobId);
+      if (existingJob) {
+        const updatedJob: JobApplication = {
+          ...existingJob,
+          resumeId: newId,
+          updatedAt: new Date().toISOString(),
+        };
+        setJobs((prev) => prev.map((j) => (j.id === jobId ? updatedJob : j)));
+        if (user) {
+          void saveUserJob(updatedJob, existingJob.version ?? 1);
+        }
+      }
+    }
+
+    return newId;
   };
 
   const handleRenameResume = (id: string, newTitle: string) => {
@@ -1111,6 +1366,13 @@ export function App() {
             onRenameResume={handleRenameResume}
             onPreviewResume={handlePreviewResume}
             onDownloadResume={handleDownloadResumeById}
+            jobs={jobs}
+            activeTab={dashboardTab}
+            onTabChange={setDashboardTab}
+            onSaveJob={handleSaveJob}
+            onUpdateJobStatus={handleUpdateJobStatus}
+            onDeleteJob={handleDeleteJob}
+            onTailorResumeForJob={handleTailorResumeForJob}
             userEmail={user?.email}
             userName={
               (user?.user_metadata?.full_name as string) ||

@@ -34,6 +34,7 @@ Cevee is a browser-based resume builder that renders a real A4 page while you ed
 - **Sections for every case.** Summary, Work Experience, Education (with document links for transcripts/certificates, related coursework, and linked final thesis), Projects, and Skills are built in; add Certifications, Languages, Publications, Awards, Volunteering, References, or a custom section.
 - **Per-resume language (`EN` / `ID`).** Keep the web interface in English while setting each resume document to English or Bahasa Indonesia: standard section headings, `GPA:` / `IPK:`, coursework and thesis labels, certification labels, relocation text, and month/period strings (`Aug` / `Agu`, `Present` / `Sekarang`) update per resume.
 - **Multiple resumes.** Create, duplicate, rename, and delete as many versions as you have applications, with quick preview available from the card menu or the list view.
+- **Integrated job tracker.** Track applications across Kanban board and list views (`Saved`, `Applied`, `Interviewing`, `Offer received`, `Not selected`, `Archived`), link the exact resume version sent, duplicate and tailor a resume copy in one click, and check local keyword coverage against the pasted job description.
 - **Mobile editing.** The editor reflows down to 320 px: the A4 canvas scrolls, controls become tappable, and the preview fits the screen.
 
 ### Data and privacy
@@ -202,6 +203,8 @@ Tools:
 - `list_layouts`, `set_layout`
 - `import_resume` — PDF text/base64/file → Gemini draft; `save: false` by default
 - `ats_audit` — deterministic ATS score and issues
+- `list_jobs`, `get_job`, `create_job`, `update_job`, `delete_job`,
+  `match_job_resume` — job application tracking and local job-description keyword matching
 
 `import_resume` requires `GEMINI_API_KEYS` (and optional `GEMINI_MODEL`) in the
 MCP environment. It returns a draft by default; `save: true` creates a new

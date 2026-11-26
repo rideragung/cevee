@@ -6,6 +6,7 @@ import { registerResources } from './resources';
 import type { ResumeStore } from './store/types';
 import { registerItemTools } from './tools/items';
 import { registerImportTools, type McpImportServices } from './tools/import';
+import { registerJobTools } from './tools/jobs';
 import { registerLayoutTools } from './tools/layouts';
 import { registerQualityTools } from './tools/quality';
 import { registerResumeTools } from './tools/resumes';
@@ -33,6 +34,7 @@ export const buildMcpServer = ({
   registerItemTools(server, store, auth);
   registerLayoutTools(server, store, auth);
   registerImportTools(server, store, auth, importServices);
+  registerJobTools(server, store, auth);
   registerResources(server, store, auth);
   registerPrompts(server);
 

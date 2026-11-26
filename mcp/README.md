@@ -50,6 +50,8 @@ role key: every query runs with the signed-in user's token and Supabase RLS.
 - `list_layouts`, `set_layout`
 - `import_resume` — PDF text/base64/file → Gemini draft; `save: false` by default
 - `ats_audit` — deterministic ATS score and issues
+- `list_jobs`, `get_job`, `create_job`, `update_job`, `delete_job`,
+  `match_job_resume` — job application tracking and local job-description keyword matching
 
 Every update requires `expectedVersion`. A stale version returns a conflict with
 the latest document; re-read it and retry. Creates do not need a version. Delete
