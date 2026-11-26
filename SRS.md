@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # Project: Cevee (Personal CV Generator)
 
-**Dokumen Versi:** 1.43.0  
+**Dokumen Versi:** 1.45.0  
 **Status:** Approved  
 **Model Operasional:** 100% Free-Tier (Zero Cost)  
 **Target Platform:** Web (Responsive: Desktop, Tablet & Mobile)  
@@ -355,6 +355,10 @@ Seluruh halaman editor (dashboard, kanvas, form edit, preview, dan dialog) wajib
 - **FR-15.3b (Audit ATS):** `ats_audit` menjalankan aturan deterministik di `src/lib/domain/ats.ts` dan mengembalikan skor 0–100, daftar isu (critical/warning/info), serta ringkasan jumlah section, item, bullet, dan kata. Tool ini read-only.
 - **FR-15.4 (MCP Remote):** Endpoint Streamable HTTP di Vercel Edge (`/api/mcp`) memakai OAuth 2.1 Supabase (DCR + PKCE S256 + `offline_access`) sebagai authorization server. Resource server memverifikasi JWT lewat JWKS Supabase, membuat Supabase client dengan token user, dan mengandalkan RLS; tidak ada service role. Discovery tersedia di `/.well-known/oauth-protected-resource`, consent page di `/oauth/consent`, dan halaman penghubung di `/connect-ai`. Remote `import_resume` hanya menerima `pdfText`; `pdfBase64` dan `filePath` tetap lokal.
 - **FR-15.5 (Batasan):** Guest mode tidak dapat memakai MCP karena data hanya berada di `localStorage`. Export PDF tetap dijalankan di sisi klien; remote MCP tidak menjalankan Playwright.
+- **FR-15.6 (Rate Limit Remote):** Remote MCP membatasi 120 request per menit per user melalui RPC `consume_mcp_quota` dan tabel `public.mcp_usage`. Melebihi batas menghasilkan `429` dengan header `Retry-After`. Tabel hanya dapat ditulis oleh fungsi security-definer; akses langsung ditolak.
+- **FR-15.7 (Privasi & Ketentuan):** Halaman `/privacy` dan `/terms` menjelaskan data yang disimpan, pihak ketiga (Supabase, Vercel, Google Gemini, AI client), retensi/penghapusan, dan cara mencabut OAuth client. Consent page menautkan kedua halaman.
+- **FR-15.8 (Kompatibilitas Client):** Client remote memakai OAuth; client stdio-only dapat memakai `mcp-remote`. Jalur PAT statis ditunda karena memerlukan data layer service-role yang melewati RLS; tidak diaktifkan sampai ada test isolasi khusus.
+- **FR-15.9 (Pendaftaran Publik Terbuka):** Sign-up tetap publik tanpa allowlist. Supabase Auth mewajibkan konfirmasi email, password minimum 8 karakter, dan MCP rate limit 120 request/menit. Pemilik memantau akun baru dan dapat menghapus akun asing. Isolasi RLS sudah diuji dengan dua user: user B tidak bisa membaca, mencantumkan di daftar, atau mengubah resume user A.
 
 ---
 
@@ -689,6 +693,21 @@ export interface ResumeDocument {
 
 ## 7. RIWAYAT VERSI (CHANGELOG)
 
+### 1.45.0 — MCP Private Beta: Public Signup, Invite Copy & RLS Two-User Test
+- **Pendaftaran publik:** Sign-up tetap terbuka tanpa allowlist; email confirmation sudah aktif; password minimum dinaikkan dari 6 ke 8 karakter. Tidak ada perubahan pada alur AuthPage.
+- **Connect page:** Mengganti kartu “Manage connected apps” (tautan dashboard owner) dengan panduan “Revoke access” dari AI client; menambahkan kartu “Invite a friend” berisi pesan siap-kirim dan tautan “Create a Cevee account”; snippet `mcp-remote` tetap tersedia.
+- **RLS dua user:** Akun uji sementara dibuat dan dihapus otomatis; hasil: owner tidak bisa membaca/mengubah resume user uji, user uji tidak bisa membaca resume owner, dan kedua daftar tidak saling bocor. Test berakhir `rls test: ok`.
+- **Verifikasi:** `npm run build` ✓, `npm run lint` ✓, `npm --prefix mcp run typecheck` ✓, RLS two-user test ✓.
+
+### 1.44.0 — MCP Fase 4: Rate Limit, Privasi & Go-Live
+- **Rate limit remote:** Menambahkan tabel `public.mcp_usage` dan RPC `consume_mcp_quota` (120 request/menit per user); `api/mcp.ts` mengembalikan `429` + `Retry-After` saat kuota habis. Migrasi diterapkan ke project Supabase dan diuji (`true, true, false`).
+- **Privasi & ketentuan:** Menambahkan `/privacy` dan `/terms`, tautan dari consent page dan connect page, serta penjelasan alur data ke Gemini dan AI client.
+- **Connect page:** Menambahkan kartu “Manage connected apps” (tautan ke Supabase OAuth Server), snippet `mcp-remote`, dan tautan Privacy/Terms.
+- **Dokumentasi kompatibilitas:** Matriks client (Claude.ai, ChatGPT, Claude Desktop, Cursor, OpenCode, Codex/Gemini CLI, VS Code/Continue/Cline) dan catatan bahwa PAT statis ditunda.
+- **Deploy produksi:** Aplikasi dan endpoint remote aktif di `https://cevee-beta.vercel.app`; Site URL Supabase dikoreksi dari `https://cevee.vercel.app` ke domain produksi tersebut. Live smoke: `401` tanpa token, `200` initialize dengan token asli, metadata resource/issuer/`offline_access` benar.
+- **OAuth E2E:** Dynamic client registration → authorize `302` ke `/oauth/consent` → consent details → approve → authorization code → token exchange `200` → initialize ke endpoint live `200`. Client uji bernama `Cevee E2E Test (safe to remove)` dan dapat dihapus dari Supabase → Authentication → OAuth Server.
+- **Verifikasi:** `npm run build` ✓, `npm run lint` ✓, `npm run typecheck:api` ✓, `npm --prefix mcp test` ✓ (20 test), rate-limit smoke ✓ (`true, true, false`), live smoke ✓, OAuth E2E ✓.
+
 ### 1.43.0 — MCP Fase 3: Remote Vercel + OAuth 2.1 Supabase
 - **Endpoint Remote (`api/mcp.ts`, `api/oauth-protected-resource.ts`):**
   - Menambahkan handler Edge Streamable HTTP stateless dengan `WebStandardStreamableHTTPServerTransport`.
@@ -700,7 +719,7 @@ export interface ResumeDocument {
   - Menambahkan `/oauth/consent` (`OAuthConsentPage`) dengan detail client, redirect URI, scope, dan aksi Approve/Deny.
   - Menambahkan `/connect-ai` (`ConnectAiPage`) berisi endpoint, langkah Claude.ai/ChatGPT, snippet Cursor/OpenCode, dan catatan keamanan.
   - Menambahkan tombol `Connect AI` di dashboard.
-- **Supabase:** Site URL diset ke `https://cevee.vercel.app`; OAuth server, DCR, dan authorization path `/oauth/consent` aktif; JWKS memakai ES256.
+- **Supabase:** Site URL diset ke `https://cevee-beta.vercel.app`; OAuth server, DCR, dan authorization path `/oauth/consent` aktif; JWKS memakai ES256.
 - **Verifikasi:** `npm run build` ✓, `npm run lint` ✓, `npm run typecheck:api` ✓, `npm --prefix mcp run typecheck` ✓, `npm --prefix mcp test` ✓ (20 test), remote local smoke ✓ (401 tanpa token, 200 initialize dengan token, metadata resource/issuer/`offline_access` benar).
 
 ### 1.42.0 — MCP Fase 2: Import PDF & Audit ATS

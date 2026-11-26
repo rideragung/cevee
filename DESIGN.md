@@ -299,10 +299,18 @@ feedback only.
   - Aksi: `Deny` (outline) dan `Approve access` (primary). Tidak ada CTA lain.
   - Jika belum login, render `AuthPage` tanpa tombol guest; setelah sign-in, detail authorization dimuat ulang.
 - **`/connect-ai` (`ConnectAiPage`):**
-  - Halaman publik `bg-muted` dengan `max-w-3xl`, header logo + judul + badge `OAuth 2.1`, `Streamable HTTP`, `Supabase RLS`.
+  - Halaman publik `bg-muted` dengan `max-w-3xl`, header logo + judul + badge `OAuth 2.1`, `Streamable HTTP`, `Supabase RLS`, serta tautan “Create a Cevee account” untuk pengunjung baru.
+  - Kartu “Invite a friend” berisi pesan siap-kirim (langkah daftar, buka `/connect-ai`, tempel endpoint, setujui consent) dengan tombol copy.
   - Kartu Server URL dengan tombol copy; kartu langkah Claude.ai/ChatGPT; kartu snippet Cursor/OpenCode dengan `CodeBlock` + copy.
+  - Kartu “Other MCP clients” berisi `npx -y mcp-remote <endpoint>` untuk client stdio-only.
+  - Kartu “Revoke access”: panduan mencabut koneksi dari AI client; tautan dashboard Supabase hanya untuk owner, bukan tombol publik.
   - Kartu keamanan memakai ikon `ShieldCheck` di tile `bg-emerald-50 text-emerald-600`, menjelaskan tidak ada service role dan RLS.
-  - Footer kembali ke Cevee; tidak ada CTA menuju login karena halaman ini informasional.
+  - Footer kembali ke Cevee + tautan Privacy/Terms; tidak ada CTA menuju login karena halaman ini informasional.
+- **`/privacy` (`PrivacyPage`) dan `/terms` (`TermsPage`):**
+  - Halaman publik `bg-muted`, `max-w-3xl`, satu `Card` dengan `border-border` dan `shadow-pillow-secondary`.
+  - Judul + “Last updated” + section bernomor untuk terms; section tematik untuk privacy.
+  - Footer: kembali ke Cevee, tautan silang Privacy/Terms dan Connect AI.
+  - Copy menjelaskan penyimpanan Supabase, RLS, MCP OAuth tanpa service role, pengiriman teks ke Gemini, local draft, dan cara mencabut akses.
 - **Dashboard:** tombol `Connect AI` (`variant="outline"`, ikon `Plug`) berdampingan dengan `Create resume` di header daftar resume; hanya tampil di desktop (`hidden sm:inline-flex`) agar tidak menambah kepadatan mobile.
 
 ## Conflict Dialog: Resume Changed Elsewhere (2026-11-26)

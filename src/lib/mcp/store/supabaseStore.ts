@@ -6,6 +6,7 @@ import {
   mapResumeRowToDocument,
   type ResumeRow,
 } from '../../domain/resumeRow';
+import { migrateResumeDocument } from '../../domain/migrations';
 import type {
   ListResumesOptions,
   ResumeStore,
@@ -15,15 +16,15 @@ import type {
 
 const SUMMARY_COLUMNS = 'id,title,layout_id,updated_at,version,content';
 
-const toSummary = (row: ResumeRow): ResumeSummary => ({
-  id: row.id,
-  title: row.title,
-  layoutId: normalizeLayoutId(row.layout_id ?? undefined),
-  updatedAt: row.updated_at,
-  version: typeof row.version === 'number' ? row.version : 1,
-  candidateName: row.content?.header?.fullName ?? '',
-  sectionCount: row.content?.sections?.length ?? 0,
-  language: row.content?.language ?? 'en',
+const toSummary = (resume: ResumeDocument): ResumeSummary => ({
+  id: resume.id,
+  title: resume.title,
+  layoutId: normalizeLayoutId(resume.layoutId),
+  updatedAt: resume.updatedAt,
+  version: resume.version ?? 1,
+  candidateName: resume.content.header.fullName,
+  sectionCount: resume.content.sections.length,
+  language: resume.content.language ?? 'en',
 });
 
 const versionMigrationMessage =
@@ -53,7 +54,9 @@ export class SupabaseResumeStore implements ResumeStore {
       throw new Error(error.message);
     }
 
-    return ((data ?? []) as ResumeRow[]).map(toSummary);
+    return ((data ?? []) as ResumeRow[]).map((row) =>
+      toSummary(migrateResumeDocument(mapResumeRowToDocument(row)))
+    );
   }
 
   async getResume(id: string): Promise<ResumeDocument | null> {
@@ -67,7 +70,9 @@ export class SupabaseResumeStore implements ResumeStore {
       throw new Error(error.message);
     }
 
-    return data ? mapResumeRowToDocument(data as ResumeRow) : null;
+    return data
+      ? migrateResumeDocument(mapResumeRowToDocument(data as ResumeRow))
+      : null;
   }
 
   async createResume(resume: ResumeDocument): Promise<ResumeDocument> {
@@ -81,7 +86,7 @@ export class SupabaseResumeStore implements ResumeStore {
       throw new Error(error.message);
     }
 
-    return mapResumeRowToDocument(data as ResumeRow);
+    return migrateResumeDocument(mapResumeRowToDocument(data as ResumeRow));
   }
 
   async updateResume(
@@ -108,7 +113,7 @@ export class SupabaseResumeStore implements ResumeStore {
       return { ok: false, reason: 'conflict', latest };
     }
 
-    return { ok: true, resume: mapResumeRowToDocument(data as ResumeRow) };
+    return { ok: true, resume: migrateResumeDocument(mapResumeRowToDocument(data as ResumeRow)) };
   }
 
   async deleteResume(id: string): Promise<boolean> {

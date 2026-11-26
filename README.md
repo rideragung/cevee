@@ -184,7 +184,7 @@ alter table public.resumes
 The editor falls back to legacy upsert mode when the column is missing, but
 conflict protection (and MCP write safety) only works after the migration.
 
-## MCP Server (Phase 1 — Local)
+## MCP Server (Local + Remote)
 
 Cevee exposes its resume domain through a Model Context Protocol server so AI
 clients can read and edit resumes. The local stdio server is implemented in
@@ -252,6 +252,8 @@ Phase 3 adds the remote Vercel endpoint with Supabase OAuth 2.1.
 
 ### Remote MCP (Vercel + Supabase OAuth)
 
+> Current production endpoint: `https://cevee-beta.vercel.app/api/mcp`
+
 - **Endpoint:** `https://<domain>/api/mcp`
 - **Discovery:** `https://<domain>/.well-known/oauth-protected-resource`
 - **Consent page:** `https://<domain>/oauth/consent`
@@ -269,7 +271,7 @@ Supabase prerequisites:
 1. Authentication → OAuth Server: enabled.
 2. Dynamic client registration: enabled.
 3. Authorization path: `/oauth/consent`.
-4. Site URL: the production domain (`https://cevee.vercel.app` or your custom
+4. Site URL: the production domain (`https://cevee-beta.vercel.app` or your custom
    domain).
 5. JWT signing keys: asymmetric (ES256/RS256) so JWKS verification works.
 
@@ -281,6 +283,26 @@ origin is not the public domain.
 Deploy with `npx vercel --prod`. Then open `/connect-ai` and add the endpoint to
 Claude.ai, ChatGPT, Cursor, or OpenCode. The endpoint is for AI clients; opening
 it directly in a browser returns `401`.
+
+**Rate limit:** remote requests are limited per user by
+`consume_mcp_quota` (120 requests/minute). Exceeding it returns `429` with
+`Retry-After`.
+
+**Client compatibility:** Claude.ai and ChatGPT use remote OAuth; Cursor and
+OpenCode can use remote OAuth or local stdio; Codex CLI and Gemini CLI use local
+stdio; stdio-only clients can bridge to the remote endpoint with
+`npx -y mcp-remote https://<domain>/api/mcp`.
+
+**Sign-up:** public, with email confirmation and an 8-character password
+minimum. To revoke a connected app, remove the connector in your AI client; the
+owner can also revoke clients in Supabase → Authentication → OAuth Server.
+
+**Header-only clients:** a static PAT path is intentionally not enabled yet. It
+would require a service-role data layer that bypasses RLS, so it stays disabled
+until dedicated isolation tests exist. Use OAuth or `mcp-remote` for now.
+
+**Privacy:** `/privacy` and `/terms` describe data storage, AI processing, and
+account deletion.
 
 ## Project Structure
 

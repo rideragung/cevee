@@ -9,6 +9,8 @@ import '@fontsource/inter/700.css';
 import App from './App';
 import { OAuthConsentPage } from './components/OAuthConsentPage';
 import { ConnectAiPage } from './components/ConnectAiPage';
+import { PrivacyPage } from './components/PrivacyPage';
+import { TermsPage } from './components/TermsPage';
 import './index.css';
 import './layouts/standard-ats-v2/standard-ats-v2.css';
 
@@ -30,6 +32,10 @@ const page =
     <OAuthConsentPage />
   ) : path === '/connect-ai' ? (
     <ConnectAiPage />
+  ) : path === '/privacy' ? (
+    <PrivacyPage />
+  ) : path === '/terms' ? (
+    <TermsPage />
   ) : (
     <App />
   );

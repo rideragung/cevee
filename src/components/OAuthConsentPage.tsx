@@ -246,7 +246,22 @@ export const OAuthConsentPage: React.FC = () => {
 
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Approving grants this client read and edit access to every resume in
-                your account. You can revoke it later from your Supabase account.
+                your account. You can revoke it later from your Supabase account. By
+                continuing you agree to the{' '}
+                <a
+                  className="font-medium text-primary underline underline-offset-2"
+                  href="/terms"
+                >
+                  Terms
+                </a>{' '}
+                and{' '}
+                <a
+                  className="font-medium text-primary underline underline-offset-2"
+                  href="/privacy"
+                >
+                  Privacy Policy
+                </a>
+                .
               </p>
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

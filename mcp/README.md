@@ -51,9 +51,9 @@ role key: every query runs with the signed-in user's token and Supabase RLS.
 - `import_resume` — PDF text/base64/file → Gemini draft; `save: false` by default
 - `ats_audit` — deterministic ATS score and issues
 
-Every write requires `expectedVersion`. A stale version returns a conflict with
-the latest document; re-read it and retry. Delete operations require
-`confirm: true`.
+Every update requires `expectedVersion`. A stale version returns a conflict with
+the latest document; re-read it and retry. Creates do not need a version. Delete
+operations require `confirm: true`.
 
 `import_resume` requires `GEMINI_API_KEYS` (and optional `GEMINI_MODEL`). It
 returns a draft by default; `save: true` creates a new resume and never
@@ -89,6 +89,8 @@ Logs go to stderr only; stdout is reserved for the MCP protocol.
 
 ## Remote endpoint (Vercel)
 
+Current production endpoint: `https://cevee-beta.vercel.app/api/mcp`
+
 The same tool core is served from `api/mcp.ts` on Vercel Edge:
 
 - Endpoint: `https://<domain>/api/mcp`
@@ -105,6 +107,50 @@ The same tool core is served from `api/mcp.ts` on Vercel Edge:
 
 Remote requests without a bearer token receive `401` with a
 `WWW-Authenticate` challenge pointing at the protected resource metadata.
+
+### Rate limit
+
+Remote requests are limited per user by `consume_mcp_quota` (120 requests per
+minute by default). Exceeding it returns `429` with `Retry-After`. The counter
+lives in `public.mcp_usage`; only the security-definer function can write it.
+
+### Client compatibility
+
+| Client | Transport | Auth | Notes |
+|---|---|---|---|
+| Claude.ai web | Remote | OAuth | Custom connector; paid plan |
+| ChatGPT | Remote | OAuth | Plugin flow; plan/workspace restrictions |
+| Claude Desktop | Local stdio or remote | OAuth / local login | Local is easiest |
+| Cursor | Remote or local | OAuth / headers | Remote OAuth preferred |
+| OpenCode | Remote or local | OAuth / local login | Both supported |
+| Codex CLI | Local stdio | Local login | Use `node mcp/dist/index.js` |
+| Gemini CLI | Local stdio | Local login | Use `node mcp/dist/index.js` |
+| VS Code / Continue / Cline | Remote via bridge | OAuth | Use `mcp-remote` |
+
+For stdio-only clients, bridge to the remote endpoint:
+
+```bash
+npx -y mcp-remote https://<domain>/api/mcp
+```
+
+Public sign-up is enabled with email confirmation and an 8-character password
+minimum. Revoke a connected app by removing the connector in the AI client; the
+owner can also revoke clients in Supabase → Authentication → OAuth Server.
+
+RLS has been verified with two users: the owner and a test user cannot read,
+list, or update each other's resumes.
+
+### Header-only clients
+
+A static PAT path is intentionally not enabled yet. It would need a
+service-role data layer that bypasses RLS, so it stays disabled until dedicated
+isolation tests exist. Use OAuth or `mcp-remote` instead.
+
+### Privacy
+
+`/privacy` and `/terms` document what is stored, which third parties process
+data (Supabase, Vercel, Google Gemini, the AI client), and how to delete
+resumes or revoke connected apps.
 
 ## Tests
 

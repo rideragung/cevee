@@ -149,6 +149,44 @@ export default async function handler(request: Request): Promise<Response> {
       },
     });
 
+    type QuotaRow = {
+      allowed: boolean;
+      remaining: number;
+      reset_at: string;
+    };
+
+    const { data: quotaData, error: quotaError } = await supabase.rpc(
+      'consume_mcp_quota',
+      { p_limit: 120, p_window_seconds: 60 }
+    );
+
+    if (quotaError) {
+      console.error('[cevee-mcp] rate limit check failed:', quotaError.message);
+      return jsonError(500, 'The rate limit check failed.');
+    }
+
+    const quota = (Array.isArray(quotaData) ? quotaData[0] : quotaData) as
+      | QuotaRow
+      | null;
+
+    if (!quota?.allowed) {
+      const resetAt = quota?.reset_at
+        ? new Date(quota.reset_at).getTime()
+        : Date.now() + 60_000;
+      const retryAfter = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000));
+      const headers = new Headers({
+        'Content-Type': 'application/json',
+        'Retry-After': String(retryAfter),
+      });
+      for (const [key, value] of Object.entries(CORS_HEADERS)) {
+        headers.set(key, value);
+      }
+      return new Response(
+        JSON.stringify({ error: 'rate_limited', retry_after: retryAfter }),
+        { status: 429, headers }
+      );
+    }
+
     const server = buildMcpServer({
       store: new SupabaseResumeStore(supabase, userId),
       auth: { userId, mode: 'oauth', scopes: auth.scopes, email },

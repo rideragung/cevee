@@ -52,6 +52,21 @@ const CodeBlock: React.FC<{ code: string }> = ({ code }) => (
 );
 
 export const ConnectAiPage: React.FC = () => {
+  const origin =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : 'https://your-domain';
+
+  const inviteMessage = `Join Cevee: ${origin}
+
+1. Create an account with your email.
+2. Open ${origin}/connect-ai
+3. Add this MCP endpoint to your AI client:
+   ${endpoint}
+4. Sign in and approve access.
+
+Use the same email you used for Cevee.`;
+
   const openCodeSnippet = JSON.stringify(
     {
       mcp: {
@@ -105,7 +120,34 @@ export const ConnectAiPage: React.FC = () => {
             <Badge variant="outline">Streamable HTTP</Badge>
             <Badge variant="outline">Supabase RLS</Badge>
           </div>
+          <p className="text-xs text-muted-foreground">
+            New here?{' '}
+            <a
+              className="font-medium text-primary underline underline-offset-2"
+              href="/"
+            >
+              Create a Cevee account
+            </a>{' '}
+            first, then come back to this page.
+          </p>
         </header>
+
+        <Card className="border border-border bg-card p-5 shadow-pillow-secondary">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-foreground">
+                Invite a friend
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                They need a Cevee account first. Copy this message and send it to
+                them.
+              </p>
+            </div>
+          </div>
+          <div className="mt-3">
+            <CodeBlock code={inviteMessage} />
+          </div>
+        </Card>
 
         <Card className="border border-border bg-card p-5 shadow-pillow-secondary">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -181,6 +223,41 @@ export const ConnectAiPage: React.FC = () => {
         </div>
 
         <Card className="border border-border bg-card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-foreground">
+                Other MCP clients
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                If your client only supports stdio, bridge it to the remote
+                endpoint with mcp-remote.
+              </p>
+            </div>
+          </div>
+          <div className="mt-3">
+            <CodeBlock code={`npx -y mcp-remote ${endpoint}`} />
+          </div>
+        </Card>
+
+        <Card className="border border-border bg-card p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <ShieldCheck className="size-4" />
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-sm font-semibold text-foreground">
+                Revoke access
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                To disconnect Cevee, remove the connector in your AI client
+                (Claude, ChatGPT, Cursor, or OpenCode). The owner can also revoke
+                clients in Supabase → Authentication → OAuth Server.
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="border border-border bg-card p-5">
           <div className="flex items-start gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
               <ShieldCheck className="size-4" />
@@ -192,21 +269,29 @@ export const ConnectAiPage: React.FC = () => {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Cevee never uses a service role key for MCP requests. Every call runs
                 with your own OAuth token, and Supabase row-level security limits it
-                to your resumes. Revoke a client at any time from your Supabase
-                account.
+                to your resumes. Remove the connector in your AI client to revoke
+                access.
               </p>
             </div>
           </div>
         </Card>
 
-        <div className="flex items-center justify-between gap-3 pt-1">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           <Button variant="ghost" onClick={() => (window.location.href = '/')}>
             <ArrowLeft className="size-4" />
             Back to Cevee
           </Button>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Plug className="size-3.5" />
-            Remote MCP endpoint
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <a className="hover:text-foreground" href="/privacy">
+              Privacy
+            </a>
+            <a className="hover:text-foreground" href="/terms">
+              Terms
+            </a>
+            <span className="flex items-center gap-1.5">
+              <Plug className="size-3.5" />
+              Remote MCP endpoint
+            </span>
           </div>
         </div>
       </div>
