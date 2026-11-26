@@ -4,7 +4,10 @@ export interface StudioDonutDatum<K extends string = string> {
   key: K;
   label: string;
   value: number;
+  /** Primary / start hex color for the slice */
   color: string;
+  /** Optional end hex color for subtle per-slice gradient */
+  colorEnd?: string;
 }
 
 interface StudioDonutChartProps<K extends string = string> {
@@ -19,11 +22,18 @@ interface StudioDonutChartProps<K extends string = string> {
   ariaLabel?: string;
 }
 
+interface RGB {
+  r: number;
+  g: number;
+  b: number;
+}
+
 interface SliceRange<K extends string> {
   key: K;
   label: string;
   value: number;
   color: string;
+  colorEnd?: string;
   startAngle: number;
   endAngle: number;
   midAngle: number;
@@ -33,8 +43,9 @@ interface PixelCell {
   cx: number;
   cy: number;
   r: number;
+  radialT: number; // 0 at innerRadius -> 1 at outerRadius
   angle: number; // [0, 2*PI) clockwise from 12 o'clock
-  alphaFactor: number; // subtle deterministic texture per pixel (0.72..1.0)
+  alphaFactor: number;
 }
 
 /** Deterministic hash in [0, 1) for subtle Bakai Lab / Studio Plan Donut pixel texture */
@@ -43,7 +54,32 @@ const hashCell = (gx: number, gy: number): number => {
   return n - Math.floor(n);
 };
 
-/** Resolve CSS variable colors like var(--primary) into computed RGB/OKLCH for canvas fillStyle */
+const parseHexRgb = (hex: string): RGB | null => {
+  const clean = hex.trim().replace(/^#/, '');
+  if (clean.length === 3) {
+    const r = parseInt(clean[0] + clean[0], 16);
+    const g = parseInt(clean[1] + clean[1], 16);
+    const b = parseInt(clean[2] + clean[2], 16);
+    return Number.isNaN(r) ? null : { r, g, b };
+  }
+  if (clean.length === 6) {
+    const r = parseInt(clean.slice(0, 2), 16);
+    const g = parseInt(clean.slice(2, 4), 16);
+    const b = parseInt(clean.slice(4, 6), 16);
+    return Number.isNaN(r) ? null : { r, g, b };
+  }
+  return null;
+};
+
+const lerpRgb = (a: RGB, b: RGB, t: number): string => {
+  const clamped = Math.max(0, Math.min(1, t));
+  const r = Math.round(a.r + (b.r - a.r) * clamped);
+  const g = Math.round(a.g + (b.g - a.g) * clamped);
+  const bl = Math.round(a.b + (b.b - a.b) * clamped);
+  return `rgb(${r}, ${g}, ${bl})`;
+};
+
+/** Resolve CSS variable colors like var(--primary) into computed color for canvas */
 const resolveCanvasColor = (color: string, el: HTMLElement | null): string => {
   if (!color.startsWith('var(') || !el) return color;
   const varName = color.slice(4, -1).trim();
@@ -53,9 +89,8 @@ const resolveCanvasColor = (color: string, el: HTMLElement | null): string => {
 
 /**
  * Pixelated / dot-matrix Canvas Donut Chart matching Pillow Light's
- * "Studio Plan Donut" (Bakai Lab): crisp orthogonal square mosaic cells
- * clipped to annular slices with angular gaps, subtle pixel texture,
- * and smooth hover/selection highlight.
+ * "Studio Plan Donut" (Bakai Lab), enhanced with subtle per-slice gradients
+ * while keeping legend bullets solid.
  */
 export function StudioDonutChart<K extends string = string>({
   data,
@@ -74,9 +109,9 @@ export function StudioDonutChart<K extends string = string>({
   const center = size / 2;
   const outerRadius = size * 0.455;
   const innerRadius = size * 0.275;
-  const cellStep = 4.4; // grid pitch in CSS px
-  const dotSize = 3.1; // crisp square pixel size in CSS px
-  const padAngle = 0.065; // clean angular separator between slices
+  const cellStep = 4.4;
+  const dotSize = 3.1;
+  const padAngle = 0.065;
 
   // Compute slice angular ranges (clockwise from 12 o'clock: 0..2*PI)
   const slices = useMemo<SliceRange<K>[]>(() => {
@@ -105,6 +140,7 @@ export function StudioDonutChart<K extends string = string>({
   const gridCells = useMemo<PixelCell[]>(() => {
     const cells: PixelCell[] = [];
     const halfCount = Math.ceil(outerRadius / cellStep) + 1;
+    const ringThickness = Math.max(outerRadius - innerRadius, 1);
 
     for (let gy = -halfCount; gy <= halfCount; gy += 1) {
       for (let gx = -halfCount; gx <= halfCount; gx += 1) {
@@ -114,20 +150,19 @@ export function StudioDonutChart<K extends string = string>({
 
         if (r < innerRadius || r > outerRadius) continue;
 
-        // Angle clockwise from 12 o'clock in [0, 2*PI)
         let angle = Math.atan2(dx, -dy);
         if (angle < 0) angle += Math.PI * 2;
 
-        // Subtle organic opacity texture matching Studio Plan Donut mosaic
         const h = hashCell(gx, gy);
         const edgeDist = Math.min(r - innerRadius, outerRadius - r);
         const isEdge = edgeDist < cellStep * 0.55;
-        const alphaFactor = isEdge ? 0.65 + h * 0.3 : 0.78 + h * 0.22;
+        const alphaFactor = isEdge ? 0.68 + h * 0.28 : 0.82 + h * 0.18;
 
         cells.push({
           cx: center + dx,
           cy: center + dy,
           r,
+          radialT: (r - innerRadius) / ringThickness,
           angle,
           alphaFactor,
         });
@@ -137,7 +172,7 @@ export function StudioDonutChart<K extends string = string>({
     return cells;
   }, [center, innerRadius, outerRadius, cellStep]);
 
-  // Draw the HiDPI pixelated donut on canvas
+  // Draw HiDPI pixelated donut with subtle per-slice angular + radial gradient
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -152,31 +187,29 @@ export function StudioDonutChart<K extends string = string>({
 
     const halfDot = dotSize / 2;
 
-    // Empty state: muted pixel ring
     if (slices.length === 0) {
       const mutedColor = resolveCanvasColor('var(--muted-foreground)', canvas);
       ctx.fillStyle = mutedColor;
       for (const cell of gridCells) {
         ctx.globalAlpha = 0.16 * cell.alphaFactor;
-        ctx.fillRect(
-          cell.cx - halfDot,
-          cell.cy - halfDot,
-          dotSize,
-          dotSize
-        );
+        ctx.fillRect(cell.cx - halfDot, cell.cy - halfDot, dotSize, dotSize);
       }
       ctx.globalAlpha = 1;
       return;
     }
 
-    // Resolve slice colors once per render
-    const resolvedSlices = slices.map((slice) => ({
-      ...slice,
-      resolvedColor: resolveCanvasColor(slice.color, canvas),
-    }));
+    const resolvedSlices = slices.map((slice) => {
+      const startCss = resolveCanvasColor(slice.color, canvas);
+      const endCss = slice.colorEnd ? resolveCanvasColor(slice.colorEnd, canvas) : null;
+      return {
+        ...slice,
+        startCss,
+        startRgb: parseHexRgb(startCss),
+        endRgb: endCss ? parseHexRgb(endCss) : null,
+      };
+    });
 
     for (const cell of gridCells) {
-      // Find which slice owns this pixel
       const owner = resolvedSlices.find(
         (s) => cell.angle >= s.startAngle && cell.angle <= s.endAngle
       );
@@ -185,30 +218,32 @@ export function StudioDonutChart<K extends string = string>({
       const isHighlighted = focusedKey === owner.key;
       const isDimmed = Boolean(focusedKey && !isHighlighted);
 
-      // Gentle outward pop offset for highlighted slice
       const popDist = isHighlighted ? 1.8 : 0;
       const ox = popDist ? Math.sin(owner.midAngle) * popDist : 0;
       const oy = popDist ? -Math.cos(owner.midAngle) * popDist : 0;
 
-      ctx.fillStyle = owner.resolvedColor;
+      // Subtle blend of angular progression (65%) + radial depth (35%)
+      if (owner.startRgb && owner.endRgb) {
+        const span = Math.max(owner.endAngle - owner.startAngle, 0.001);
+        const angleT = (cell.angle - owner.startAngle) / span;
+        const gradT = angleT * 0.65 + (1 - cell.radialT) * 0.35;
+        ctx.fillStyle = lerpRgb(owner.startRgb, owner.endRgb, gradT);
+      } else {
+        ctx.fillStyle = owner.startCss;
+      }
+
       ctx.globalAlpha = isDimmed
         ? 0.2 * cell.alphaFactor
         : isHighlighted
         ? Math.min(1, cell.alphaFactor + 0.12)
         : cell.alphaFactor;
 
-      ctx.fillRect(
-        cell.cx + ox - halfDot,
-        cell.cy + oy - halfDot,
-        dotSize,
-        dotSize
-      );
+      ctx.fillRect(cell.cx + ox - halfDot, cell.cy + oy - halfDot, dotSize, dotSize);
     }
 
     ctx.globalAlpha = 1;
   }, [size, slices, gridCells, focusedKey, dotSize]);
 
-  // Pointer hit-testing against slice angular ranges
   const findSliceAtPointer = (
     event: React.MouseEvent<HTMLCanvasElement>
   ): K | null => {
