@@ -85,6 +85,25 @@ bullets to safe HTML; it does not accept raw HTML from the agent.
 }
 ```
 
+Remote (OAuth) variant, no local Node install needed:
+
+```json
+{
+  "mcp": {
+    "cevee-remote": {
+      "type": "remote",
+      "url": "https://cevee-beta.vercel.app/api/mcp",
+      "enabled": true,
+      "oauth": {}
+    }
+  }
+}
+```
+
+The client opens the Supabase sign-in and `/oauth/consent` pages, then reuses
+the token. Enable one transport at a time so the agent does not see two
+identical tool sets pointing at the same resumes.
+
 Logs go to stderr only; stdout is reserved for the MCP protocol.
 
 ## Remote endpoint (Vercel)

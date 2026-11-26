@@ -158,9 +158,36 @@ describe('MCP tools', () => {
 
     const projectSection = full.content.sections.find(
       (section) => section.id === projects!.id
-    ) as { data: { items: Array<{ bullets: string }> } };
+    ) as { data: { items: Array<{ bullets: string }> }; isPlaceholder?: boolean };
     expect(projectSection.data.items).toHaveLength(1);
     expect(projectSection.data.items[0].bullets).toContain('<li>');
+    expect(projectSection.isPlaceholder).toBe(false);
+  });
+
+  it('clears the placeholder flag once a section has content', async () => {
+    const summarySection = resume.content.sections.find(
+      (section) => section.type === 'summary'
+    );
+    expect(summarySection?.isPlaceholder).toBe(true);
+
+    const updated = parseResult(
+      await client.callTool({
+        name: 'update_section',
+        arguments: {
+          resumeId: resume.id,
+          expectedVersion: resume.version,
+          sectionId: summarySection!.id,
+          data: { text: 'Frontend developer focused on design systems.' },
+        },
+      })
+    );
+    resume = updated as unknown as ResumeDocument;
+
+    const summary = resume.content.sections.find(
+      (section) => section.id === summarySection!.id
+    );
+    expect(summary?.isPlaceholder).toBe(false);
+    expect(summary?.data).toMatchObject({ html: expect.stringContaining('Frontend developer') });
   });
 
   it('rejects a stale version', async () => {

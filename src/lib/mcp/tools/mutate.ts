@@ -3,9 +3,27 @@ import { canWrite, type McpAuthContext } from '../auth';
 import { resumeDocumentSchema } from '../schema/resume';
 import type { ResumeStore } from '../store/types';
 import { errorResult, jsonResult, type ToolTextResult } from './result';
+import { sectionItemCount } from './sectionUtils';
 
 export const ensureWrite = (auth: McpAuthContext): ToolTextResult | null =>
   canWrite(auth) ? null : errorResult('This token is read-only.');
+
+/**
+ * Sections created by the app start as placeholders so the preview can show
+ * sample text. Once a section holds real content that flag must go, otherwise
+ * the renderer keeps drawing the sample text instead of the content.
+ */
+const syncPlaceholderFlags = (resume: ResumeDocument): ResumeDocument => ({
+  ...resume,
+  content: {
+    ...resume.content,
+    sections: resume.content.sections.map((section) =>
+      section.isPlaceholder && sectionItemCount(section) > 0
+        ? { ...section, isPlaceholder: false }
+        : section
+    ),
+  },
+});
 
 /**
  * Reads, mutates, validates, and conditionally writes a resume.
@@ -27,7 +45,7 @@ export const mutateResume = async (
     return errorResult(`Resume "${resumeId}" was not found.`);
   }
 
-  const next = mutate(current);
+  const next = syncPlaceholderFlags(mutate(current));
   const validation = resumeDocumentSchema.safeParse(next);
   if (!validation.success) {
     return errorResult(
