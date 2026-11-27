@@ -40,7 +40,7 @@ export const getStatusIcon = (status: JobStatus, className = 'size-3.5 shrink-0'
 export const getStatusPillClasses = (status: JobStatus): string => {
   switch (status) {
     case 'applied':
-      return 'border-border bg-secondary text-foreground';
+      return 'border-violet-200 bg-violet-50 text-violet-800';
     case 'on_progress':
       return 'border-primary/25 bg-accent text-primary';
     case 'offering':

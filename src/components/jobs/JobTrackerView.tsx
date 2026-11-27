@@ -99,6 +99,9 @@ type JobPeriodFilter = { date: string } | { year: number };
 const JOB_VIEW_STORAGE_KEY = 'cevee.jobs.view';
 const JOB_SORT_STORAGE_KEY = 'cevee.jobs.sort';
 const JOB_VIEW_MODES: readonly JobViewMode[] = ['board', 'list'];
+const stageInk: Record<ActiveJobStatus, string> = {
+  applied: 'text-violet-700', on_progress: 'text-primary', offering: 'text-emerald-700', rejected: 'text-rose-700',
+};
 const JOB_SORT_KEYS: readonly JobSortKey[] = ['updated', 'applied', 'company'];
 
 const readStoredValue = <T extends string>(
@@ -161,7 +164,6 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   } | null>(null);
 
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const [insightsOpen, setInsightsOpen] = useState(false);
   const [focusResume, setFocusResume] = useState(false);
   const [moveNotice, setMoveNotice] = useState<{ id: string; text: string } | null>(null);
   const moveJob = (job: JobApplication, status: ActiveJobStatus, step?: JobProgressStage) => {
@@ -310,7 +312,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
     employmentFilter !== 'all' ||
     periodFilter !== null;
 
-  const renderProgressSubStagePill = (job: JobApplication) => {
+  const renderProgressSubStagePill = (job: JobApplication, board = false) => {
     if (job.status !== 'on_progress') return null;
     const currentStage = job.progressStage;
     const label = currentStage ? JOB_PROGRESS_STAGE_LABELS[currentStage] : 'Set progress step';
@@ -319,7 +321,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="relative inline-flex max-w-full items-center gap-1.5 rounded-full border border-primary/25 bg-accent px-2.5 py-0.5 text-[11px] font-semibold text-primary transition-colors [@media(hover:hover)]:hover:border-primary/45 after:absolute after:-inset-1.5 after:content-['']"
+            className={board ? 'inline-flex min-h-11 max-w-full items-center gap-1.5 rounded text-xs font-medium text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring' : "relative inline-flex max-w-full items-center gap-1.5 rounded-full border border-primary/25 bg-accent px-2.5 py-0.5 text-[11px] font-semibold text-primary transition-colors [@media(hover:hover)]:hover:border-primary/45 after:absolute after:-inset-1.5 after:content-['']"}
             title={label}
             aria-label={`Change progress step for ${job.role} at ${job.company}: ${label}`}
           >
@@ -352,12 +354,12 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
     );
   };
 
-  const renderStageDropdown = (job: JobApplication) => (
+  const renderStageDropdown = (job: JobApplication, board = false) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className={cn(
+          className={board ? 'inline-flex min-h-11 shrink-0 items-center rounded px-1 text-xs font-semibold text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring' : cn(
             'relative inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors after:absolute after:-inset-1.5 after:content-[""]',
             getStatusPillClasses(job.status)
           )}
@@ -365,9 +367,9 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
           id={`move-${job.id}`}
           aria-label={`Move ${job.role} at ${job.company}, currently ${JOB_STATUS_LABELS[job.status]}`}
         >
-          {getStatusIcon(job.status, 'size-3 shrink-0')}
-          <span>{JOB_STATUS_LABELS[job.status]}</span>
-          <ChevronDown className="size-3 opacity-70 shrink-0" />
+          {!board && getStatusIcon(job.status, 'size-3 shrink-0')}
+          <span>{board ? 'Move to…' : JOB_STATUS_LABELS[job.status]}</span>
+          {!board && <ChevronDown className="size-3 opacity-70 shrink-0" />}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
@@ -832,6 +834,11 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         <>
 
           {/* Toolbar */}
+          <JobTrackerStats
+            stats={stats} jobs={activeJobs} activeFilter={statusFilter} onFilterChange={setStatusFilter}
+            selectedDate={dateFilter} onDateFilterChange={date => setPeriodFilter(date ? { date } : null)}
+            selectedYearFilter={yearFilter} onYearFilterChange={year => setPeriodFilter(year === null ? null : { year })}
+          />
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
             <div className="relative w-full sm:flex-1 sm:min-w-0">
               <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
@@ -1020,17 +1027,11 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             </div>
           </div>
 
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              {hasActiveFilters && <><span>{visibleActiveJobs.length} of {activeJobs.length} applications</span>
+          {hasActiveFilters && <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span>{visibleActiveJobs.length} of {activeJobs.length} applications</span>
                 {dateFilter || yearFilter ? <button onClick={() => setPeriodFilter(null)} aria-label="Clear period filter" className="rounded-lg bg-secondary px-2 py-1">{dateFilter ?? yearFilter} ×</button> : null}
                 <button className="font-semibold text-primary" onClick={() => { setSearchQuery(''); setStatusFilter('all'); setEmploymentFilter('all'); setPeriodFilter(null); }}>Clear filters</button>
-              </>}
-            </div>
-            <Button size="sm" variant="ghost" aria-expanded={insightsOpen} aria-controls="job-insights" onClick={() => setInsightsOpen(!insightsOpen)}>{insightsOpen ? 'Hide insights' : 'View insights'}<ChevronDown className="size-4" /></Button>
-          </div>
-          <div id="job-insights" hidden={!insightsOpen}>{insightsOpen && <JobTrackerStats stats={stats} jobs={activeJobs} activeFilter={statusFilter} onFilterChange={setStatusFilter} selectedDate={dateFilter}
-            onDateFilterChange={date => setPeriodFilter(date ? { date } : null)} selectedYearFilter={yearFilter} onYearFilterChange={year => setPeriodFilter(year === null ? null : { year })} />}</div>
+          </div>}
           {visibleActiveJobs.length === 0 ? (
             <Card className="px-6 py-16 text-center">
               <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
@@ -1073,12 +1074,14 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                   <div
                     key={colStatus}
                     onDragOver={(e) => {
+                      if (!draggedJobId) return;
                       e.preventDefault();
                       if (dragOverStatus !== colStatus) {
                         setDragOverStatus(colStatus);
                       }
                     }}
-                    onDragLeave={() => {
+                    onDragLeave={(e) => {
+                      if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
                       if (dragOverStatus === colStatus) {
                         setDragOverStatus(null);
                       }
@@ -1093,26 +1096,16 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                       }
                     }}
                     className={cn(
-                      'flex flex-col rounded-2xl border bg-muted/35 p-3 transition-colors duration-150 ease-out min-h-[240px]',
-                      isDropTarget ? 'border-primary bg-accent/40' : 'border-border/80'
+                      'flex min-h-[240px] flex-col rounded-2xl border border-[color:var(--kanban-edge)] bg-[color:var(--kanban-lane)] p-3',
+                      isDropTarget && 'outline outline-2 outline-primary'
                     )}
                   >
                     {/* Column Header */}
                     <div className="mb-3 flex items-center justify-between px-1">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span
-                          className={cn(
-                            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
-                            getStatusPillClasses(colStatus)
-                          )}
-                        >
-                          {getStatusIcon(colStatus, 'size-3 shrink-0')}
-                          <span className="truncate">{JOB_STATUS_LABELS[colStatus]}</span>
-                        </span>
-                        <span className="text-xs font-semibold text-muted-foreground tabular-nums">
-                          {colJobs.length}
-                        </span>
-                      </div>
+                      <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
+                        {getStatusIcon(colStatus, cn('size-4 shrink-0', stageInk[colStatus]))}
+                        <span className="truncate">{JOB_STATUS_LABELS[colStatus]} <span className="text-xs font-normal text-muted-foreground tabular-nums">({colJobs.length})</span></span>
+                      </h2>
 
                       <Button
                         type="button"
@@ -1130,7 +1123,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                     {/* Column Cards */}
                     <div className="flex flex-col gap-2.5">
                       {colJobs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 px-3 py-10 text-center">
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[color:var(--kanban-edge)] px-3 py-10 text-center">
                           <p className="text-xs text-muted-foreground">
                             No applications in {JOB_STATUS_LABELS[colStatus].toLowerCase()}
                           </p>
@@ -1191,14 +1184,14 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                               {/* 2. On Progress Sub-Stage Pill (1-click interactive) */}
                               {job.status === 'on_progress' && (
                                 <div className="flex items-center">
-                                  {renderProgressSubStagePill(job)}
+                                  {renderProgressSubStagePill(job, true)}
                                 </div>
                               )}
 
                               {job.interviewDate && <p className="flex items-center gap-1.5 text-xs font-medium"><Calendar className="size-4" />Interview {formatInterviewDate(job.interviewDate)}</p>}
 
                               {/* 4. Compact Linked Resume & JD Match Line */}
-                              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/40 px-2.5 py-1.5">
+                              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted px-2.5 py-1.5">
                                 {linkedResume ? (
                                   <>
                                     <button
@@ -1272,7 +1265,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                       : formatRelativeTime(job.updatedAt)}
                                   </span>
                                 </div>
-                                {renderStageDropdown(job)}
+                                {renderStageDropdown(job, true)}
                               </div>
                             </Card>
                           );

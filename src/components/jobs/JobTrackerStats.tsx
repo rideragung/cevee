@@ -356,7 +356,7 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
     : applicationCount;
 
   return (
-    <div className="mb-6 grid grid-cols-1 lg:grid-cols-[288px_minmax(0,1fr)] gap-3 items-stretch">
+    <div className="mb-4 grid grid-cols-1 gap-2 sm:mb-6 sm:gap-3 lg:grid-cols-[288px_minmax(0,1fr)] items-stretch">
       {/* Left Card: Applications by stage + Studio Plan Donut */}
       <Card className="rounded-2xl border border-border bg-card p-4 shadow-2xs flex flex-col justify-between min-w-0">
         <div className="mb-3 flex min-h-8 items-center justify-between gap-2">

@@ -23,6 +23,8 @@ Dokumen ini mendefinisikan spesifikasi kebutuhan perangkat lunak lengkap untuk s
 
 ### 1.2 Lingkup Produk
 
+Pada tracker dengan lamaran aktif, ringkasan tahap dan aktivitas harian selalu tampil di atas pencarian dan filter, termasuk pada ponsel. Judul kolom menunjukkan tahap di Kanban, dan `Move to…` memindahkan kartu. List menampilkan tahap pada setiap baris.
+
 **Perilaku Job Tracker saat ini:** Board dan List memakai tahap Applied, In progress, Offer, dan Rejected dengan ID penyimpanan lama. Langkah seleksi bersifat opsional. Arsip menyimpan tahap asal dan langkah; pengguna memilih tujuan untuk arsip lama. Pencarian dan filter tetap berlaku setelah melihat insights atau membuka kartu yang baru dipindah. Form tambah cukup dengan perusahaan dan posisi; tahap mengikuti kolom asal. Duplikasi membuat salinan CV tersendiri, sedangkan tautan lamaran baru berubah setelah disimpan. Kedua aksi simpan memvalidasi perusahaan dan posisi.
 
 Untuk akun cloud, perubahan lamaran yang belum dikonfirmasi disimpan per akun di perangkat, dipulihkan saat pemuatan ulang, dan dicoba kembali saat koneksi pulih atau melalui `Retry sync`. Konflik versi memerlukan pilihan pengguna. Mode tamu menggunakan penyimpanan lokal. Migrasi `20261128_job_archive_origin.sql` diperlukan sebelum pembaruan klien dan MCP.
