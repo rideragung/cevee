@@ -140,6 +140,16 @@ export const JOB_PROGRESS_STAGE_LABELS: Record<JobProgressStage, string> = {
   interview_finished: 'Interview finished',
 };
 
+export const JOB_STATUS_CHOICES: readonly { value: string; label: string; status: ActiveJobStatus; step?: JobProgressStage }[] = [
+  { value: 'applied', label: JOB_STATUS_LABELS.applied, status: 'applied' },
+  ...JOB_PROGRESS_STAGES.map(step => ({ value: step, label: JOB_PROGRESS_STAGE_LABELS[step], status: 'on_progress' as const, step })),
+  { value: 'offering', label: JOB_STATUS_LABELS.offering, status: 'offering' },
+  { value: 'rejected', label: JOB_STATUS_LABELS.rejected, status: 'rejected' },
+];
+
+export const applicationStatusLabel = (job: JobApplication) => job.status === 'on_progress'
+  ? (job.progressStage ? JOB_PROGRESS_STAGE_LABELS[job.progressStage] : 'Choose status') : JOB_STATUS_LABELS[job.status];
+
 export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
   full_time: 'Full-time',
   internship: 'Internship',

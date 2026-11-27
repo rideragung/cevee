@@ -138,6 +138,9 @@ export const registerJobTools = (
         return errorResult('Job tracker storage is not available on this store.');
       }
 
+      if (input.status !== 'on_progress' && (input.interviewDate || input.progressStage)) {
+        return errorResult('Set the application to In progress before adding a schedule or progress step.');
+      }
       const draft = createJobApplication(input);
       const created = await store.createJob(draft);
       return jsonResult(created);
@@ -215,13 +218,15 @@ export const registerJobTools = (
       }
 
       const nextStatus = status !== undefined ? normalizeJobStatus(status) : current.status;
+      if (nextStatus !== 'on_progress' && ((interviewDate !== undefined && (interviewDate || undefined) !== current.interviewDate) || (progressStage !== undefined && (progressStage ?? undefined) !== current.progressStage))) {
+        return errorResult('The schedule and progress step can only be changed while the application is In progress.');
+      }
       const nextProgressStage =
         progressStage === null
           ? undefined
           : progressStage !== undefined
           ? normalizeProgressStage(progressStage)
-          : nextStatus === 'archived' || nextStatus === current.status || (current.status === 'archived' && nextStatus === 'on_progress')
-          ? current.progressStage : undefined;
+          : current.progressStage;
 
       const next: JobApplication = {
         ...current,

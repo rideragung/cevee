@@ -7,7 +7,7 @@ import {
   IconFileText as FileText,
 } from '@tabler/icons-react';
 import {
-  ACTIVE_JOB_STATUSES,
+  JOB_STATUS_CHOICES,
   ActiveJobStatus,
   EMPLOYMENT_TYPE_LABELS,
   EMPLOYMENT_TYPES,
@@ -17,8 +17,6 @@ import {
   JOB_PLATFORM_LABELS,
   JOB_PLATFORMS,
   JOB_PROGRESS_STAGE_LABELS,
-  JOB_PROGRESS_STAGES,
-  JOB_STATUS_LABELS,
   JobApplication,
   JobApplicationInput,
   JobIndustry,
@@ -302,6 +300,12 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
       return false;
     }
 
+    if (status === 'on_progress' && !progressStage) {
+      const selector = document.getElementById('job-status') as HTMLSelectElement | null;
+      selector?.focus();
+      selector?.reportValidity();
+      return false;
+    }
     onSave(buildInput(), initialJob?.id);
     return true;
   };
@@ -388,9 +392,14 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
 
           {/* Row 2: Employment Type (1-Click Chips) */}
           <div className="space-y-1.5">
-            <label htmlFor="job-status" className="block text-xs font-semibold">Stage</label>
-            <select id="job-status" value={status} onChange={(e) => setStatus(e.target.value as JobStatus)} className="h-11 w-full rounded-[0.875rem] border border-input bg-card px-3 text-base sm:text-sm">
-              {ACTIVE_JOB_STATUSES.map((st) => <option key={st} value={st}>{JOB_STATUS_LABELS[st]}</option>)}
+            <label htmlFor="job-status" className="block text-xs font-semibold">Status</label>
+            <select id="job-status" required value={status === 'on_progress' ? progressStage ?? '' : status} onChange={(e) => {
+              const choice = JOB_STATUS_CHOICES.find(item => item.value === e.target.value);
+              if (choice) { setStatus(choice.status); setProgressStage(choice.step); }
+              else if (e.target.value === 'archived') setStatus('archived');
+            }} className="h-11 w-full rounded-[0.875rem] border border-input bg-card px-3 text-base sm:text-sm">
+              <option disabled value="">Choose status</option>
+              {JOB_STATUS_CHOICES.map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
               {initialJob?.status === 'archived' && <option value="archived">Archived</option>}
             </select>
           </div>
@@ -485,7 +494,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
               />
             </div>
 
-            <div className="space-y-1.5">
+            {status === 'on_progress' ? <div className="space-y-1.5">
               <label htmlFor="job-interview-date" className="block text-xs font-semibold text-foreground">
                 Interview or test date
               </label>
@@ -497,45 +506,12 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                 onChange={(e) => setInterviewDate(e.target.value)}
                 className="h-11 text-base sm:text-sm"
               />
-            </div>
+            </div> : status !== 'applied' && initialJob?.interviewDate ? <div className="space-y-1.5 text-xs">
+              <p className="font-semibold">Schedule history</p>
+              <p>{initialJob.progressStage ? JOB_PROGRESS_STAGE_LABELS[initialJob.progressStage] : 'Interview or test'} · <time dateTime={initialJob.interviewDate}>{initialJob.interviewDate}</time></p>
+            </div> : null}
           </div>
 
-          {/* Conditional Sub-Stage Selector when Stage = On progress */}
-          {status === 'on_progress' && (
-            <div className="rounded-2xl border border-primary/20 bg-accent/40 p-3.5 space-y-2">
-              <span
-                id="job-progress-stage-label"
-                className="block text-xs font-semibold text-foreground"
-              >
-                Current progress step
-              </span>
-              <div
-                role="group"
-                aria-labelledby="job-progress-stage-label"
-                className="flex flex-wrap gap-1.5"
-              >
-                {JOB_PROGRESS_STAGES.map((stage) => {
-                  const isSelected = progressStage === stage;
-                  return (
-                    <button
-                      key={stage}
-                      type="button"
-                      aria-pressed={isSelected}
-                      onClick={() => setProgressStage(isSelected ? undefined : stage)}
-                      className={cn(
-                        'relative inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring after:absolute after:-inset-y-1.5 after:content-[\'\']',
-                        isSelected
-                          ? 'border-primary bg-primary text-primary-foreground font-semibold'
-                          : 'border-border bg-card text-foreground [@media(hover:hover)]:hover:border-primary/40'
-                      )}
-                    >
-                      {JOB_PROGRESS_STAGE_LABELS[stage]}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Row 4: Province, City/Regency & minimum wage reference */}
           <div className="space-y-2">

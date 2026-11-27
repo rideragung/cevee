@@ -34,7 +34,8 @@ import {
   JOB_INDUSTRY_LABELS,
   JOB_PLATFORM_LABELS,
   JOB_PROGRESS_STAGE_LABELS,
-  JOB_PROGRESS_STAGES,
+  JOB_STATUS_CHOICES,
+  applicationStatusLabel,
   JOB_STATUS_LABELS,
   JobApplication,
   JobApplicationInput,
@@ -55,7 +56,6 @@ import {
   JobSortKey,
   formatAppliedDate,
   formatInterviewDate,
-  getProgressStageIcon,
   getStatusIcon,
   getStatusPillClasses,
   sortJobs,
@@ -311,48 +311,6 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
     employmentFilter !== 'all' ||
     periodFilter !== null;
 
-  const renderProgressSubStagePill = (job: JobApplication, board = false) => {
-    if (job.status !== 'on_progress') return null;
-    const currentStage = job.progressStage;
-    const label = currentStage ? JOB_PROGRESS_STAGE_LABELS[currentStage] : 'Set progress step';
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className={board ? 'inline-flex min-h-11 max-w-full items-center gap-1.5 rounded text-xs font-medium text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring' : "relative inline-flex max-w-full items-center gap-1.5 rounded-full border border-primary/25 bg-accent px-2.5 py-0.5 text-[11px] font-semibold text-primary transition-colors [@media(hover:hover)]:hover:border-primary/45 after:absolute after:-inset-1.5 after:content-['']"}
-            title={label}
-            aria-label={`Change progress step for ${job.role} at ${job.company}: ${label}`}
-          >
-            {currentStage && getProgressStageIcon(currentStage, 'size-3 shrink-0')}
-            <span className="truncate">{label}</span>
-            <ChevronDown className="size-3 opacity-70 shrink-0" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">
-            Progress step
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => moveJob(job, 'on_progress')}>Not set</DropdownMenuItem>
-          {JOB_PROGRESS_STAGES.map((stage) => (
-            <DropdownMenuItem
-              key={stage}
-              onClick={() => moveJob(job, 'on_progress', stage)}
-              className="flex items-center justify-between text-xs cursor-pointer"
-            >
-              <span className="flex items-center gap-2">
-                {getProgressStageIcon(stage, 'size-3.5 text-muted-foreground')}
-                <span>{JOB_PROGRESS_STAGE_LABELS[stage]}</span>
-              </span>
-              {currentStage === stage && <Check className="size-3.5 text-primary" />}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  };
-
   const renderStageDropdown = (job: JobApplication, board = false) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -362,30 +320,25 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             'relative inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors after:absolute after:-inset-1.5 after:content-[""]',
             getStatusPillClasses(job.status)
           )}
-          title={`Stage: ${JOB_STATUS_LABELS[job.status]}. Select to move`}
+          title={`Change status: ${applicationStatusLabel(job)}`}
           id={`move-${job.id}`}
-          aria-label={`Move ${job.role} at ${job.company}, currently ${JOB_STATUS_LABELS[job.status]}`}
+          aria-label={`Change status for ${job.role} at ${job.company}: ${applicationStatusLabel(job)}`}
         >
-          {getStatusIcon(job.status, board ? 'size-4 text-[color:var(--stage-fill)]' : 'size-3 shrink-0')}
-          <span>{JOB_STATUS_LABELS[job.status]}</span>
+          <span>{applicationStatusLabel(job)}</span>
           <ChevronDown className="size-3 opacity-70 shrink-0" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">
-          Move to stage
+          Change status
         </DropdownMenuLabel>
-        {ACTIVE_JOB_STATUSES.map((st) => (
+        {JOB_STATUS_CHOICES.map(choice => (
           <DropdownMenuItem
-            key={st}
-            onClick={() => moveJob(job, st, st === 'on_progress' && job.status === st ? job.progressStage : undefined)}
+            key={choice.value}
+            onClick={() => moveJob(job, choice.status, choice.step)}
             className="flex items-center justify-between text-xs cursor-pointer"
           >
-            <span className="flex items-center gap-2">
-              {getStatusIcon(st, 'size-3.5 text-muted-foreground')}
-              <span>{JOB_STATUS_LABELS[st]}</span>
-            </span>
-            {job.status === st && <Check className="size-3.5 text-primary" />}
+            <span aria-current={choice.label === applicationStatusLabel(job) || undefined} className={choice.label === applicationStatusLabel(job) ? 'font-semibold text-primary' : undefined}>{choice.label}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
@@ -774,7 +727,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                               title={`Interview on ${formatAppliedDate(job.interviewDate)}`}
                             >
                               <Calendar className="size-3 shrink-0" />
-                              <span>Interview {formatInterviewDate(job.interviewDate)}</span>
+                              <span>{eventLabel(job)} · {formatInterviewDate(job.interviewDate)}</span>
                             </span>
                           )}
                         </div>
@@ -793,7 +746,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                           </Button> : <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button size="sm" variant="secondary">Restore to…</Button></DropdownMenuTrigger>
                             <DropdownMenuContent><DropdownMenuLabel>Choose a stage</DropdownMenuLabel>
-                              {ACTIVE_JOB_STATUSES.map(st => <DropdownMenuItem key={st} onClick={() => moveJob(job, st, st === 'on_progress' ? job.progressStage : undefined)}>{JOB_STATUS_LABELS[st]}</DropdownMenuItem>)}
+                              {JOB_STATUS_CHOICES.map(choice => <DropdownMenuItem key={choice.value} onClick={() => moveJob(job, choice.status, choice.step)}>{choice.label}</DropdownMenuItem>)}
                             </DropdownMenuContent>
                           </DropdownMenu>}
                           <Button
@@ -1090,7 +1043,12 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                       setDragOverStatus(null);
                       if (draggedJobId) {
                         const job = jobs.find(j => j.id === draggedJobId);
-                        if (job && job.status !== colStatus) moveJob(job, colStatus);
+                        if (job && job.status !== colStatus) {
+                          moveJob(job, colStatus);
+                          if (colStatus === 'on_progress' && !job.progressStage) {
+                            requestAnimationFrame(() => document.getElementById(`move-${job.id}`)?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
+                          }
+                        }
                         setDraggedJobId(null);
                       }
                     }}
@@ -1178,18 +1136,22 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                 </div>
                               </div>
 
-                              <div className="flex min-w-0 items-center gap-2">
+                               {job.status === 'on_progress' ? <>
+                               <div className="flex min-w-0 items-center gap-2">
                                 {scheduled && job.interviewDate ? <>
                                   <button type="button" onClick={() => openEditModal(job, 'schedule')} aria-label={`Edit schedule: ${eventLabel(job)}, ${formatAppliedDate(job.interviewDate)}`} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded text-left hover:underline focus-visible:ring-2 focus-visible:ring-ring">
-                                    <span aria-hidden="true" className={cn('flex min-w-10 shrink-0 flex-col items-center rounded-lg px-1.5 py-1 tabular-nums', past || job.status === 'offering' || job.status === 'rejected' ? 'bg-muted text-muted-foreground' : 'bg-accent text-accent-foreground')}>
+                                    <span aria-hidden="true" className={cn('flex min-w-10 shrink-0 flex-col items-center rounded-lg px-1.5 py-1 tabular-nums', past ? 'bg-muted text-muted-foreground' : 'bg-accent text-accent-foreground')}>
                                       <span className="text-[10px] uppercase">{scheduled.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })}</span>
                                       <strong className="text-base leading-5">{scheduled.getUTCDate()}</strong>
                                     </span>
-                                    <span className="min-w-0 text-xs font-semibold">{eventLabel(job)}<span className="block font-normal text-muted-foreground">{past ? 'Past schedule · ' : ''}{scheduled.getUTCFullYear()}</span></span>
+                                    <span className="min-w-0 text-xs font-semibold">{past ? 'Past schedule' : 'Scheduled'}<span className="block font-normal text-muted-foreground">{scheduled.getUTCFullYear()}</span></span>
                                   </button>
                                   <Button type="button" variant="ghost" size="icon" className="size-11 shrink-0" title="Add to calendar (.ics)" aria-label={`Add ${eventLabel(job)} at ${job.company} to calendar (.ics)`} onClick={() => downloadJobCalendar(job)}><CalendarPlus className="size-4" /></Button>
                                 </> : <button type="button" onClick={() => openEditModal(job, 'schedule')} className="inline-flex min-h-11 items-center gap-2 rounded px-1 text-xs font-semibold text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring"><CalendarPlus className="size-4" />Set schedule</button>}
                               </div>
+                              </> : (job.status === 'offering' || job.status === 'rejected') && scheduled && job.interviewDate ? (
+                                <p className="text-xs text-muted-foreground">{job.progressStage ? JOB_PROGRESS_STAGE_LABELS[job.progressStage] : 'Interview or test'} · <time dateTime={job.interviewDate}>{formatAppliedDate(job.interviewDate)}</time></p>
+                              ) : null}
                               <footer className="mt-auto border-t border-border pt-2 text-xs text-muted-foreground tabular-nums">
                                 {job.appliedDate ? <>Applied <time dateTime={job.appliedDate}>{formatAppliedDate(job.appliedDate)}</time></> : 'Applied date not set'}
                               </footer>
@@ -1207,7 +1169,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             <Card className="overflow-hidden rounded-2xl border border-border bg-card">
               <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-border text-xs font-medium text-muted-foreground">
                 <div className="col-span-4">Role & company</div>
-                <div className="col-span-3">Stage & progress step</div>
+                <div className="col-span-3">Status</div>
                 <div className="col-span-3">Linked resume & match</div>
                 <div className="col-span-1">Applied</div>
                 <div className="col-span-1 text-right">Actions</div>
@@ -1272,7 +1234,6 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                       {/* Stage & Sub-stage */}
                       <div className="col-span-1 md:col-span-3 flex flex-wrap items-center gap-1.5">
                         {renderStageDropdown(job)}
-                        {renderProgressSubStagePill(job)}
                         {job.interviewDate && (
                           <span
                             className={cn(
@@ -1285,7 +1246,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                             title={`Interview on ${formatAppliedDate(job.interviewDate)}`}
                           >
                             <Calendar className="size-3 shrink-0" />
-                            <span>Interview {formatInterviewDate(job.interviewDate)}</span>
+                            <span>{eventLabel(job)} · {formatInterviewDate(job.interviewDate)}</span>
                           </span>
                         )}
                       </div>

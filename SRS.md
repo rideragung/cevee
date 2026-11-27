@@ -23,7 +23,9 @@ Dokumen ini mendefinisikan spesifikasi kebutuhan perangkat lunak lengkap untuk s
 
 ### 1.2 Lingkup Produk
 
-Pada tracker dengan lamaran aktif, ringkasan tahap dan aktivitas harian tampil di atas pencarian dan filter. Kolom Kanban dapat digeser horizontal. Badge kolom menunjukkan jumlah lamaran yang cocok dengan filter. Dropdown status di header kartu memindahkan lamaran. Di bawah posisi dan perusahaan, pengguna dapat mengisi atau mengedit tanggal wawancara/tes dan mengunduh acara sehari penuh sebagai berkas `.ics`. Footer menampilkan tanggal melamar; menu kartu menyediakan pratinjau CV tertaut. List tetap menampilkan tahap pada setiap baris.
+Status lamaran dipilih langsung pada Board, List, dan form: Applied, enam status wawancara/tes, Offer, atau Rejected. `In progress` adalah kelompok Kanban dan filter untuk keenam status seleksi, bukan pilihan status individual. Lamaran lama tanpa langkah menampilkan `Choose status` tanpa menebak jenis seleksi.
+
+Pada tracker dengan lamaran aktif, ringkasan tahap dan aktivitas harian tampil di atas pencarian dan filter. Dropdown teks di header kartu memindahkan lamaran. Hanya pada tahap `In progress`, pengguna dapat memilih langkah seleksi, mengedit tanggal wawancara/tes, atau mengunduh acara sehari penuh sebagai berkas `.ics`. Saat lamaran berpindah ke `Offer` atau `Rejected`, langkah dan tanggal terakhir tetap tersimpan sebagai riwayat baca-saja. Jika tanggal belum pernah diisi, riwayat tidak ditampilkan. Footer menampilkan tanggal melamar; menu kartu menyediakan pratinjau CV tertaut.
 
 **Perilaku Job Tracker saat ini:** Board dan List memakai tahap Applied, In progress, Offer, dan Rejected dengan ID penyimpanan lama. Langkah seleksi bersifat opsional. Arsip menyimpan tahap asal dan langkah; pengguna memilih tujuan untuk arsip lama. Pencarian dan filter tetap berlaku setelah melihat insights atau membuka kartu yang baru dipindah. Form tambah cukup dengan perusahaan dan posisi; tahap mengikuti kolom asal. Duplikasi membuat salinan CV tersendiri, sedangkan tautan lamaran baru berubah setelah disimpan. Kedua aksi simpan memvalidasi perusahaan dan posisi.
 

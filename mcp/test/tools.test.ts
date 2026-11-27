@@ -309,7 +309,6 @@ describe('MCP tools', () => {
           regencyCode: '32.73',
           jobPlatform: 'linkedin',
           industry: 'technology',
-          interviewDate: '2026-12-03',
           resumeId: resumeForJob.id,
           jobDescription:
             'We are looking for a Frontend Engineer with React, TypeScript, Tailwind CSS, and GraphQL.',
@@ -325,7 +324,7 @@ describe('MCP tools', () => {
     expect(createdJob.regencyCode).toBe('32.73');
     expect(createdJob.jobPlatform).toBe('linkedin');
     expect(createdJob.industry).toBe('technology');
-    expect(createdJob.interviewDate).toBe('2026-12-03');
+    expect(createdJob.interviewDate).toBeUndefined();
     expect(createdJob.version).toBe(1);
 
     const listedJobs = parseResult(
@@ -356,6 +355,7 @@ describe('MCP tools', () => {
           expectedVersion: 1,
           status: 'on_progress',
           progressStage: 'technical_test',
+          interviewDate: '2026-12-03',
           jobPlatform: 'glints',
           industry: 'ecommerce',
           notes: 'Take-home React test sent',
@@ -368,12 +368,22 @@ describe('MCP tools', () => {
     expect(updatedJob.industry).toBe('ecommerce');
     expect(updatedJob.version).toBe(2);
 
+    const offer = parseResult(await client.callTool({ name: 'update_job', arguments: {
+      jobId: createdJob.id, expectedVersion: 2, status: 'offering',
+    } }));
+    expect(offer.progressStage).toBe('technical_test');
+    expect(offer.interviewDate).toBe('2026-12-03');
+    const reschedule = await client.callTool({ name: 'update_job', arguments: {
+      jobId: createdJob.id, expectedVersion: 3, interviewDate: '2026-12-04',
+    } });
+    expect(reschedule.isError).toBe(true);
+
     const archivedJob = parseResult(
       await client.callTool({
         name: 'update_job',
         arguments: {
           jobId: createdJob.id,
-          expectedVersion: 2,
+          expectedVersion: 3,
           status: 'archived',
         },
       })

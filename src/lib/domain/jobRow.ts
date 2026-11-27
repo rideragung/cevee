@@ -116,7 +116,7 @@ export const createJobApplication = (
 ): JobApplication => {
   const now = new Date().toISOString();
   const status = normalizeJobStatus(input.status);
-  const progressStage = normalizeProgressStage(input.progressStage);
+  const progressStage = status === 'on_progress' ? normalizeProgressStage(input.progressStage) : undefined;
   const defaultAppliedDate = input.appliedDate?.trim() || now.slice(0, 10);
 
   return {
@@ -135,7 +135,7 @@ export const createJobApplication = (
     salaryRange: (input.salaryRange ?? '').trim(),
     jobUrl: (input.jobUrl ?? '').trim(),
     appliedDate: defaultAppliedDate,
-    interviewDate: input.interviewDate?.trim() || undefined,
+    interviewDate: status === 'on_progress' ? input.interviewDate?.trim() || undefined : undefined,
     resumeId: input.resumeId?.trim() || undefined,
     jobDescription: input.jobDescription ?? '',
     notes: input.notes ?? '',

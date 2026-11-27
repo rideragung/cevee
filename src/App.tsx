@@ -1071,7 +1071,7 @@ export function App() {
         role: input.role.trim(),
         status: nextStatus,
         archivedFrom: nextStatus === 'archived' ? existing.archivedFrom : undefined,
-        progressStage: nextStatus === 'archived' ? existing.progressStage : normalizeProgressStage(input.progressStage),
+        progressStage: nextStatus === 'on_progress' ? normalizeProgressStage(input.progressStage) : existing.progressStage,
         employmentType: normalizeEmploymentType(input.employmentType),
         workMode: normalizeWorkMode(input.workMode),
         location: (input.location ?? '').trim(),
@@ -1082,7 +1082,7 @@ export function App() {
         salaryRange: (input.salaryRange ?? '').trim(),
         jobUrl: (input.jobUrl ?? '').trim(),
         appliedDate: input.appliedDate?.trim() || undefined,
-        interviewDate: input.interviewDate?.trim() || undefined,
+        interviewDate: nextStatus === 'on_progress' ? input.interviewDate?.trim() || undefined : existing.interviewDate,
         resumeId: input.resumeId?.trim() || undefined,
         jobDescription: input.jobDescription ?? '',
         notes: input.notes ?? '',
@@ -1107,7 +1107,7 @@ export function App() {
     if (!existing) return;
 
     const resolvedProgressStage =
-      nextStatus === 'archived' ? existing.progressStage : nextStatus === 'on_progress' ? nextProgressStage : undefined;
+      nextStatus === 'on_progress' && existing.status === 'on_progress' ? nextProgressStage : nextProgressStage ?? existing.progressStage;
 
     if (
       existing.status === nextStatus &&

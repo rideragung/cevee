@@ -7,7 +7,7 @@ export function scheduleDate(value?: string) {
 }
 
 export function eventLabel(job: JobApplication) {
-  const step = job.status === 'on_progress' ? job.progressStage : undefined;
+  const step = job.progressStage;
   return step && step !== 'preparing_interview' && step !== 'interview_finished'
     ? JOB_PROGRESS_STAGE_LABELS[step] : 'Interview';
 }
