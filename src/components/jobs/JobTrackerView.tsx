@@ -99,9 +99,6 @@ type JobPeriodFilter = { date: string } | { year: number };
 const JOB_VIEW_STORAGE_KEY = 'cevee.jobs.view';
 const JOB_SORT_STORAGE_KEY = 'cevee.jobs.sort';
 const JOB_VIEW_MODES: readonly JobViewMode[] = ['board', 'list'];
-const stageInk: Record<ActiveJobStatus, string> = {
-  applied: 'text-violet-700', on_progress: 'text-primary', offering: 'text-emerald-700', rejected: 'text-rose-700',
-};
 const JOB_SORT_KEYS: readonly JobSortKey[] = ['updated', 'applied', 'company'];
 
 const readStoredValue = <T extends string>(
@@ -1059,13 +1056,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
               </Button>
             </Card>
           ) : viewMode === 'board' ? (
-            /* Kanban Board View (4 Active Columns: Applied, On progress, Offering, Rejected) */
-            <div
-              className={cn(
-                'grid grid-cols-1 gap-4 items-start',
-                boardColumns.length === 1 ? 'max-w-xl' : 'md:grid-cols-2 xl:grid-cols-4'
-              )}
-            >
+            <div className="job-board" role="region" aria-label="Application board" tabIndex={0}>
               {boardColumns.map((colStatus) => {
                 const colJobs = visibleActiveJobs.filter((j) => j.status === colStatus);
                 const isDropTarget = dragOverStatus === colStatus;
@@ -1073,6 +1064,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 return (
                   <div
                     key={colStatus}
+                    data-stage={colStatus}
                     onDragOver={(e) => {
                       if (!draggedJobId) return;
                       e.preventDefault();
@@ -1096,15 +1088,15 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                       }
                     }}
                     className={cn(
-                      'flex min-h-[240px] flex-col rounded-2xl border border-[color:var(--kanban-edge)] bg-[color:var(--kanban-lane)] p-3',
-                      isDropTarget && 'outline outline-2 outline-primary'
+                      'job-lane flex min-w-0 flex-col rounded-xl p-2',
+                      isDropTarget && 'ring-2 ring-inset ring-primary'
                     )}
                   >
                     {/* Column Header */}
-                    <div className="mb-3 flex items-center justify-between px-1">
-                      <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
-                        {getStatusIcon(colStatus, cn('size-4 shrink-0', stageInk[colStatus]))}
-                        <span className="truncate">{JOB_STATUS_LABELS[colStatus]} <span className="text-xs font-normal text-muted-foreground tabular-nums">({colJobs.length})</span></span>
+                    <div className="mb-2 flex items-center justify-between px-1">
+                      <h2 className="job-stage-badge" aria-label={`${JOB_STATUS_LABELS[colStatus]}, ${colJobs.length} ${colJobs.length === 1 ? 'application' : 'applications'}`}>
+                        <span>{JOB_STATUS_LABELS[colStatus]}</span>
+                        <span className="job-stage-count">{colJobs.length}</span>
                       </h2>
 
                       <Button
@@ -1121,9 +1113,9 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                     </div>
 
                     {/* Column Cards */}
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-2">
                       {colJobs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[color:var(--kanban-edge)] px-3 py-10 text-center">
+                        <div className="px-1 pb-4 pt-2">
                           <p className="text-xs text-muted-foreground">
                             No applications in {JOB_STATUS_LABELS[colStatus].toLowerCase()}
                           </p>
@@ -1147,7 +1139,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                 setDraggedJobId(null);
                                 setDragOverStatus(null);
                               }}
-                              className="group relative flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-3.5 transition-[border-color,box-shadow] duration-150 ease-out [@media(hover:hover)]:hover:border-foreground/20 [@media(hover:hover)]:hover:shadow-sm"
+                              className="group relative flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-card p-3 transition-[border-color,box-shadow] duration-150 ease-out [@media(hover:hover)]:hover:border-foreground/20 [@media(hover:hover)]:hover:shadow-sm"
                             >
                               {/* 1. Role, Company & Actions */}
                               <div className="flex items-start justify-between gap-2">
@@ -1156,7 +1148,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => openEditModal(job)}
-                                      className="block max-w-full truncate text-left hover:underline hover:underline-offset-4"
+                                      className="line-clamp-2 max-w-full break-words text-left hover:underline hover:underline-offset-4"
                                       title={`Edit ${job.role} at ${job.company}`}
                                     >
                                       {job.role}
@@ -1188,17 +1180,20 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                 </div>
                               )}
 
-                              {job.interviewDate && <p className="flex items-center gap-1.5 text-xs font-medium"><Calendar className="size-4" />Interview {formatInterviewDate(job.interviewDate)}</p>}
+                              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Calendar className="size-3.5 shrink-0" />
+                                {job.interviewDate ? `Interview ${formatInterviewDate(job.interviewDate)}` : job.appliedDate ? `Applied ${formatAppliedDate(job.appliedDate)}` : `Updated ${formatRelativeTime(job.updatedAt)}`}
+                              </p>
 
                               {/* 4. Compact Linked Resume & JD Match Line */}
-                              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted px-2.5 py-1.5">
+                              <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border pt-1">
                                 {linkedResume ? (
                                   <>
                                     <button
                                       type="button"
                                       onClick={() => onSelectResume(linkedResume.id)}
                                       title={`Edit resume: ${linkedResume.title}`}
-                                      className="flex items-center gap-1.5 min-w-0 text-[11px] font-semibold text-foreground hover:text-primary transition-colors"
+                                      className="flex min-w-0 max-w-full items-center gap-1.5 text-xs font-medium text-foreground hover:text-primary transition-colors"
                                     >
                                       <FileText className="size-3.5 text-primary shrink-0" />
                                       <span className="truncate">{linkedResume.title}</span>
@@ -1254,18 +1249,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                                     Create a resume to link
                                   </span>
                                 )}
-                              </div>
-
-                              {/* 5. Footer: Formatted Applied Date & Quick Stage Mover */}
-                              <div className="mt-auto flex items-center justify-between gap-2 pt-1 border-t border-border/60">
-                                <div className="min-w-0">
-                                  <span className="block truncate text-[11px] text-muted-foreground tabular-nums">
-                                    {job.appliedDate
-                                      ? formatAppliedDate(job.appliedDate)
-                                      : formatRelativeTime(job.updatedAt)}
-                                  </span>
-                                </div>
-                                {renderStageDropdown(job, true)}
+                                <div className="ml-auto">{renderStageDropdown(job, true)}</div>
                               </div>
                             </Card>
                           );

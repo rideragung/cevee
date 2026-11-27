@@ -2,6 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .job-board {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(min(16rem, 89%), 1fr);
+    align-items: start;
+    gap: .5rem;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding: 2px 2px .5rem;
+  }
+  .job-board:has(> :only-child) { grid-auto-columns: min(100%, 24rem); }
+  .job-lane {
+    background: var(--lane-surface);
+    scroll-snap-align: start;
+  }
+  .job-lane[data-stage='applied'] { --lane-surface: #F3EFF9; --stage-fill: #7045BF; }
+  .job-lane[data-stage='on_progress'] { --lane-surface: #EEF2FF; --stage-fill: #2459CA; }
+  .job-lane[data-stage='offering'] { --lane-surface: #EDF6F1; --stage-fill: #13774F; }
+  .job-lane[data-stage='rejected'] { --lane-surface: #FAF0F2; --stage-fill: #9F3855; }
+  .job-stage-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 22px;
+    padding-inline-start: 7px;
+    margin-inline-end: 4px;
+    border-radius: 8px;
+    background: var(--stage-fill);
+    color: var(--primary-foreground);
+    font-size: .6875rem;
+    font-weight: 600;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+  .job-stage-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    padding-inline: 3px;
+    margin-inline-end: -4px;
+    border: 1px solid var(--stage-fill);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -68,8 +120,6 @@
   }
   :root {
     --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --kanban-lane: #ECEEF1;
-    --kanban-edge: #DADDE2;
     --background: #FFFFFF;
     --foreground: #0F172A;
     --card: #FFFFFF;
