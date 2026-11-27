@@ -97,6 +97,7 @@ interface JobTrackerViewProps {
 }
 
 type JobViewMode = 'board' | 'list';
+type JobPeriodFilter = { date: string } | { year: number };
 const JOB_VIEW_STORAGE_KEY = 'cevee.jobs.view';
 const JOB_SORT_STORAGE_KEY = 'cevee.jobs.sort';
 const JOB_VIEW_MODES: readonly JobViewMode[] = ['board', 'list'];
@@ -143,8 +144,9 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   );
   const [statusFilter, setStatusFilter] = useState<ActiveJobStatus | 'all'>('all');
   const [employmentFilter, setEmploymentFilter] = useState<EmploymentType | 'all'>('all');
-  const [dateFilter, setDateFilter] = useState<string | null>(null);
-  const [yearFilter, setYearFilter] = useState<number | null>(null);
+  const [periodFilter, setPeriodFilter] = useState<JobPeriodFilter | null>(null);
+  const dateFilter = periodFilter && 'date' in periodFilter ? periodFilter.date : null;
+  const yearFilter = periodFilter && 'year' in periodFilter ? periodFilter.year : null;
   const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -220,7 +222,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         const jobDate = (job.appliedDate || job.createdAt || '').slice(0, 10);
         if (jobDate !== dateFilter) return false;
       }
-      if (yearFilter !== null && !dateFilter) {
+      if (yearFilter !== null) {
         const jobYear = Number((job.appliedDate || job.createdAt || '').slice(0, 4));
         if (jobYear !== yearFilter) return false;
       }
@@ -296,8 +298,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
     Boolean(normalizedQuery) ||
     statusFilter !== 'all' ||
     employmentFilter !== 'all' ||
-    Boolean(dateFilter) ||
-    (yearFilter !== null && !dateFilter);
+    periodFilter !== null;
 
   const renderProgressSubStagePill = (job: JobApplication) => {
     if (job.status !== 'on_progress') return null;
@@ -844,10 +845,10 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             activeFilter={statusFilter}
             onFilterChange={setStatusFilter}
             selectedDate={dateFilter}
-            onDateFilterChange={setDateFilter}
+            onDateFilterChange={(date) => setPeriodFilter(date ? { date } : null)}
             selectedYearFilter={yearFilter}
             onYearFilterChange={(year) => {
-              setYearFilter(year);
+              setPeriodFilter(year === null ? null : { year });
             }}
           />
 
@@ -1049,7 +1050,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 No applications match your filter
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Try clearing the search query or resetting stage and type filters.
+                Clear your search or reset filters to see more applications.
               </p>
               <Button
                 type="button"
@@ -1059,8 +1060,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                   setSearchQuery('');
                   setStatusFilter('all');
                   setEmploymentFilter('all');
-                  setDateFilter(null);
-                  setYearFilter(null);
+                  setPeriodFilter(null);
                 }}
                 className="mt-3 text-xs"
               >

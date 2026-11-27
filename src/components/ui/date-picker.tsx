@@ -30,7 +30,7 @@ interface PickerMenuProps {
   label: string;
   ariaLabel: string;
   items: { value: number; label: string }[];
-  selectedValue: number;
+  selectedValue: number | null;
   onSelect: (value: number) => void;
   align?: 'start' | 'end';
   width?: string;
@@ -48,6 +48,7 @@ function PickerMenu({
   const [open, setOpen] = React.useState(false);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const focusValue = selectedValue ?? items.find((item) => item.label === label)?.value;
 
   React.useEffect(() => {
     if (!open) return;
@@ -102,7 +103,7 @@ function PickerMenu({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label={ariaLabel}
+        aria-label={`${label}. ${ariaLabel}`}
         onClick={() => setOpen((prev) => !prev)}
         className="inline-flex h-6 items-center gap-1 rounded-lg border border-border bg-card px-2 text-[11px] font-semibold text-foreground shadow-2xs transition-colors hover:border-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
@@ -129,20 +130,19 @@ function PickerMenu({
         >
           {items.map((item, index) => {
             const isSelected = item.value === selectedValue;
-            const hasSelection = items.some((entry) => entry.value === selectedValue);
             return (
               <button
                 key={item.value}
                 type="button"
                 role="option"
                 aria-selected={isSelected}
-                autoFocus={isSelected || (!hasSelection && index === 0)}
+                autoFocus={item.value === focusValue || (focusValue === undefined && index === 0)}
                 onClick={() => {
                   onSelect(item.value);
                   close();
                 }}
                 className={cn(
-                  'flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] tabular-nums transition-colors',
+                  'flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] tabular-nums transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
                   isSelected
                     ? 'bg-accent font-semibold text-primary'
                     : 'text-foreground hover:bg-muted/70'
@@ -161,9 +161,9 @@ function PickerMenu({
 
 export interface PillowDatePickerProps {
   value?: Date;
-  yearFilterActive?: boolean;
   onChange?: (date: Date | undefined) => void;
   selectedYearFilter?: number | null;
+  initialYear?: number;
   onYearFilterChange?: (year: number | null) => void;
   /**
    * Fires whenever the visible month changes while browsing (arrows or the
@@ -183,9 +183,9 @@ export interface PillowDatePickerProps {
 
 function DatePicker({
   value,
-  yearFilterActive = false,
   onChange,
   selectedYearFilter = null,
+  initialYear,
   onYearFilterChange,
   onMonthChange,
   placeholder = 'Pick date',
@@ -197,7 +197,8 @@ function DatePicker({
   ariaLabel,
 }: PillowDatePickerProps) {
   const [open, setOpen] = React.useState(false);
-  const endDate = maxDate ?? new Date();
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const endDate = React.useMemo(() => maxDate ?? new Date(), [maxDate]);
 
   const yearItems = React.useMemo(() => {
     const source =
@@ -219,7 +220,9 @@ function DatePicker({
     [maxYear, endDate]
   );
 
-  const [month, setMonth] = React.useState<Date>(() => startOfMonth(value ?? endDate));
+  const [month, setMonth] = React.useState(() =>
+    value ? startOfMonth(value) : new Date(initialYear ?? selectedYearFilter ?? maxYear, endDate.getMonth(), 1)
+  );
 
   const formatted = value
     ? new Intl.DateTimeFormat('en-US', {
@@ -228,7 +231,14 @@ function DatePicker({
         year: 'numeric',
       }).format(value)
     : null;
-  const triggerLabel = formatted ?? (yearFilterActive && selectedYearFilter !== null ? String(selectedYearFilter) : placeholder);
+  const filterLabel = formatted ?? (selectedYearFilter === null ? null : String(selectedYearFilter));
+  const triggerLabel = filterLabel ?? placeholder;
+  const clearLabel = value ? 'Clear date filter' : 'Clear year filter';
+
+  const clearFilter = () => {
+    if (value) onChange?.(undefined);
+    else onYearFilterChange?.(null);
+  };
 
   const updateMonth = (next: Date) => {
     setMonth(next);
@@ -237,10 +247,10 @@ function DatePicker({
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
-    // A selected date always needs to be on screen when the popover opens.
-    // With no date selected, keep whatever month the user was browsing.
-    if (next && value) {
-      updateMonth(startOfMonth(value));
+    if (!next) return;
+    if (value) updateMonth(startOfMonth(value));
+    else if (initialYear !== undefined && month.getFullYear() !== initialYear) {
+      setMonth(new Date(initialYear, endDate.getMonth(), 1));
     }
   };
 
@@ -248,12 +258,20 @@ function DatePicker({
   const canGoNext = !isSameMonth(month, endMonth);
 
   const handleMonthSelect = (monthIndex: number) => {
-    updateMonth(new Date(month.getFullYear(), monthIndex, 1));
+    const next = new Date(month.getFullYear(), monthIndex, 1);
+    updateMonth(next > endMonth ? endMonth : next);
   };
 
   const handleYearSelect = (year: number) => {
     const next = new Date(year, month.getMonth(), 1);
-    updateMonth(next.getFullYear() > maxYear ? endMonth : next);
+    const boundedMonth = next > endMonth ? endMonth : next;
+    if (onYearFilterChange) {
+      setMonth(boundedMonth);
+      onYearFilterChange(year);
+      setOpen(false);
+    } else {
+      updateMonth(boundedMonth);
+    }
   };
 
   const isTodayUnavailable = React.useMemo(() => {
@@ -267,17 +285,18 @@ function DatePicker({
       <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
+            ref={triggerRef}
             type="button"
-            variant={value || yearFilterActive ? 'secondary' : 'outline'}
+            variant={filterLabel ? 'secondary' : 'outline'}
             size="sm"
             disabled={disabled}
             aria-label={ariaLabel}
             className={cn(
               'h-8 gap-1.5 rounded-xl px-1.5 text-xs font-medium tabular-nums',
-              value || yearFilterActive
+              filterLabel
                 ? 'border-primary/30 bg-accent font-semibold text-primary'
                 : 'text-muted-foreground hover:text-foreground',
-              (value || yearFilterActive) && !disabled && 'pr-7'
+              filterLabel && !disabled && 'pr-7'
             )}
           >
             <CalendarIcon className="size-3.5 shrink-0" aria-hidden="true" />
@@ -295,11 +314,7 @@ function DatePicker({
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-semibold text-foreground">Date filter</span>
               <span className="truncate text-[11px] text-muted-foreground tabular-nums">
-                {formatted
-                  ? `Selected: ${formatted}`
-                  : yearFilterActive && selectedYearFilter !== null
-                    ? `Selected: ${selectedYearFilter}`
-                    : 'No date selected'}
+                {filterLabel ? `Selected: ${filterLabel}` : 'No date or year filter'}
               </span>
             </div>
 
@@ -327,9 +342,9 @@ function DatePicker({
 
               <PickerMenu
                 label={String(month.getFullYear())}
-                ariaLabel="Choose year"
+              ariaLabel={onYearFilterChange ? 'Filter by year' : 'Choose year'}
                 items={yearItems}
-                selectedValue={month.getFullYear()}
+              selectedValue={onYearFilterChange ? selectedYearFilter : month.getFullYear()}
                 onSelect={handleYearSelect}
                 width="w-24"
               />
@@ -372,64 +387,31 @@ function DatePicker({
 
           <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2">
             <span className="truncate text-[10px] font-medium text-muted-foreground tabular-nums">
-              {yearFilterActive && selectedYearFilter === month.getFullYear()
-                ? `Filtering ${month.getFullYear()}`
-                : `Browsing ${month.getFullYear()}`}
+              Browsing {month.getFullYear()}
             </span>
 
             <div className="flex items-center gap-1">
-              {!(yearFilterActive && selectedYearFilter === month.getFullYear()) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    onYearFilterChange?.(month.getFullYear());
-                    onChange?.(undefined);
-                    setOpen(false);
-                  }}
-                  className="h-7 px-2.5 text-[11px] font-semibold"
-                >
-                  Filter year
-                </Button>
-              )}
-              {yearFilterActive && selectedYearFilter === month.getFullYear() ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    onYearFilterChange?.(null);
-                    setOpen(false);
-                  }}
-                  className="h-7 px-2.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
-                >
-                  Clear
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={isTodayUnavailable}
-                  onClick={() => {
-                    onChange?.(new Date());
-                    setOpen(false);
-                  }}
-                  className="h-7 px-2.5 text-[11px] font-semibold"
-                >
-                  Today
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={isTodayUnavailable}
+                onClick={() => {
+                  onChange?.(new Date());
+                  setOpen(false);
+                }}
+                className="h-7 px-2.5 text-[11px] font-semibold"
+              >
+                Today
+              </Button>
 
-              {(value || yearFilterActive) && selectedYearFilter !== month.getFullYear() && (
+              {filterLabel && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    onChange?.(undefined);
-                    onYearFilterChange?.(null);
+                    clearFilter();
                     setOpen(false);
                   }}
                   className="h-7 px-2.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
@@ -442,15 +424,15 @@ function DatePicker({
         </PopoverContent>
       </Popover>
 
-      {(value || yearFilterActive) && !disabled && (
+      {filterLabel && !disabled && (
         <button
           type="button"
           onClick={() => {
-            onChange?.(undefined);
-            onYearFilterChange?.(null);
+            clearFilter();
+            triggerRef.current?.focus();
           }}
-          aria-label="Clear date or year filter"
-          title="Clear filter"
+          aria-label={clearLabel}
+          title={clearLabel}
           className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-primary/70 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring after:absolute after:-inset-1.5 after:content-['']"
         >
           <X className="size-3" aria-hidden="true" />

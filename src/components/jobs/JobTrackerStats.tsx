@@ -24,8 +24,8 @@ interface JobTrackerStatsProps {
   onFilterChange: (nextFilter: ActiveJobStatus | 'all') => void;
   selectedDate: string | null;
   onDateFilterChange: (nextDate: string | null) => void;
-  selectedYearFilter?: number | null;
-  onYearFilterChange?: (nextYear: number | null) => void;
+  selectedYearFilter: number | null;
+  onYearFilterChange: (nextYear: number | null) => void;
 }
 
 interface HeatmapDay {
@@ -104,7 +104,9 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
     return d;
   }, []);
   const currentYear = todayDate.getFullYear();
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [selectedYear, setSelectedYear] = useState(
+    () => selectedYearFilter ?? (selectedDate ? Number(selectedDate.slice(0, 4)) : currentYear)
+  );
   const [hoveredStage, setHoveredStage] = useState<ActiveJobStatus | null>(null);
   const [hoveredDay, setHoveredDay] = useState<HeatmapDay | null>(null);
   const [focusedIso, setFocusedIso] = useState<string | null>(null);
@@ -165,7 +167,6 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
     weeks,
     monthColMap,
     yearTotal,
-    last7DaysCount,
     selectableIsos,
     dayLookup,
     defaultTabIso,
@@ -190,10 +191,6 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
 
     const todayIso = toLocalIsoDate(todayDate);
 
-    const sevenDaysAgo = new Date(todayDate);
-    sevenDaysAgo.setDate(todayDate.getDate() - 6);
-    const sevenDaysAgoIso = toLocalIsoDate(sevenDaysAgo);
-
     const jan1 = new Date(selectedYear, 0, 1);
     const dec31 = new Date(selectedYear, 11, 31);
     const startOffset = (jan1.getDay() + 6) % 7; // Mon=0 .. Sun=6
@@ -210,7 +207,6 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
     const monthLabels: Record<number, string> = {};
     const validIsos: string[] = [];
     const lookup = new Map<string, HeatmapDay>();
-    let recent7 = 0;
 
     for (let w = 0; w < totalWeeks; w += 1) {
       const col: HeatmapDay[] = [];
@@ -221,10 +217,6 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
         const iso = toLocalIsoDate(dt);
         const isFuture = iso > todayIso;
         const count = inYear && !isFuture ? countsByDate.get(iso) ?? 0 : 0;
-
-        if (inYear && !isFuture && iso >= sevenDaysAgoIso) {
-          recent7 += count;
-        }
 
         if (inYear && dt.getDate() === 1 && monthLabels[w] === undefined) {
           monthLabels[w] = MONTH_NAMES[dt.getMonth()];
@@ -257,7 +249,6 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
       weeks: builtWeeks,
       monthColMap: monthLabels,
       yearTotal: totalInYear,
-      last7DaysCount: recent7,
       selectableIsos: validIsos,
       dayLookup: lookup,
       defaultTabIso: fallbackIso,
@@ -322,30 +313,20 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
       return;
     }
     const iso = toLocalIsoDate(nextDate);
-    onYearFilterChange?.(null);
     setSelectedYear(nextDate.getFullYear());
+    setHoveredDay(null);
     setFocusedIso(iso);
     onDateFilterChange(iso);
   };
 
-  /**
-   * Browsing a month or year in the picker moves the heatmap without touching
-   * the date filter. A date filter only survives while its year stays on screen,
-   * so switching to another year clears it instead of leaving an invisible filter.
-   */
-  const handlePickerMonthChange = React.useCallback(
-    (nextMonth: Date) => {
-      const nextYear = nextMonth.getFullYear();
-      setSelectedYear(nextYear);
+  const handleYearFilterChange = (year: number | null) => {
+    if (year !== null) {
+      setSelectedYear(year);
       setHoveredDay(null);
       setFocusedIso(null);
-
-      if (selectedDate && Number(selectedDate.slice(0, 4)) !== nextYear) {
-        onDateFilterChange(null);
-      }
-    },
-    [selectedDate, onDateFilterChange]
-  );
+    }
+    onYearFilterChange(year);
+  };
 
   const handleGridKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, iso: string) => {
     const idx = selectableIsos.indexOf(iso);
@@ -369,10 +350,10 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
     }
   };
 
-  const yearCountLabel =
-    activeFilter === 'all'
-      ? `${yearTotal} sent in ${selectedYear}`
-      : `${yearTotal} ${JOB_STATUS_LABELS[activeFilter].toLowerCase()} in ${selectedYear}`;
+  const applicationCount = `${yearTotal} ${yearTotal === 1 ? 'application' : 'applications'}`;
+  const yearCountLabel = selectedYearFilter === null
+    ? `${applicationCount} in ${selectedYear}`
+    : applicationCount;
 
   return (
     <div className="mb-6 grid grid-cols-1 lg:grid-cols-[288px_minmax(0,1fr)] gap-3 items-stretch">
@@ -465,35 +446,31 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
       {/* Right Card: Full-Year Jan to Dec Daily Applications Heatmap */}
       <Card className="rounded-2xl border border-border bg-card p-4 shadow-2xs flex flex-col justify-between min-w-0">
         <div className="mb-3 flex min-h-8 flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="text-xs font-semibold text-foreground">
               Daily applications
             </span>
             <span className="truncate text-[11px] text-muted-foreground tabular-nums">
-              {selectedYearFilter != null && !selectedDate
-                ? `${yearTotal} in ${selectedYear}`
-                : yearCountLabel}
+              {yearCountLabel}
             </span>
           </div>
 
-          {/* Single control: browse the year, then optionally filter one date */}
           <DatePicker
             value={selectedDateValue}
-            yearFilterActive={!selectedDate && selectedYearFilter != null}
             onChange={handleDatePickerChange}
-            onMonthChange={handlePickerMonthChange}
-            selectedYearFilter={selectedDate ? null : selectedYearFilter ?? null}
-            onYearFilterChange={onYearFilterChange}
+            selectedYearFilter={selectedYearFilter}
+            onYearFilterChange={handleYearFilterChange}
+            initialYear={selectedYear}
             years={pickerYears}
             placeholder="Pick date"
             maxDate={todayDate}
             align="end"
             ariaLabel={
               formattedSelectedDate
-                ? `Filtered by ${formattedSelectedDate}. Select another date`
-                : selectedYearFilter != null && !selectedDate
-                  ? `Filtered by ${selectedYearFilter}. Select another date or year`
-                  : 'Pick a date to filter applications'
+                ? `${formattedSelectedDate}. Change date or year filter`
+                : selectedYearFilter !== null
+                  ? `${selectedYearFilter}. Change year or date filter`
+                  : 'Pick date or year to filter applications'
             }
           />
         </div>
@@ -608,7 +585,7 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
           </div>
         </div>
 
-        {/* Footer: Locked Filter / Hover Preview / Recent 7-Day Count + Legend */}
+        {/* Daily detail and intensity legend */}
         <div className="mt-3 pt-2 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
           <div
             role="status"
@@ -623,27 +600,12 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
                   ? '1 application'
                   : `${hoveredDay.count} applications`}
               </span>
-            ) : formattedSelectedDate ? (
+            ) : selectedDayObj ? (
               <span className="truncate">
-                Date:{' '}
-                <span className="font-semibold text-foreground">
-                  {formattedSelectedDate}
-                </span>
-                {selectedDayObj ? ` (${selectedDayObj.count})` : ''}
+                <span className="font-semibold text-foreground">{selectedDayObj.label}</span>
+                {`: ${selectedDayObj.count} ${selectedDayObj.count === 1 ? 'application' : 'applications'}`}
               </span>
-            ) : selectedYearFilter != null && !selectedDate ? (
-              <span>
-                <span className="font-semibold text-foreground">{yearTotal}</span> applications in {selectedYearFilter}
-              </span>
-            ) : yearTotal === 0 ? (
-              <span>No applications logged in {selectedYear}</span>
-            ) : selectedYear === currentYear ? (
-              <span>
-                <span className="font-semibold text-foreground">{last7DaysCount}</span> sent in the last 7 days
-              </span>
-            ) : (
-              <span>{selectedYear} archive</span>
-            )}
+            ) : null}
           </div>
 
           <div className="flex items-center gap-1 shrink-0" aria-hidden="true">
