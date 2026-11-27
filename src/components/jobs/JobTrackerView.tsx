@@ -431,13 +431,13 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            variant="secondary"
+            variant="ghost"
             size="icon"
-            className="relative size-7 shrink-0 text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:text-foreground"
+            className="relative size-7 shrink-0 rounded-lg text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:text-foreground"
             title="More actions"
             aria-label={`More actions for ${job.role} at ${job.company}`}
           >
-            <MoreVertical className="size-3.5" />
+            <MoreVertical className="size-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">

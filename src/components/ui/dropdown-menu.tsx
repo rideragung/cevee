@@ -11,7 +11,14 @@ import { CheckIcon, ChevronRightIcon } from "@/components/icons"
 /* Context mirrors the Root's React state; reading it through a DOM-
    attribute observer does not reliably re-render these portals in
    this React 18 + Radix 2.2 combination. */
-const DropdownMenuOpenContext = React.createContext(false)
+const DropdownMenuContext = React.createContext<{
+  open: boolean
+  triggerRef: React.MutableRefObject<HTMLButtonElement | null>
+}>({
+  open: false,
+  triggerRef: { current: null },
+})
+const activeDropdownClosers = new Set<() => void>()
 
 function DropdownMenu({
   open: openProp,
@@ -21,6 +28,7 @@ function DropdownMenu({
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false)
   const open = openProp !== undefined ? openProp : uncontrolledOpen
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null)
   const handleOpenChange = React.useCallback(
     (next: boolean) => {
       if (openProp === undefined) setUncontrolledOpen(next)
@@ -28,15 +36,62 @@ function DropdownMenu({
     },
     [openProp, onOpenChange]
   )
+  const closeSelf = React.useCallback(() => {
+    handleOpenChange(false)
+  }, [handleOpenChange])
+
+  React.useEffect(() => {
+    if (!open) return
+    for (const closeOther of Array.from(activeDropdownClosers)) {
+      if (closeOther !== closeSelf) closeOther()
+    }
+    activeDropdownClosers.add(closeSelf)
+    let armed = false
+    const armTimer = window.setTimeout(() => {
+      armed = true
+    }, 120)
+    const handleScroll = (event: Event) => {
+      if (!armed) return
+      const target = event.target
+      if (target instanceof Element && target.closest("[data-radix-menu-content]")) {
+        return
+      }
+      handleOpenChange(false)
+    }
+    window.addEventListener("scroll", handleScroll, { capture: true, passive: true })
+    return () => {
+      window.clearTimeout(armTimer)
+      activeDropdownClosers.delete(closeSelf)
+      window.removeEventListener("scroll", handleScroll, { capture: true })
+    }
+  }, [open, closeSelf, handleOpenChange])
+
+  const contextValue = React.useMemo(() => ({ open, triggerRef }), [open])
+
   return (
-    <DropdownMenuOpenContext.Provider value={open}>
+    <DropdownMenuContext.Provider value={contextValue}>
       <DropdownMenuPrimitive.Root open={open} onOpenChange={handleOpenChange} modal={modal} {...props} />
-    </DropdownMenuOpenContext.Provider>
+    </DropdownMenuContext.Provider>
   )
 }
 DropdownMenu.displayName = DropdownMenuPrimitive.Root.displayName
 
-const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
+const DropdownMenuTrigger = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Trigger>
+>(({ ...props }, ref) => {
+  const { triggerRef } = React.useContext(DropdownMenuContext)
+  const mergedRef = React.useCallback(
+    (node: HTMLButtonElement | null) => {
+      triggerRef.current = node
+      if (typeof ref === "function") ref(node)
+      else if (ref) ref.current = node
+    },
+    [ref, triggerRef]
+  )
+  return <DropdownMenuPrimitive.Trigger ref={mergedRef} {...props} />
+})
+DropdownMenuTrigger.displayName = DropdownMenuPrimitive.Trigger.displayName
 
 const DropdownMenuGroup = DropdownMenuPrimitive.Group
 
@@ -94,22 +149,20 @@ function DropdownMenuContent({
   onInteractOutside,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
-  const isOpen = React.useContext(DropdownMenuOpenContext)
+  const { open: isOpen, triggerRef } = React.useContext(DropdownMenuContext)
 
   /* The registry force-mounts content for the exit motion, so the dismiss
      layer is live from first paint. A pointerdown on the trigger toggles
      open and is then seen as an outside-press in the same event, closing
-     the menu two frames later — suppress dismissal that starts on a trigger. */
+     the menu two frames later — suppress dismissal that starts on this
+     menu's own trigger while letting other triggers close this menu. */
   const guardPointerDownOutside = (
     event: CustomEvent<{ originalEvent: PointerEvent }>
   ) => {
-    /* Radix dispatches a non-bubbling CustomEvent at the original press target
-       itself, so event.target is the pressed element when the pressed element
-       is connected. */
     const target =
       (event?.target as Element | null) ??
       ((event as { detail?: { originalEvent?: { target?: Element | null } } })?.detail?.originalEvent?.target ?? null)
-    if (target?.closest("[aria-haspopup]")) {
+    if (triggerRef.current && target && triggerRef.current.contains(target)) {
       event.preventDefault()
     }
     onPointerDownOutside?.(event)
