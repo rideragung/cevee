@@ -168,29 +168,25 @@ function DropdownMenuContent({
     onPointerDownOutside?.(event)
   }
 
+  if (!isOpen) return null
+
   return (
-    <DropdownMenuPrimitive.Portal forceMount>
+    <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
         sideOffset={sideOffset}
-        forceMount
         className={cn(
           "z-50 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground",
           "shadow-[0_0.125rem_0.5rem_rgba(0,0,0,0.08),0_0.375rem_1.25rem_rgba(0,0,0,0.06)]",
-          "data-[state=closed]:pointer-events-none",
           className
         )}
         {...props}
         onPointerDownOutside={guardPointerDownOutside}
         onInteractOutside={onInteractOutside}
       >
-        {/* The registry gates children on a MutationObserver-driven state; in
-            this React 18 + Radix 2.2 build the menu stays empty and a 3 ms
-            close-after-open breaks dismissal semantics. Render one motion.div
-            and drive it, keeping Radix's real open state as the source. */}
         <motion.div
           key="dropdown-content"
           initial={{ opacity: 0, scale: 0.95 }}
-          animate={isOpen ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={springInteraction}
           style={{
             transformOrigin: "var(--radix-dropdown-menu-content-transform-origin)",

@@ -131,21 +131,7 @@ feedback only.
   which yields `box-shadow: none` (found in the Phase 5 rendered audit, 2026-10-20). The
   config-based `shadow-pillow-*` utilities in `tailwind.config.js` are the safe alternative
   for feature code.
-- `src/components/ui/dropdown-menu.tsx` carries three upstream fixes verified in QA:
-  context-menu-sized open state, a pointer guard against erroneous outside-click close on
-  right-click, and a `closed-portal` CSS rule so a closed dropdown cannot paint a stray
-  layer over an open dialog.
-- The kit mounts dropdown portals with `forceMount`, so a closed menu's
-  `data-radix-popper-content-wrapper` stays parked at its trigger (e.g. the w-56 account
-  menu box under the avatar) with `visibility: hidden` content. The wrapper's own box
-  still hit-tests and swallows real clicks that land over whatever sits beneath it —
-  this was the actual root cause of the "Create resume CTA doesn't register clicks"
-  report (2026-10-20). The fix in `src/index.css` folds the closed state up to the
-  wrapper: `[data-radix-popper-content-wrapper]:has([data-radix-menu-content]
-  [data-state="closed"]) { pointer-events: none; }`. Open menus stay interactive
-  because Content re-declares `pointer-events: auto` over the wrapper's inherited
-  `none`. Verified with real clicks: title-row CTA at scroll 0/40/200, account and sort
-  menus opening, sort item selection, and click-through on the parked closed wrapper.
+- `src/components/ui/dropdown-menu.tsx` mounts the portal only while open (`isOpen`), eliminating parked closed `DismissableLayer` stacks so `Escape` and outside-clicks work across multi-card boards, coordinates an active-menu registry so opening one card's menu closes any other open menu, checks own-trigger containment (`triggerRef.current.contains(target)`) in `guardPointerDownOutside`, and closes on window or container scroll outside the menu.
 
 ## Profile & Account Dropdown (2026-10-21)
 
