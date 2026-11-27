@@ -65,12 +65,22 @@ function PickerMenu({
     triggerRef.current?.focus();
   }, []);
 
-  const handleListKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape') {
+  React.useEffect(() => {
+    if (!open) return;
+    // Escape must close only this menu. Radix listens for Escape on the
+    // document in the capture phase, so the menu listens on the window in the
+    // capture phase to run first and keep the popover open.
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
       event.preventDefault();
+      event.stopPropagation();
       close();
-      return;
-    }
+    };
+    window.addEventListener('keydown', handleEscape, true);
+    return () => window.removeEventListener('keydown', handleEscape, true);
+  }, [open, close]);
+
+  const handleListKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
 
     event.preventDefault();
@@ -256,7 +266,7 @@ function DatePicker({
             disabled={disabled}
             aria-label={ariaLabel}
             className={cn(
-              'h-8 min-w-[7.5rem] gap-1.5 rounded-xl px-2.5 text-xs font-medium tabular-nums',
+              'h-8 gap-1.5 rounded-xl px-1.5 text-xs font-medium tabular-nums',
               value
                 ? 'border-primary/30 bg-accent font-semibold text-primary'
                 : 'text-muted-foreground hover:text-foreground',
