@@ -68,6 +68,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -329,18 +330,67 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">
-          Change status
-        </DropdownMenuLabel>
-        {JOB_STATUS_CHOICES.map(choice => (
-          <DropdownMenuItem
-            key={choice.value}
-            onClick={() => moveJob(job, choice.status, choice.step)}
-            className="flex items-center justify-between text-xs cursor-pointer"
-          >
-            <span aria-current={choice.label === applicationStatusLabel(job) || undefined} className={choice.label === applicationStatusLabel(job) ? 'font-semibold text-primary' : undefined}>{choice.label}</span>
-          </DropdownMenuItem>
-        ))}
+        {(() => {
+          const current = applicationStatusLabel(job);
+          const stageRowClasses = (st: ActiveJobStatus, isSelected: boolean) => {
+            switch (st) {
+              case 'applied':
+                return isSelected
+                  ? 'bg-violet-100/80 text-violet-800 focus:bg-violet-100 focus:text-violet-800'
+                  : 'text-foreground focus:bg-violet-50 focus:text-violet-800';
+              case 'on_progress':
+                return isSelected
+                  ? 'bg-accent text-primary focus:bg-accent focus:text-primary'
+                  : 'text-foreground focus:bg-accent focus:text-primary';
+              case 'offering':
+                return isSelected
+                  ? 'bg-emerald-100/80 text-emerald-800 focus:bg-emerald-100 focus:text-emerald-800'
+                  : 'text-foreground focus:bg-emerald-50 focus:text-emerald-800';
+              case 'rejected':
+                return isSelected
+                  ? 'bg-rose-100/80 text-rose-800 focus:bg-rose-100 focus:text-rose-800'
+                  : 'text-foreground focus:bg-rose-50 focus:text-rose-800';
+            }
+          };
+          const item = (choice: (typeof JOB_STATUS_CHOICES)[number]) => {
+            const isSelected = choice.label === current;
+            return (
+              <DropdownMenuItem
+                key={choice.value}
+                onClick={() => moveJob(job, choice.status, choice.step)}
+                className={cn(
+                  'flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-xs cursor-pointer',
+                  isSelected ? 'font-bold' : 'font-normal',
+                  stageRowClasses(choice.status, isSelected)
+                )}
+              >
+                <span aria-current={isSelected || undefined}>{choice.label}</span>
+                {isSelected && <Check className="size-3.5 shrink-0" />}
+              </DropdownMenuItem>
+            );
+          };
+          return (
+            <>
+              {JOB_STATUS_CHOICES.filter((c) => c.status === 'applied').map(item)}
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">
+                  In progress
+                </DropdownMenuLabel>
+                {JOB_STATUS_CHOICES.filter((c) => c.status === 'on_progress').map(item)}
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">
+                  Outcome
+                </DropdownMenuLabel>
+                {JOB_STATUS_CHOICES.filter(
+                  (c) => c.status === 'offering' || c.status === 'rejected'
+                ).map(item)}
+              </DropdownMenuGroup>
+            </>
+          );
+        })()}
       </DropdownMenuContent>
     </DropdownMenu>
   );
