@@ -4,6 +4,7 @@ import { htmlToPlainText } from './html';
 export interface JdMatchResult {
   score: number;
   matchedKeywords: string[];
+  matchedCount: number;
   missingKeywords: string[];
   totalKeywords: number;
 }
@@ -304,6 +305,7 @@ export const matchJobToResume = (
   return {
     score,
     matchedKeywords: matched.slice(0, 14),
+    matchedCount: matched.length,
     missingKeywords: missing.slice(0, 10),
     totalKeywords: keywords.length,
   };

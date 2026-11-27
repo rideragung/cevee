@@ -372,6 +372,7 @@ export const registerJobTools = (
           matchedKeywords: [],
           missingKeywords: [],
           totalKeywords: 0,
+          matchedCount: 0,
         }
       );
     }

@@ -64,7 +64,7 @@ interface JobFormDialogProps {
   onClose: () => void;
   initialJob?: JobApplication | null;
   defaultStatus?: ActiveJobStatus;
-  focusResume?: boolean;
+  focusField?: 'resume' | 'schedule';
   resumes: ResumeDocument[];
   onSave: (input: JobApplicationInput, existingId?: string) => void;
   onTailorResume?: (baseResumeId: string, company: string, role: string) => string | null;
@@ -76,7 +76,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
   onClose,
   initialJob,
   defaultStatus = 'applied',
-  focusResume = false,
+  focusField,
   resumes,
   onSave,
   onTailorResume,
@@ -87,6 +87,13 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
   const [status, setStatus] = useState<JobStatus>(defaultStatus);
   const [progressStage, setProgressStage] = useState<JobProgressStage>();
   const [detailsOpen, setDetailsOpen] = useState(false);
+  useEffect(() => {
+    if (!isOpen || !detailsOpen || !focusField) return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(focusField === 'schedule' ? 'job-interview-date' : 'job-resume')?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isOpen, detailsOpen, focusField]);
   const [employmentType, setEmploymentType] = useState<EmploymentType>('full_time');
   const [workMode, setWorkMode] = useState<WorkMode>('onsite');
   const [provinceCode, setProvinceCode] = useState('');
@@ -307,9 +314,8 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent aria-describedby={undefined} onOpenAutoFocus={(event) => {
-        if (focusResume) {
+        if (focusField) {
           event.preventDefault();
-          requestAnimationFrame(() => document.getElementById('job-resume')?.focus());
         }
       }} className="flex max-w-2xl max-h-[90dvh] flex-col overflow-hidden rounded-2xl p-4 sm:p-6 [&>button:last-child]:size-11 [&>button:last-child]:grid [&>button:last-child]:place-items-center [&>button:last-child]:right-1 [&>button:last-child]:top-1 [&>button:last-child]:before:inset-0">
         <DialogHeader>
@@ -341,7 +347,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                 placeholder="e.g. Stripe, Tokopedia, GoTo"
                 aria-invalid={Boolean(fieldErrors.company)}
                 aria-describedby={fieldErrors.company ? 'job-company-error' : undefined}
-                autoFocus
+                autoFocus={!focusField}
                 className="h-11 text-base sm:text-sm"
               />
               {fieldErrors.company && (
@@ -481,7 +487,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
 
             <div className="space-y-1.5">
               <label htmlFor="job-interview-date" className="block text-xs font-semibold text-foreground">
-                Interview date
+                Interview or test date
               </label>
               <Input
                 id="job-interview-date"
@@ -806,7 +812,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                       <span>{jdMatch.score}% keyword match</span>
                     </Badge>
                     <span className="text-xs text-muted-foreground tabular-nums">
-                      ({jdMatch.matchedKeywords.length} of {jdMatch.totalKeywords} key terms in {linkedResume?.title})
+                      ({jdMatch.matchedCount} of {jdMatch.totalKeywords} key terms in {linkedResume?.title})
                     </span>
                   </div>
                 </div>
