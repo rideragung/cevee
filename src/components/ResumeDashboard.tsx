@@ -68,6 +68,7 @@ interface ResumeDashboardProps {
   onPreviewResume: (id: string) => void;
   onDownloadResume: (id: string) => void;
   jobs?: JobApplication[];
+  jobSyncNotice?: React.ReactNode;
   activeTab?: DashboardWorkspaceTab;
   onTabChange?: (tab: DashboardWorkspaceTab) => void;
   onSaveJob?: (input: JobApplicationInput, existingId?: string) => void;
@@ -163,6 +164,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
   onPreviewResume,
   onDownloadResume,
   jobs = [],
+  jobSyncNotice,
   activeTab,
   onTabChange,
   onSaveJob,
@@ -625,7 +627,7 @@ export const ResumeDashboard: React.FC<ResumeDashboardProps> = ({
             }
             onSelectResume={onSelectResume}
             onPreviewResume={onPreviewResume}
-            syncStatus={syncStatus}
+            syncNotice={jobSyncNotice}
             isCloudUser={!isGuest}
           />
         ) : (

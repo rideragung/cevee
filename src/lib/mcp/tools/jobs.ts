@@ -220,15 +220,16 @@ export const registerJobTools = (
           ? undefined
           : progressStage !== undefined
           ? normalizeProgressStage(progressStage)
-          : nextStatus === 'on_progress'
-          ? current.progressStage ?? 'hr_interview'
-          : current.progressStage;
+          : nextStatus === 'archived' || nextStatus === current.status || (current.status === 'archived' && nextStatus === 'on_progress')
+          ? current.progressStage : undefined;
 
       const next: JobApplication = {
         ...current,
         company: company !== undefined ? company.trim() : current.company,
         role: role !== undefined ? role.trim() : current.role,
         status: nextStatus,
+        archivedFrom: nextStatus === 'archived'
+          ? (current.status === 'archived' ? current.archivedFrom : current.status) : undefined,
         progressStage: nextProgressStage,
         employmentType:
           employmentType !== undefined

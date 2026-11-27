@@ -107,8 +107,7 @@ const insertJob = async (job: JobApplication, userId: string): Promise<SaveJobRe
 
 const updateJob = async (
   job: JobApplication,
-  expectedVersion: number,
-  userId: string
+  expectedVersion: number
 ): Promise<SaveJobResult> => {
   const supabase = getSupabase();
   if (!supabase) return { ok: false, reason: 'unauthenticated' };
@@ -133,7 +132,7 @@ const updateJob = async (
   if (!data) {
     const latest = await fetchUserJob(job.id);
     if (!latest) {
-      return insertJob(job, userId);
+      return { ok: false, reason: 'error', message: 'The application could not be found in the cloud.' };
     }
     return { ok: false, reason: 'conflict', latest };
   }
@@ -146,7 +145,8 @@ const updateJob = async (
 
 export const saveUserJob = async (
   job: JobApplication,
-  expectedVersion?: number
+  expectedVersion?: number,
+  owner?: string
 ): Promise<SaveJobResult> => {
   const supabase = getSupabase();
   if (!supabase) return { ok: false, reason: 'unauthenticated' };
@@ -155,13 +155,13 @@ export const saveUserJob = async (
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return { ok: false, reason: 'unauthenticated' };
+    if (!user || (owner && owner !== user.id)) return { ok: false, reason: 'unauthenticated' };
 
     if (expectedVersion === undefined || expectedVersion <= 0) {
       return await insertJob(job, user.id);
     }
 
-    return await updateJob(job, expectedVersion, user.id);
+    return await updateJob(job, expectedVersion);
   } catch (err) {
     console.error('Failed to save job application:', err);
     return {
@@ -220,7 +220,7 @@ export const deleteUserJob = async (id: string): Promise<boolean> => {
 
     if (error) {
       if (isMissingTableError(error.message, error.code)) {
-        return true;
+        return false;
       }
       console.error('Error deleting job application from Supabase:', error);
       return false;

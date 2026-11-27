@@ -125,8 +125,8 @@ export const JOB_INDUSTRIES: readonly JobIndustry[] = [
 
 export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   applied: 'Applied',
-  on_progress: 'On progress',
-  offering: 'Offering',
+  on_progress: 'In progress',
+  offering: 'Offer',
   rejected: 'Rejected',
   archived: 'Archived',
 };
@@ -240,6 +240,7 @@ export interface JobApplication {
   company: string;
   role: string;
   status: JobStatus;
+  archivedFrom?: ActiveJobStatus;
   progressStage?: JobProgressStage;
   employmentType: EmploymentType;
   workMode: WorkMode;

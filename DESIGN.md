@@ -359,6 +359,14 @@ feedback only.
 - **Responsive and accessibility:** all form inputs and selects are `h-11` (44px) with `text-base sm:text-sm` to avoid iOS zoom; employment/progress chips and small resume actions keep their `h-8` visual but gain a 44px pseudo hit area; the dialog close control has a 44px pseudo hit area. The form uses `min-w-0` so long native select options cannot widen the dialog past 390px. Dialog description and helper prose were removed after the focus test; the disabled city placeholder already explains the dependency.
 - **Persistence:** `province_code`, `regency_code`, `job_platform`, `industry` (empty-string defaults) and `interview_date` (nullable) are additive columns, mapped by `jobRow.ts` and accepted by the MCP `create_job`/`update_job` tools; `list_jobs` can filter by platform or industry. Existing free-text `location` rows remain valid and open in the manual location mode.
 
+## Job tracker: board-first layout (current)
+
+The board starts with search and filters. `View insights` opens the stage distribution and daily activity charts without resetting filters. Cards lead with role, company, selection step or interview date, then the linked resume. Keyword coverage is explicitly labeled `Keyword match`; employment metadata stays in the application form and list.
+
+The four stage labels are `Applied`, `In progress`, `Offer`, and `Rejected`. Choosing a step is optional and independent of moving between columns. After a move outside the current filter, `View card` opens the application without changing the filter. Archive restoration returns to the recorded stage and step; older archives without an origin show `Restore to…`.
+
+New application forms begin with company, role and stage. `More details` expands the remaining fields without resetting them. The form body scrolls separately from its save and cancel controls. A resume must be selected before duplicating it; saving the application commits the new link.
+
 ## Conflict Dialog: Resume Changed Elsewhere (2026-11-26)
 
 - Dipicu oleh guard optimistik `version` saat resume aktif berubah di tab lain atau melalui Cevee MCP.

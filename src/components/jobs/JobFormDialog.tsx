@@ -64,6 +64,7 @@ interface JobFormDialogProps {
   onClose: () => void;
   initialJob?: JobApplication | null;
   defaultStatus?: ActiveJobStatus;
+  focusResume?: boolean;
   resumes: ResumeDocument[];
   onSave: (input: JobApplicationInput, existingId?: string) => void;
   onTailorResume?: (baseResumeId: string, company: string, role: string) => string | null;
@@ -75,6 +76,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
   onClose,
   initialJob,
   defaultStatus = 'applied',
+  focusResume = false,
   resumes,
   onSave,
   onTailorResume,
@@ -83,7 +85,8 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
   const [company, setCompany] = useState('');
   const [role, setRole] = useState('');
   const [status, setStatus] = useState<JobStatus>(defaultStatus);
-  const [progressStage, setProgressStage] = useState<JobProgressStage>('hr_interview');
+  const [progressStage, setProgressStage] = useState<JobProgressStage>();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [employmentType, setEmploymentType] = useState<EmploymentType>('full_time');
   const [workMode, setWorkMode] = useState<WorkMode>('onsite');
   const [provinceCode, setProvinceCode] = useState('');
@@ -109,6 +112,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     setFieldErrors({});
+    setDetailsOpen(Boolean(initialJob));
     setTailorNotice(null);
     if (initialJob) {
       const initialProvince = getProvinceName(initialJob.provinceCode)
@@ -120,7 +124,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
       setCompany(initialJob.company);
       setRole(initialJob.role);
       setStatus(initialJob.status);
-      setProgressStage(initialJob.progressStage || 'hr_interview');
+      setProgressStage(initialJob.progressStage);
       setEmploymentType(initialJob.employmentType || 'full_time');
       setWorkMode(initialJob.workMode);
       setProvinceCode(
@@ -145,7 +149,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
       setCompany('');
       setRole('');
       setStatus(defaultStatus);
-      setProgressStage('hr_interview');
+      setProgressStage(undefined);
       setEmploymentType('full_time');
       setWorkMode('onsite');
       setProvinceCode('');
@@ -159,11 +163,11 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
       setJobUrl('');
       setAppliedDate(new Date().toISOString().slice(0, 10));
       setInterviewDate('');
-      setResumeId(resumes[0]?.id || '');
+      setResumeId('');
       setJobDescription('');
       setNotes('');
     }
-  }, [isOpen, initialJob, defaultStatus, resumes]);
+  }, [isOpen, initialJob, defaultStatus]);
 
   const linkedResume = useMemo(
     () => resumes.find((r) => r.id === resumeId) || null,
@@ -263,17 +267,16 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
 
   const handleTailorDuplicate = () => {
     if (!onTailorResume) return;
-    const baseId = resumeId || resumes[0]?.id;
+    const baseId = resumeId;
     if (!baseId) return;
     const newId = onTailorResume(baseId, company.trim(), role.trim());
     if (newId) {
       setResumeId(newId);
-      setTailorNotice('Created and linked a tailored resume copy for this application.');
+      setTailorNotice('Copy created. Save the application to link it.');
     }
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
+  const saveDraft = () => {
     const nextErrors: { company?: string; role?: string } = {};
     if (!company.trim()) {
       nextErrors.company = 'Enter the company name.';
@@ -289,23 +292,34 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
       } else if (nextErrors.role) {
         roleInputRef.current?.focus();
       }
-      return;
+      return false;
     }
 
     onSave(buildInput(), initialJob?.id);
+    return true;
+  };
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!saveDraft()) return;
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-6">
+      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(event) => {
+        if (focusResume) {
+          event.preventDefault();
+          requestAnimationFrame(() => document.getElementById('job-resume')?.focus());
+        }
+      }} className="flex max-w-2xl max-h-[90dvh] flex-col overflow-hidden rounded-2xl p-4 sm:p-6 [&>button:last-child]:size-11 [&>button:last-child]:grid [&>button:last-child]:place-items-center [&>button:last-child]:right-1 [&>button:last-child]:top-1 [&>button:last-child]:before:inset-0">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
             {initialJob ? 'Edit application' : 'Add job application'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} noValidate className="space-y-4 mt-2 min-w-0">
+        <form onSubmit={handleSubmit} noValidate className="flex min-h-0 min-w-0 flex-col">
+          <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-1 py-2">
           {/* Row 1: Company & Role */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div className="space-y-1.5">
@@ -368,6 +382,15 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
 
           {/* Row 2: Employment Type (1-Click Chips) */}
           <div className="space-y-1.5">
+            <label htmlFor="job-status" className="block text-xs font-semibold">Stage</label>
+            <select id="job-status" value={status} onChange={(e) => setStatus(e.target.value as JobStatus)} className="h-11 w-full rounded-[0.875rem] border border-input bg-card px-3 text-base sm:text-sm">
+              {ACTIVE_JOB_STATUSES.map((st) => <option key={st} value={st}>{JOB_STATUS_LABELS[st]}</option>)}
+              {initialJob?.status === 'archived' && <option value="archived">Archived</option>}
+            </select>
+          </div>
+          <button type="button" aria-controls="job-details" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(!detailsOpen)} className="min-h-11 text-sm font-semibold text-primary">{detailsOpen ? 'Hide details' : 'More details'}</button>
+          <div id="job-details" hidden={!detailsOpen} className="space-y-4">
+          <div className="space-y-1.5">
             <span id="job-employment-type-label" className="block text-xs font-semibold text-foreground">
               Employment type
             </span>
@@ -398,31 +421,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             </div>
           </div>
 
-          {/* Row 3: Stage, Work mode, Applied date */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <div className="space-y-1.5">
-              <label htmlFor="job-status" className="block text-xs font-semibold text-foreground">
-                Stage
-              </label>
-              <select
-                id="job-status"
-                name="status"
-                value={status}
-                onChange={(e) => {
-                  setStatus(e.target.value as JobStatus);
-                }}
-                className="flex h-11 w-full min-w-0 rounded-[0.875rem] border border-input bg-card px-3 py-2 text-base text-foreground sm:text-sm shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {ACTIVE_JOB_STATUSES.map((st) => (
-                  <option key={st} value={st}>
-                    {JOB_STATUS_LABELS[st]}
-                  </option>
-                ))}
-                {initialJob?.status === 'archived' && (
-                  <option value="archived">{JOB_STATUS_LABELS.archived}</option>
-                )}
-              </select>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
 
             <div className="space-y-1.5">
               <label htmlFor="job-work-mode" className="block text-xs font-semibold text-foreground">
@@ -516,7 +515,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                       key={stage}
                       type="button"
                       aria-pressed={isSelected}
-                      onClick={() => setProgressStage(stage)}
+                      onClick={() => setProgressStage(isSelected ? undefined : stage)}
                       className={cn(
                         'relative inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring after:absolute after:-inset-y-1.5 after:content-[\'\']',
                         isSelected
@@ -722,6 +721,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                     variant="secondary"
                     size="sm"
                     onClick={handleTailorDuplicate}
+                    disabled={!resumeId}
                     className="relative h-8 gap-1.5 text-xs font-medium after:absolute after:-inset-y-1.5 after:content-['']"
                     title="Create a duplicate resume tailored for this role"
                   >
@@ -734,16 +734,7 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        const input = buildInput();
-                        onSave(
-                          {
-                            ...input,
-                            company: input.company || 'Untitled Company',
-                            role: input.role || 'Untitled Role',
-                          },
-                          initialJob?.id
-                        );
-                        onOpenResumeEditor(resumeId);
+                        if (saveDraft()) onOpenResumeEditor(resumeId);
                       }}
                       className="relative h-8 gap-1 text-xs font-medium text-primary after:absolute after:-inset-y-1.5 after:content-[''] hover:text-primary"
                     >
@@ -876,7 +867,9 @@ export const JobFormDialog: React.FC<JobFormDialogProps> = ({
             />
           </div>
 
-          <DialogFooter className="pt-2 gap-2">
+          </div>
+          </div>
+          <DialogFooter className="shrink-0 gap-2 border-t border-border pt-3">
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>

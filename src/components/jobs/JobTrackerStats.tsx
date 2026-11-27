@@ -375,7 +375,7 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
             hoveredKey={hoveredStage}
             onHoverChange={setHoveredStage}
             onSelect={handleToggleStage}
-            ariaLabel={`Applications by stage: ${stats.total} total (${stats.applied} applied, ${stats.onProgress} on progress, ${stats.offering} offering, ${stats.rejected} rejected)`}
+            ariaLabel={`Applications by stage: ${stats.total} total (${stats.applied} applied, ${stats.onProgress} in progress, ${stats.offering} offer, ${stats.rejected} rejected)`}
           />
 
           {/* 4 Clickable Stage Filter Rows (Solid Bullets) */}

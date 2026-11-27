@@ -1,4 +1,6 @@
 import {
+  ACTIVE_JOB_STATUSES,
+  type ActiveJobStatus,
   JobApplication,
   JobApplicationInput,
   normalizeEmploymentType,
@@ -16,6 +18,7 @@ export interface JobRow {
   company: string;
   role: string;
   status?: string | null;
+  archived_from?: string | null;
   progress_stage?: string | null;
   employment_type?: string | null;
   work_mode?: string | null;
@@ -37,15 +40,15 @@ export interface JobRow {
 
 export const mapJobRowToDocument = (row: JobRow): JobApplication => {
   const status = normalizeJobStatus(row.status);
-  const progressStage =
-    normalizeProgressStage(row.progress_stage) ??
-    (status === 'on_progress' ? 'hr_interview' : undefined);
+  const progressStage = normalizeProgressStage(row.progress_stage);
 
   return {
     id: row.id,
     company: row.company || '',
     role: row.role || '',
     status,
+    archivedFrom: status === 'archived' && ACTIVE_JOB_STATUSES.includes(row.archived_from as ActiveJobStatus)
+      ? row.archived_from as ActiveJobStatus : undefined,
     progressStage,
     employmentType: normalizeEmploymentType(row.employment_type),
     workMode: normalizeWorkMode(row.work_mode),
@@ -73,10 +76,7 @@ export const buildJobRowPayload = (
   userId?: string
 ): Record<string, unknown> => {
   const status = normalizeJobStatus(job.status);
-  const progressStage =
-    status === 'on_progress'
-      ? normalizeProgressStage(job.progressStage) ?? 'hr_interview'
-      : normalizeProgressStage(job.progressStage) ?? null;
+  const progressStage = normalizeProgressStage(job.progressStage) ?? null;
 
   const payload: Record<string, unknown> = {
     id: job.id,
@@ -85,6 +85,7 @@ export const buildJobRowPayload = (
     role: job.role.trim(),
     status,
     progress_stage: progressStage,
+    archived_from: status === 'archived' ? job.archivedFrom ?? null : null,
     employment_type: normalizeEmploymentType(job.employmentType),
     work_mode: normalizeWorkMode(job.workMode),
     location: job.location.trim(),
@@ -115,10 +116,7 @@ export const createJobApplication = (
 ): JobApplication => {
   const now = new Date().toISOString();
   const status = normalizeJobStatus(input.status);
-  const progressStage =
-    status === 'on_progress'
-      ? normalizeProgressStage(input.progressStage) ?? 'hr_interview'
-      : normalizeProgressStage(input.progressStage);
+  const progressStage = normalizeProgressStage(input.progressStage);
   const defaultAppliedDate = input.appliedDate?.trim() || now.slice(0, 10);
 
   return {
