@@ -161,7 +161,10 @@ function PickerMenu({
 
 export interface PillowDatePickerProps {
   value?: Date;
+  yearFilterActive?: boolean;
   onChange?: (date: Date | undefined) => void;
+  selectedYearFilter?: number | null;
+  onYearFilterChange?: (year: number | null) => void;
   /**
    * Fires whenever the visible month changes while browsing (arrows or the
    * month and year menus) without selecting a date. Lets the caller move the
@@ -180,7 +183,10 @@ export interface PillowDatePickerProps {
 
 function DatePicker({
   value,
+  yearFilterActive = false,
   onChange,
+  selectedYearFilter = null,
+  onYearFilterChange,
   onMonthChange,
   placeholder = 'Pick date',
   disabled,
@@ -222,6 +228,7 @@ function DatePicker({
         year: 'numeric',
       }).format(value)
     : null;
+  const triggerLabel = formatted ?? (yearFilterActive && selectedYearFilter !== null ? String(selectedYearFilter) : placeholder);
 
   const updateMonth = (next: Date) => {
     setMonth(next);
@@ -261,20 +268,20 @@ function DatePicker({
         <PopoverTrigger asChild>
           <Button
             type="button"
-            variant={value ? 'secondary' : 'outline'}
+            variant={value || yearFilterActive ? 'secondary' : 'outline'}
             size="sm"
             disabled={disabled}
             aria-label={ariaLabel}
             className={cn(
               'h-8 gap-1.5 rounded-xl px-1.5 text-xs font-medium tabular-nums',
-              value
+              value || yearFilterActive
                 ? 'border-primary/30 bg-accent font-semibold text-primary'
                 : 'text-muted-foreground hover:text-foreground',
-              value && !disabled && 'pr-7'
+              (value || yearFilterActive) && !disabled && 'pr-7'
             )}
           >
             <CalendarIcon className="size-3.5 shrink-0" aria-hidden="true" />
-            <span>{formatted ?? placeholder}</span>
+            <span>{triggerLabel}</span>
           </Button>
         </PopoverTrigger>
 
@@ -288,7 +295,11 @@ function DatePicker({
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-semibold text-foreground">Date filter</span>
               <span className="truncate text-[11px] text-muted-foreground tabular-nums">
-                {formatted ? `Selected: ${formatted}` : 'No date selected'}
+                {formatted
+                  ? `Selected: ${formatted}`
+                  : yearFilterActive && selectedYearFilter !== null
+                    ? `Selected: ${selectedYearFilter}`
+                    : 'No date selected'}
               </span>
             </div>
 
@@ -361,31 +372,64 @@ function DatePicker({
 
           <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2">
             <span className="truncate text-[10px] font-medium text-muted-foreground tabular-nums">
-              Browsing {month.getFullYear()}
+              {yearFilterActive && selectedYearFilter === month.getFullYear()
+                ? `Filtering ${month.getFullYear()}`
+                : `Browsing ${month.getFullYear()}`}
             </span>
 
             <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={isTodayUnavailable}
-                onClick={() => {
-                  onChange?.(new Date());
-                  setOpen(false);
-                }}
-                className="h-7 px-2.5 text-[11px] font-semibold"
-              >
-                Today
-              </Button>
+              {!(yearFilterActive && selectedYearFilter === month.getFullYear()) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    onYearFilterChange?.(month.getFullYear());
+                    onChange?.(undefined);
+                    setOpen(false);
+                  }}
+                  className="h-7 px-2.5 text-[11px] font-semibold"
+                >
+                  Filter year
+                </Button>
+              )}
+              {yearFilterActive && selectedYearFilter === month.getFullYear() ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    onYearFilterChange?.(null);
+                    setOpen(false);
+                  }}
+                  className="h-7 px-2.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={isTodayUnavailable}
+                  onClick={() => {
+                    onChange?.(new Date());
+                    setOpen(false);
+                  }}
+                  className="h-7 px-2.5 text-[11px] font-semibold"
+                >
+                  Today
+                </Button>
+              )}
 
-              {value && (
+              {(value || yearFilterActive) && selectedYearFilter !== month.getFullYear() && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     onChange?.(undefined);
+                    onYearFilterChange?.(null);
                     setOpen(false);
                   }}
                   className="h-7 px-2.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
@@ -398,12 +442,15 @@ function DatePicker({
         </PopoverContent>
       </Popover>
 
-      {value && !disabled && (
+      {(value || yearFilterActive) && !disabled && (
         <button
           type="button"
-          onClick={() => onChange?.(undefined)}
-          aria-label="Clear date filter"
-          title="Clear date"
+          onClick={() => {
+            onChange?.(undefined);
+            onYearFilterChange?.(null);
+          }}
+          aria-label="Clear date or year filter"
+          title="Clear filter"
           className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-primary/70 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring after:absolute after:-inset-1.5 after:content-['']"
         >
           <X className="size-3" aria-hidden="true" />

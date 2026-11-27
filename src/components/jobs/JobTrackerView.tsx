@@ -144,6 +144,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<ActiveJobStatus | 'all'>('all');
   const [employmentFilter, setEmploymentFilter] = useState<EmploymentType | 'all'>('all');
   const [dateFilter, setDateFilter] = useState<string | null>(null);
+  const [yearFilter, setYearFilter] = useState<number | null>(null);
   const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -219,6 +220,10 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
         const jobDate = (job.appliedDate || job.createdAt || '').slice(0, 10);
         if (jobDate !== dateFilter) return false;
       }
+      if (yearFilter !== null && !dateFilter) {
+        const jobYear = Number((job.appliedDate || job.createdAt || '').slice(0, 4));
+        if (jobYear !== yearFilter) return false;
+      }
       if (!normalizedQuery) return true;
       const linkedTitle = job.resumeId ? resumeMap.get(job.resumeId)?.title || '' : '';
       const stageText = job.progressStage ? JOB_PROGRESS_STAGE_LABELS[job.progressStage] : '';
@@ -229,7 +234,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
       return haystack.includes(normalizedQuery);
     });
     return sortJobs(filtered, sortBy);
-  }, [activeJobs, statusFilter, employmentFilter, dateFilter, normalizedQuery, sortBy, resumeMap]);
+  }, [activeJobs, statusFilter, employmentFilter, dateFilter, yearFilter, normalizedQuery, sortBy, resumeMap]);
 
   const visibleArchivedJobs = useMemo(() => {
     const filtered = archivedJobs.filter((job) => {
@@ -291,7 +296,8 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
     Boolean(normalizedQuery) ||
     statusFilter !== 'all' ||
     employmentFilter !== 'all' ||
-    Boolean(dateFilter);
+    Boolean(dateFilter) ||
+    (yearFilter !== null && !dateFilter);
 
   const renderProgressSubStagePill = (job: JobApplication) => {
     if (job.status !== 'on_progress') return null;
@@ -839,6 +845,10 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             onFilterChange={setStatusFilter}
             selectedDate={dateFilter}
             onDateFilterChange={setDateFilter}
+            selectedYearFilter={yearFilter}
+            onYearFilterChange={(year) => {
+              setYearFilter(year);
+            }}
           />
 
           {/* Toolbar */}
@@ -1050,6 +1060,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                   setStatusFilter('all');
                   setEmploymentFilter('all');
                   setDateFilter(null);
+                  setYearFilter(null);
                 }}
                 className="mt-3 text-xs"
               >

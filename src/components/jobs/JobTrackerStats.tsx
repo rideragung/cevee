@@ -24,6 +24,8 @@ interface JobTrackerStatsProps {
   onFilterChange: (nextFilter: ActiveJobStatus | 'all') => void;
   selectedDate: string | null;
   onDateFilterChange: (nextDate: string | null) => void;
+  selectedYearFilter?: number | null;
+  onYearFilterChange?: (nextYear: number | null) => void;
 }
 
 interface HeatmapDay {
@@ -93,6 +95,8 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
   onFilterChange,
   selectedDate,
   onDateFilterChange,
+  selectedYearFilter,
+  onYearFilterChange,
 }) => {
   const todayDate = useMemo(() => {
     const d = new Date();
@@ -318,6 +322,7 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
       return;
     }
     const iso = toLocalIsoDate(nextDate);
+    onYearFilterChange?.(null);
     setSelectedYear(nextDate.getFullYear());
     setFocusedIso(iso);
     onDateFilterChange(iso);
@@ -465,15 +470,20 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
               Daily applications
             </span>
             <span className="truncate text-[11px] text-muted-foreground tabular-nums">
-              {yearCountLabel}
+              {selectedYearFilter != null && !selectedDate
+                ? `${yearTotal} in ${selectedYear}`
+                : yearCountLabel}
             </span>
           </div>
 
           {/* Single control: browse the year, then optionally filter one date */}
           <DatePicker
             value={selectedDateValue}
+            yearFilterActive={!selectedDate && selectedYearFilter != null}
             onChange={handleDatePickerChange}
             onMonthChange={handlePickerMonthChange}
+            selectedYearFilter={selectedDate ? null : selectedYearFilter ?? null}
+            onYearFilterChange={onYearFilterChange}
             years={pickerYears}
             placeholder="Pick date"
             maxDate={todayDate}
@@ -481,7 +491,9 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
             ariaLabel={
               formattedSelectedDate
                 ? `Filtered by ${formattedSelectedDate}. Select another date`
-                : 'Pick a date to filter applications'
+                : selectedYearFilter != null && !selectedDate
+                  ? `Filtered by ${selectedYearFilter}. Select another date or year`
+                  : 'Pick a date to filter applications'
             }
           />
         </div>
@@ -618,6 +630,10 @@ export const JobTrackerStats: React.FC<JobTrackerStatsProps> = ({
                   {formattedSelectedDate}
                 </span>
                 {selectedDayObj ? ` (${selectedDayObj.count})` : ''}
+              </span>
+            ) : selectedYearFilter != null && !selectedDate ? (
+              <span>
+                <span className="font-semibold text-foreground">{yearTotal}</span> applications in {selectedYearFilter}
               </span>
             ) : yearTotal === 0 ? (
               <span>No applications logged in {selectedYear}</span>
