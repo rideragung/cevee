@@ -245,6 +245,28 @@ export const normalizeJobIndustry = (value?: string | null): JobIndustry | undef
   return undefined;
 };
 
+export interface JobFiltersState {
+  status: ActiveJobStatus | 'all';
+  progressStage: JobProgressStage | 'all';
+  employmentType: EmploymentType | 'all';
+  workMode: WorkMode | 'all';
+  jobPlatform: JobPlatform | 'all';
+  industry: JobIndustry | 'all';
+  upcomingInterviewOnly: boolean;
+  unlinkedResumeOnly: boolean;
+}
+
+export const DEFAULT_JOB_FILTERS: JobFiltersState = {
+  status: 'all',
+  progressStage: 'all',
+  employmentType: 'all',
+  workMode: 'all',
+  jobPlatform: 'all',
+  industry: 'all',
+  upcomingInterviewOnly: false,
+  unlinkedResumeOnly: false,
+};
+
 export interface JobApplication {
   id: string;
   company: string;

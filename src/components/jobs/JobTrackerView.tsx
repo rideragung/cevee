@@ -4,7 +4,6 @@ import {
   IconArchive as Archive,
   IconArrowLeft as ArrowLeft,
   IconArrowsSort as ArrowUpDown,
-  IconBriefcase as Briefcase,
   IconCalendar as Calendar,
   IconCalendarPlus as CalendarPlus,
   IconCheck as Check,
@@ -25,12 +24,10 @@ import {
   IconX as X,
 } from '@tabler/icons-react';
 import {
-  ACTIVE_JOB_STATUSES,
   ActiveJobStatus,
   BOARD_JOB_STATUSES,
+  DEFAULT_JOB_FILTERS,
   EMPLOYMENT_TYPE_LABELS,
-  EMPLOYMENT_TYPES,
-  EmploymentType,
   JOB_INDUSTRY_LABELS,
   JOB_PLATFORM_LABELS,
   JOB_PROGRESS_STAGE_LABELS,
@@ -39,6 +36,7 @@ import {
   JOB_STATUS_LABELS,
   JobApplication,
   JobApplicationInput,
+  JobFiltersState,
   JobProgressStage,
   JobStatus,
   WORK_MODE_LABELS,
@@ -49,6 +47,7 @@ import { downloadJobCalendar, eventLabel, scheduleDate } from '../../lib/domain/
 import { formatRelativeTime } from '../../utils/relativeTime';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { JobEmptyState } from './JobEmptyState';
+import { JobFilterDialog } from './JobFilterDialog';
 import { JobFormDialog } from './JobFormDialog';
 import { JobTrackerStats } from './JobTrackerStats';
 import {
@@ -56,7 +55,6 @@ import {
   JobSortKey,
   formatAppliedDate,
   formatInterviewDate,
-  getStatusIcon,
   getStatusPillClasses,
   sortJobs,
 } from './jobUiMeta';
@@ -143,11 +141,13 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   const [sortBy, setSortBy] = useState<JobSortKey>(() =>
     readStoredValue(JOB_SORT_STORAGE_KEY, JOB_SORT_KEYS, 'updated')
   );
-  const [statusFilter, setStatusFilter] = useState<ActiveJobStatus | 'all'>('all');
-  const [employmentFilter, setEmploymentFilter] = useState<EmploymentType | 'all'>('all');
+  const [filters, setFilters] = useState<JobFiltersState>(DEFAULT_JOB_FILTERS);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [periodFilter, setPeriodFilter] = useState<JobPeriodFilter | null>(null);
   const dateFilter = periodFilter && 'date' in periodFilter ? periodFilter.date : null;
   const yearFilter = periodFilter && 'year' in periodFilter ? periodFilter.year : null;
+  const statusFilter = filters.status;
+  const filterTriggerRef = useRef<HTMLButtonElement>(null);
   const [showArchivedView, setShowArchivedView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -224,9 +224,25 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
   const visibleActiveJobs = useMemo(() => {
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const filtered = activeJobs.filter((job) => {
-      if (statusFilter !== 'all' && job.status !== statusFilter) return false;
-      if (employmentFilter !== 'all' && job.employmentType !== employmentFilter) return false;
+      if (filters.status !== 'all' && job.status !== filters.status) return false;
+      if (
+        filters.progressStage !== 'all' &&
+        (job.status !== 'on_progress' || job.progressStage !== filters.progressStage)
+      ) {
+        return false;
+      }
+      if (filters.employmentType !== 'all' && job.employmentType !== filters.employmentType) return false;
+      if (filters.workMode !== 'all' && job.workMode !== filters.workMode) return false;
+      if (filters.jobPlatform !== 'all' && job.jobPlatform !== filters.jobPlatform) return false;
+      if (filters.industry !== 'all' && job.industry !== filters.industry) return false;
+      if (filters.upcomingInterviewOnly) {
+        const interview = job.interviewDate?.slice(0, 10);
+        if (!interview || interview < todayIso || job.status === 'rejected') return false;
+      }
+      if (filters.unlinkedResumeOnly && job.resumeId) return false;
       if (dateFilter) {
         const jobDate = (job.appliedDate || job.createdAt || '').slice(0, 10);
         if (jobDate !== dateFilter) return false;
@@ -239,13 +255,14 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
       const linkedTitle = job.resumeId ? resumeMap.get(job.resumeId)?.title || '' : '';
       const stageText = job.progressStage ? JOB_PROGRESS_STAGE_LABELS[job.progressStage] : '';
       const typeText = EMPLOYMENT_TYPE_LABELS[job.employmentType] || '';
+      const workModeText = WORK_MODE_LABELS[job.workMode] || '';
       const platformText = job.jobPlatform ? JOB_PLATFORM_LABELS[job.jobPlatform] : '';
       const industryText = job.industry ? JOB_INDUSTRY_LABELS[job.industry] : '';
-      const haystack = `${job.company} ${job.role} ${job.location} ${job.notes} ${linkedTitle} ${stageText} ${typeText} ${platformText} ${industryText}`.toLowerCase();
+      const haystack = `${job.company} ${job.role} ${job.location} ${job.notes} ${linkedTitle} ${stageText} ${typeText} ${workModeText} ${platformText} ${industryText}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
     return sortJobs(filtered, sortBy);
-  }, [activeJobs, statusFilter, employmentFilter, dateFilter, yearFilter, normalizedQuery, sortBy, resumeMap]);
+  }, [activeJobs, filters, dateFilter, yearFilter, normalizedQuery, sortBy, resumeMap]);
 
   const visibleArchivedJobs = useMemo(() => {
     const filtered = archivedJobs.filter((job) => {
@@ -302,15 +319,27 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
 
   const currentSortLabel =
     JOB_SORT_OPTIONS.find((opt) => opt.key === sortBy)?.label ?? 'Last updated';
-  const currentFilterLabel =
-    statusFilter === 'all' ? 'All stages' : JOB_STATUS_LABELS[statusFilter];
-  const currentTypeFilterLabel =
-    employmentFilter === 'all' ? 'All types' : EMPLOYMENT_TYPE_LABELS[employmentFilter];
-  const hasActiveFilters =
-    Boolean(normalizedQuery) ||
-    statusFilter !== 'all' ||
-    employmentFilter !== 'all' ||
-    periodFilter !== null;
+  const activeFilterCount =
+    (filters.status !== 'all' ? 1 : 0) +
+    (filters.progressStage !== 'all' ? 1 : 0) +
+    (filters.employmentType !== 'all' ? 1 : 0) +
+    (filters.workMode !== 'all' ? 1 : 0) +
+    (filters.jobPlatform !== 'all' ? 1 : 0) +
+    (filters.industry !== 'all' ? 1 : 0) +
+    (filters.upcomingInterviewOnly ? 1 : 0) +
+    (filters.unlinkedResumeOnly ? 1 : 0) +
+    (periodFilter !== null ? 1 : 0);
+  const periodLabel = dateFilter
+    ? formatAppliedDate(dateFilter)
+    : yearFilter !== null
+      ? String(yearFilter)
+      : null;
+  const hasActiveFilters = Boolean(normalizedQuery) || activeFilterCount > 0;
+  const clearAllFilters = (includeSearch = false) => {
+    setFilters(DEFAULT_JOB_FILTERS);
+    setPeriodFilter(null);
+    if (includeSearch) setSearchQuery('');
+  };
 
   const renderStageDropdown = (job: JobApplication, board = false) => (
     <DropdownMenu>
@@ -842,9 +871,23 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
 
           {/* Toolbar */}
           <JobTrackerStats
-            stats={stats} jobs={activeJobs} activeFilter={statusFilter} onFilterChange={setStatusFilter}
-            selectedDate={dateFilter} onDateFilterChange={date => setPeriodFilter(date ? { date } : null)}
-            selectedYearFilter={yearFilter} onYearFilterChange={year => setPeriodFilter(year === null ? null : { year })}
+            stats={stats}
+            jobs={activeJobs}
+            activeFilter={statusFilter}
+            onFilterChange={(nextStatus) =>
+              setFilters((prev) => ({
+                ...prev,
+                status: nextStatus,
+                progressStage:
+                  nextStatus === 'all' || nextStatus === 'on_progress'
+                    ? prev.progressStage
+                    : 'all',
+              }))
+            }
+            selectedDate={dateFilter}
+            onDateFilterChange={(date) => setPeriodFilter(date ? { date } : null)}
+            selectedYearFilter={yearFilter}
+            onYearFilterChange={(year) => setPeriodFilter(year === null ? null : { year })}
           />
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
             <div className="relative w-full sm:flex-1 sm:min-w-0">
@@ -887,80 +930,59 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 <span>Archived ({archivedJobs.length})</span>
               </Button>
 
-              {/* Stage Filter */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="relative h-9 gap-2 text-xs font-medium text-foreground after:absolute after:-inset-2 after:content-['']"
-                    title="Filter by stage"
-                    aria-label={`Filter by stage, currently ${currentFilterLabel}`}
-                  >
-                    <Filter className="size-3.5 text-muted-foreground" />
-                    <span>{currentFilterLabel}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem
-                    onClick={() => setStatusFilter('all')}
-                    className="flex items-center justify-between text-xs cursor-pointer"
-                  >
-                    <span>All stages</span>
-                    {statusFilter === 'all' && <Check className="size-3.5 text-primary" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {ACTIVE_JOB_STATUSES.map((st) => (
-                    <DropdownMenuItem
-                      key={st}
-                      onClick={() => setStatusFilter(st)}
-                      className="flex items-center justify-between text-xs cursor-pointer"
-                    >
-                      <span className="flex items-center gap-2">
-                        {getStatusIcon(st, 'size-3.5 text-muted-foreground')}
-                        <span>{JOB_STATUS_LABELS[st]}</span>
-                      </span>
-                      {statusFilter === st && <Check className="size-3.5 text-primary" />}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Unified Filters Trigger */}
+              <div className="relative inline-flex shrink-0">
+                <Button
+                  ref={filterTriggerRef}
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsFilterOpen(true)}
+                  aria-haspopup="dialog"
+                  aria-expanded={isFilterOpen}
+                  aria-label={
+                    activeFilterCount > 0
+                      ? `Filters, ${activeFilterCount} active`
+                      : 'Filter applications'
+                  }
+                  title="Filter applications"
+                  className={cn(
+                    'relative h-9 text-xs transition-colors',
+                    activeFilterCount > 0
+                      ? 'gap-1.5 border border-primary/30 bg-accent pr-8 font-semibold text-primary hover:bg-accent/90 after:absolute after:-inset-y-2 after:left-0 after:right-7 after:content-[""]'
+                      : 'gap-2 font-medium text-foreground after:absolute after:-inset-2 after:content-[""]'
+                  )}
+                >
+                  <Filter
+                    className={cn(
+                      'size-3.5 shrink-0',
+                      activeFilterCount > 0 ? 'text-primary' : 'text-muted-foreground'
+                    )}
+                    aria-hidden="true"
+                  />
+                  <span>Filters</span>
+                  {activeFilterCount > 0 && (
+                    <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground tabular-nums">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
 
-              {/* Employment Type Filter */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="relative h-9 gap-2 text-xs font-medium text-foreground after:absolute after:-inset-2 after:content-['']"
-                    title="Filter by employment type"
-                    aria-label={`Filter by employment type, currently ${currentTypeFilterLabel}`}
+                {activeFilterCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearAllFilters(false);
+                      filterTriggerRef.current?.focus();
+                    }}
+                    aria-label="Clear all filters"
+                    title="Clear all filters"
+                    className="absolute right-1.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-primary/80 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring after:absolute after:-inset-y-2 after:-inset-x-1 after:content-['']"
                   >
-                    <Briefcase className="size-3.5 text-muted-foreground" />
-                    <span>{currentTypeFilterLabel}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuItem
-                    onClick={() => setEmploymentFilter('all')}
-                    className="flex items-center justify-between text-xs cursor-pointer"
-                  >
-                    <span>All types</span>
-                    {employmentFilter === 'all' && <Check className="size-3.5 text-primary" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {EMPLOYMENT_TYPES.map((type) => (
-                    <DropdownMenuItem
-                      key={type}
-                      onClick={() => setEmploymentFilter(type)}
-                      className="flex items-center justify-between text-xs cursor-pointer"
-                    >
-                      <span>{EMPLOYMENT_TYPE_LABELS[type]}</span>
-                      {employmentFilter === type && <Check className="size-3.5 text-primary" />}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <X className="size-3" aria-hidden="true" />
+                  </button>
+                )}
+              </div>
 
               {/* Sort Menu */}
               <DropdownMenu>
@@ -1034,11 +1056,6 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
             </div>
           </div>
 
-          {hasActiveFilters && <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span>{visibleActiveJobs.length} of {activeJobs.length} applications</span>
-                {dateFilter || yearFilter ? <button onClick={() => setPeriodFilter(null)} aria-label="Clear period filter" className="rounded-lg bg-secondary px-2 py-1">{dateFilter ?? yearFilter} ×</button> : null}
-                <button className="font-semibold text-primary" onClick={() => { setSearchQuery(''); setStatusFilter('all'); setEmploymentFilter('all'); setPeriodFilter(null); }}>Clear filters</button>
-          </div>}
           {visibleActiveJobs.length === 0 ? (
             <Card className="px-6 py-16 text-center">
               <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
@@ -1054,12 +1071,7 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
                 type="button"
                 variant="link"
                 size="sm"
-                onClick={() => {
-                  setSearchQuery('');
-                  setStatusFilter('all');
-                  setEmploymentFilter('all');
-                  setPeriodFilter(null);
-                }}
+                onClick={() => clearAllFilters(true)}
                 className="mt-3 text-xs"
               >
                 Reset filters
@@ -1387,6 +1399,19 @@ export const JobTrackerView: React.FC<JobTrackerViewProps> = ({
           </Button>
         </div>
       )}
+
+      {/* Unified Filters Modal */}
+      <JobFilterDialog
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        filters={filters}
+        onChange={setFilters}
+        periodLabel={periodLabel}
+        onClearPeriod={() => setPeriodFilter(null)}
+        onResetAll={() => clearAllFilters(false)}
+        activeCount={activeFilterCount}
+        resultCount={visibleActiveJobs.length}
+      />
 
       {/* Add / Edit Modal */}
       <JobFormDialog
